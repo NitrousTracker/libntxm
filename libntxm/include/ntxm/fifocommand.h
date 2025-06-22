@@ -145,6 +145,7 @@ void CommandStopPlay(void);
 void CommandSetDebugStrPtr(char **arm7debugstrs, u16 debugstrsize, u8 n_debugbufs);
 void CommandPlayInst(u8 inst, u8 note, u8 volume, u8 channel);
 void CommandStopInst(u8 channel);
+void CommandStopMidiInst(u8 inst, u8 note, u8 volume, u8 channel);
 void CommandMicOn(void);
 void CommandMicOff(void);
 void CommandSetPatternLoop(bool state);
