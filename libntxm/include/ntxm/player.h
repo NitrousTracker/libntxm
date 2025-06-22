@@ -139,7 +139,7 @@ class Player {
 		// Play the given sample (and send a notification when done)
 		void playSample(Sample *sample, u8 note, u8 volume, u8 channel);
 
-		void stopNode(u8 note, u8 volume, u8 channel, u8 instidx);
+		void stopNote(u8 note, u8 volume, u8 channel, u8 instidx);
 
 		// Stop playback on a channel
 		void stopChannel(u8 channel);
