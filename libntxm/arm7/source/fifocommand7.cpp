@@ -93,6 +93,10 @@ static void RecvCommandStopInst(StopInstCommand *c) {
     ntxm7->stopChannel(c->channel);
 }
 
+static void RecvCommandStopMidiInst(StopMidiInstCommand *c) {
+    ntxm7->stopChannel(c->channel);
+}
+
 static void RecvCommandPatternLoop(PatternLoopCommand *c) {
     ntxm7->setPatternLoop(c->state);
 }
@@ -196,6 +200,9 @@ void CommandRecvHandler(int bytes, void *user_data) {
             break;
         case STOP_INST:
             RecvCommandStopInst(&command.stopInst);
+            break;
+        case STOP_MIDI_INST:
+            RecvCommandStopMidiInst(&command.stopMidiInst);
             break;
         case MIC_ON:
             RecvCommandMicOn();
