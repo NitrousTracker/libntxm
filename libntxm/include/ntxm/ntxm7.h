@@ -62,6 +62,9 @@ class NTXM7
 		//  volume: 0-255
 		// channel: 0-15, 255=auto
 		void playNote(u8 instidx, u8 note=48, u8 volume=255, u8 channel=255);
+
+		// Find a note currently being played by an instument, and stop it.
+		void stopNote(u8 note, u8 volume, u8 channel, u8 instidx);
 		
 		// Play the given sample (and send a notification when done)
 		void playSample(Sample *sample, u8 note, u8 volume, u8 channel);

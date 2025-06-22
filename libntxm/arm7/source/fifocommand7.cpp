@@ -94,7 +94,7 @@ static void RecvCommandStopInst(StopInstCommand *c) {
 }
 
 static void RecvCommandStopMidiInst(StopMidiInstCommand *c) {
-    ntxm7->stopChannel(c->channel);
+    ntxm7->stopNote(c->note, c->volume, c->channel, c->inst);
 }
 
 static void RecvCommandPatternLoop(PatternLoopCommand *c) {
