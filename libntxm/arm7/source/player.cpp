@@ -234,6 +234,14 @@ void Player::playSample(Sample *sample, u8 note, u8 volume, u8 channel)
 	sample->play(note, volume, channel);
 }
 
+void Player::stopNote(u8 note, u8 volume, u8 channel, u8 instidx) {
+	for (u8 i = 0; i < MAX_CHANNELS; i++) {
+		if(state.channel_note[i] == note && state.channel_instrument[i] == instidx) {
+			stopChannel(i);
+		}
+	}
+}
+
 // Stop playback on a channel
 void Player::stopChannel(u8 channel)
 {
