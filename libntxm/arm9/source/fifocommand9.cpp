@@ -13,6 +13,7 @@ void (*onUpdateRow)(u16 row) = 0;
 void (*onStop)(void) = 0;
 void (*onPlaySampleFinished)(void) = 0;
 void (*onPotPosChange)(u16 potpos) = 0;
+void (*onInstPlay)(u8 inst, u8 note, u32 offset_raw) = 0;
 
 void RegisterRowCallback(void (*onUpdateRow_)(u16))
 {
@@ -32,6 +33,11 @@ void RegisterPlaySampleFinishedCallback(void (*onPlaySampleFinished_)(void))
 void RegisterPotPosChangeCallback(void (*onPotPosChange_)(u16))
 {
     onPotPosChange = onPotPosChange_;
+}
+
+void RegisterInstPlayed(void (*onInstPlay_)(u8, u8, u32))
+{
+    onInstPlay = onInstPlay_;
 }
 
 void RecvCommandUpdateRow(UpdateRowCommand *c)
@@ -55,6 +61,10 @@ void RecvCommandNotifyStop(void)
 void RecvCommandSampleFinish(void) {
     if(onPlaySampleFinished)
         onPlaySampleFinished();
+}
+
+static void RecvCommandPlayInst(PlayInstCommand *c) {
+    onInstPlay(c->inst, c->note, c->offset);
 }
 
 void CommandRecvHandler(int bytes, void *user_data) {
@@ -83,6 +93,10 @@ void CommandRecvHandler(int bytes, void *user_data) {
 
         case SAMPLE_FINISH:
             RecvCommandSampleFinish();
+            break;
+
+        case PLAY_INST: // reusing this command so arm9 knows when to display playback cursor
+            RecvCommandPlayInst(&msg.playInst);
             break;
 
         default:
@@ -153,6 +167,17 @@ void CommandSetSong(void *song)
 
     command.commandType = SET_SONG;
     c->ptr = song;
+
+    fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
+}
+
+void CommandSelectInst(u8 inst)
+{
+    NTXMFifoMessage command;
+    SelectInstCommand* c = &command.selectInst;
+
+    command.commandType = SELECT_INST;
+    c->inst = inst;
 
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }

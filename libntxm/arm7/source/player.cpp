@@ -90,6 +90,11 @@ void Player::setPatternLoop(bool loopstate) {
 	state.patternloop = loopstate;
 }
 
+// Set current inst, so we can tell the sampledisplay widget when that note is playing.
+void Player::setCurrentInst(u8 instrument_idx) {
+	currentlySelectedInst = instrument_idx;
+}
+
 // Plays the song till the end starting at pattern order table position potpos and row row
 void Player::play(u8 potpos, u16 row, bool loop)
 {
@@ -209,7 +214,7 @@ void Player::playNote(u8 note, u8 volume, u8 channel, u8 instidx)
 	u8 pan = inst->getSampleForNote(note)->getBasePanning();
 	inst->getSampleForNote(note)->setPanning(pan);
 	
-	inst->play(note, volume, channel);
+	inst->play(note, volume, channel, currentlySelectedInst == instidx, instidx);
 }
 
 // Play the given sample (and send a notification when done)

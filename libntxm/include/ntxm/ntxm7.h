@@ -75,6 +75,7 @@ class NTXM7
 		// Set a pattern to looping
 		void setPatternLoop(bool loopstate);
 		
+		void setCurrentInst(u8 inst_);
 	private:
 		Player *player;
 };

@@ -103,3 +103,8 @@ void NTXM7::setPatternLoop(bool loopstate)
 {
 	player->setPatternLoop(loopstate);
 }
+
+void NTXM7::setCurrentInst(u8 instrument_idx)
+{
+	player->setCurrentInst(instrument_idx);
+}

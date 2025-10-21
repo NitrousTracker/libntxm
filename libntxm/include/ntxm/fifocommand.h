@@ -33,7 +33,8 @@ typedef enum {
     MIC_OFF,
     PATTERN_LOOP,
     SAMPLE_FINISH,
-    SET_STEREO_OUTPUT
+    SET_STEREO_OUTPUT,
+    SELECT_INST
 } NTXMFifoMessageType;
 
 struct PlaySampleCommand
@@ -44,6 +45,10 @@ struct PlaySampleCommand
     u8 channel;
 };
 
+struct SelectInstCommand
+{
+    u8 inst;
+};
 /* Command parameters for stopping a sample */
 struct StopSampleSoundCommand
 {
@@ -89,6 +94,7 @@ struct PlayInstCommand {
     u8 note;
     u8 volume;
     u8 channel;
+    u32 offset;
 };
 
 struct StopInstCommand {
@@ -129,6 +135,7 @@ typedef struct NTXMFifoMessage {
         StopMatchingInstCommand    stopMatchingInst;
         PatternLoopCommand     ptnLoop;
         SetStereoOutputCommand setStereoOutput;
+        SelectInstCommand      selectInst;
     };
 } NTXMFifoMessage;
 
@@ -152,11 +159,13 @@ void CommandMicOn(void);
 void CommandMicOff(void);
 void CommandSetPatternLoop(bool state);
 void CommandSetStereoOutput(bool state);
+void CommandSelectInst(u8 inst);
 
 void RegisterRowCallback(void (*onUpdateRow_)(u16));
 void RegisterStopCallback(void (*onStop_)(void));
 void RegisterPlaySampleFinishedCallback(void (*onPlaySampleFinished_)(void));
 void RegisterPotPosChangeCallback(void (*onPotPosChange_)(u16));
+void RegisterInstPlayed(void (*onInstPlay_)(u8, u8, u32));
 #endif
 
 #if defined(ARM7)
@@ -169,6 +178,7 @@ void CommandUpdateRow(u16 row);
 void CommandUpdatePotPos(u16 potpos);
 void CommandNotifyStop(void);
 void CommandSampleFinish(void);
+void CommandPlayNote(u8 inst, u8 note, u8 volume, u8 channel);
 #endif
 
 #endif /* FIFOCOMMAND_H_ */

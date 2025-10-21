@@ -105,6 +105,10 @@ static void RecvCommandSetStereoOutput(SetStereoOutputCommand *c) {
     ntxm_stereo_output = c->state;
 }
 
+static void RecvCommandSelectInst(SelectInstCommand *c) {
+    ntxm7->setCurrentInst(c->inst);
+}
+
 #ifdef DEBUG
 void CommandDbgOut(const char *formatstr, ...)
 {
@@ -129,6 +133,28 @@ void CommandDbgOut(const char *formatstr, ...)
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 #endif
+
+// because ARM7 is reading the module, we need to
+// tell ARM9 what instrument is playing at what note
+// such that `sampledisplay` can show the cursor on
+// a sample as it is played in the song.
+
+// reusing the originally ARM9->ARM7 command `PlayInstCommand`
+// but in the opposite direction just out of convenience
+void CommandPlayNote(u8 inst, u8 note, u8 volume, u8 channel) 
+{
+    NTXMFifoMessage command;
+    command.commandType = PLAY_INST;
+
+    PlayInstCommand* c = &command.playInst;
+
+    c->inst    = inst;
+    c->note    = note;
+    c->volume  = volume;
+    c->channel = channel;
+
+    fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
+}
 
 void CommandUpdateRow(u16 row)
 {
@@ -215,6 +241,9 @@ void CommandRecvHandler(int bytes, void *user_data) {
             break;
         case SET_STEREO_OUTPUT:
             RecvCommandSetStereoOutput(&command.setStereoOutput);
+            break;
+        case SELECT_INST:
+            RecvCommandSelectInst(&command.selectInst);
             break;
         default:
             break;

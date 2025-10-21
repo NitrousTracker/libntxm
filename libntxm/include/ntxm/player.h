@@ -159,7 +159,7 @@ class Player {
 
 		void playTimerHandler(void);
 		void stopSampleFadeoutTimerHandler(void);
-
+		void setCurrentInst(u8 inst_);
 	private:
 
 		void startPlayTimer(void);
@@ -189,6 +189,7 @@ class Player {
 		void (*onSampleFinish)();
 
 		u32 lastms; // For timer
+		u8 currentlySelectedInst;
 };
 
 #endif

@@ -132,10 +132,13 @@ Sample *Instrument::getSampleForNote(u8 _note) {
 	return samples[note_samples[_note]];
 }
 
+
+
 #ifdef ARM7
 
-void Instrument::play(u8 _note, u8 _volume, u8 _channel /* effects here */)
+void Instrument::play(u8 _note, u8 _volume, u8 _channel /* effects here */, bool notify, u8 myindex)
 {
+	
 	envelope_ms[_channel] = 0;
 	envelope_pixels[_channel] = 0;
 	
@@ -148,12 +151,17 @@ void Instrument::play(u8 _note, u8 _volume, u8 _channel /* effects here */)
 	
 	if((vol_env_on)&&(n_vol_points>0))
 		play_volume = play_volume * vol_envelope_y[0] / 64;
+
 	
-	switch(type) {
+	switch (type) {
 		case INST_SAMPLE:
-			if( (n_samples > 0) && (samples[note_samples[_note]] != 0) )
-				samples[note_samples[_note]]->play(_note, play_volume, _channel);
+			if( (n_samples > 0) && (samples[note_samples[_note]] != 0) ) {
+				Sample *s = samples[note_samples[_note]];
+				s->play(_note, play_volume, _channel);
+
+				CommandPlayNote(myindex, _note, volume, _channel);
 			break;
+		}
 	}
 }
 
