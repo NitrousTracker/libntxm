@@ -598,8 +598,8 @@ u16 XMTransport::load(const char *filename, Song **_song)
 				memcpy(sample_name, sample_headers+40*sample_id + 18, 22);
 
 				// Cut off trailing spaces
-				u8 i = sizeof(sample_name) - 2;
-				while(sample_name[i] == ' ')
+				int i = sizeof(sample_name) - 2;
+				while(i >= 0 && sample_name[i] == ' ')
 					--i;
 				++i;
 				sample_name[i] = '\0';
