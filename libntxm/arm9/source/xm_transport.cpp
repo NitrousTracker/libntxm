@@ -34,7 +34,8 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <sys/stat.h>
-
+#include <algorithm>
+#include <iterator>
 // DBG
 #include <stdio.h>
 #include <nds.h>
@@ -55,7 +56,8 @@ const char *xmtransporterrors[] =
 	"",
 	"pattern too long",
 	"file is zero byte",
-	"disk is full"};
+	"disk is full",
+	"xm format hacks not supported"};
 
 /* ===================== PUBLIC ===================== */
 
@@ -76,6 +78,31 @@ u16 XMTransport::load(const char *filename, Song **_song)
 	FILE *xmfile = fopen(filename, "rb");
 	if((s32)xmfile == -1)
 		return XM_TRANSPORT_ERROR_FOPENFAIL;
+
+
+	// check if the module uses mpt hacks
+	char footer[256] = { 0 };
+
+	if (filesize > 255)
+	{
+		fseek(xmfile, -256, SEEK_END);
+
+		fread(footer, sizeof(char), 255, xmfile);
+
+		const char searchstr[4] = { 0x53, 0x54, 0x50, 0x4D }; // "STPM"
+		char* it = std::search(
+			std::begin(footer), std::end(footer), std::begin(searchstr),
+			std::end(searchstr)); // offset of stuff in the footer varies, so
+		// unfortunately we need to search
+
+		if (it != std::end(footer))
+		{
+			fclose(xmfile);
+			return XM_TRANSPORT_MPT_HACKS_UNSUPPORTED;
+		}
+	}
+	
+	fseek(xmfile, 0, SEEK_SET);
 	setvbuf(xmfile, NULL, _IOFBF, 4096);
 	//
 	// Read header
