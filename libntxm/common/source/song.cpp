@@ -439,13 +439,13 @@ void Song::killPatterns(void) {
 	for(u8 ptn=0; ptn<n_patterns; ++ptn) {
 		
 		for(u8 chn=0; chn<n_channels; ++chn) {
-			
 			free(patterns[ptn][chn]);
 		}
 		
 		free(patterns[ptn]);
 	}
 	free(patterns);
+	patterns = NULL;
 }
 
 void Song::killInstruments(void) {
