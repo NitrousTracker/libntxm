@@ -183,7 +183,8 @@ void Player::playNote(u8 note, u8 volume, u8 channel, u8 instidx)
 	// Stop possibly active fades
 	state.channel_fade_active[channel] = 0;
 	state.channel_fade_ms[channel] = 0;
-
+	state.channel_instrument[channel] = instidx;
+	
 	if(volume == NO_VOLUME) {
 		state.channel_volume[channel] = MAX_VOLUME * inst->getSampleForNote(note)->getVolume() / 255;
 	} else {
