@@ -510,6 +510,18 @@ const char *Sample::getName(void)
 
 #ifdef ARM9
 
+
+void Sample::cropToPart(u32 startsample, u32 endsample)
+{
+	if (startsample == endsample) return;
+	delPart(0, startsample);
+
+	if (n_samples + 1 <= endsample - startsample)
+		return;
+
+	delPart(endsample - startsample, n_samples - 1);
+}
+
 // Deletes the part between start sample and end sample
 void Sample::delPart(u32 startsample, u32 endsample)
 {

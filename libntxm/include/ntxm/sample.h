@@ -105,6 +105,7 @@ class Sample
 
 		// Deletes the part between start sample and end sample
 		void delPart(u32 startsample, u32 endsample);
+		void cropToPart(u32 startsample, u32 endsample);
 
 		void fadeIn(u32 startsample, u32 endsample);
 		void fadeOut(u32 startsample, u32 endsample);
