@@ -287,7 +287,7 @@ void Sample::bendNoteDirect(s16 fine_step, u8 channel)
 
 u32 Sample::calcPlayLength(u8 note)
 {
-	u32 samples_per_second = LOOKUP_FREQ(48+note+rel_note,finetune);
+	u32 samples_per_second = getPlaybackFreq(note);
 	if (samples_per_second == 0) return 0;
 	return n_samples * 1000 / samples_per_second;
 }
