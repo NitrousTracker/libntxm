@@ -334,6 +334,10 @@ u32 Sample::getNSamples(void)
 		return n_samples;
 }
 
+u32 Sample::getPlaybackFreq(u8 note_) {
+    return LOOKUP_FREQ(48+note_+rel_note,finetune);
+}
+
 void *Sample::getData(void)
 {
 	// sound_data is modified for the loop, but original_data points to the unmodified sound data

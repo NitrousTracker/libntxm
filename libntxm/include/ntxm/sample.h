@@ -76,7 +76,7 @@ class Sample
 
 		u32 getSize(void); // Get the size in bytes
 		u32 getNSamples(void); // Get the numer of (PCM) samples
-
+		u32 getPlaybackFreq(u8 note_);
 		void *getData(void);
 
 		u8 getLoop(void); // 0: no loop, 1: loop, 2: ping pong loop
