@@ -83,10 +83,8 @@ class Sample
 		bool setLoop(u8 loop_); // Set loop type. Can fail due to memory constraints
 		bool is16bit(void);
 
-		void setLoopLength(u32 _loop_length);
-		u32 getLoopLength(void);
-		void setLoopStart(u32 _loop_start);
-		u32 getLoopStart(void);
+		u32 getLoopStart(void); // in samples
+		u32 getLoopLength(void); // in samples
 
 		// Sets loop start and length, arguments are given in samples
 		void setLoopStartAndLength(u32 _loop_start, u32 _loop_length);
@@ -126,13 +124,11 @@ class Sample
 
 		bool setupPingPongLoop(void);
 		void removePingPongLoop(void);
-		bool updatePingPongLoop(void);
+		bool onSampleDataChanged(void);
 
 		void *sound_data;
-		void *original_data;
 		void *pingpong_data;
 		u32 n_samples;
-		u32 original_n_samples;
 		bool is_16_bit;
 		u8 loop;
 		s8 rel_note;		// Offset in the frequency table from base note

@@ -34,35 +34,75 @@
 #define _NTXMTOOLS_H_
 
 #include <stdlib.h>
+#include <string.h>
+#include <malloc.h>
 #include <stdio.h>
 #include <fat.h>
 
-/*
- * Some tools for ensuring there are no memory leaks and buffered file operations
- */
+// ntxm_cmalloc() - checked malloc() - crashes on OOM
+// ntxm_umalloc() - unchecked malloc() - can return null
 
-#if defined(ARM9) && defined(DEBUG)
-void *my_malloc(size_t size);
-void my_free(void *ptr);
-void my_start_malloc_invariant(void);
-void my_end_malloc_invariant(void);
-void *my_memalign(size_t blocksize, size_t bytes);
-#ifdef BLOCKSDS
-#define my_dprintf printf
+extern void *__ntxm_cmalloc(size_t size, const char *file, int line);
+extern void *__ntxm_crealloc(void *ptr, size_t size, const char *file, int line);
+extern void *__ntxm_ccalloc(size_t nelem, size_t size, const char *file, int line);
+extern void *__ntxm_cmemalign(size_t align, size_t size, const char *file, int line);
+extern char *__ntxm_cstrdup(const char *text, const char *file, int line);
+extern void __ntxm_free(void *ptr, const char *file, int line);
+
+static inline void *ntxm_umalloc(size_t size) {
+	return malloc(size);
+}
+
+static inline void *ntxm_urealloc(void *ptr, size_t size) {
+	return realloc(ptr, size);
+}
+
+static inline void *ntxm_ucalloc(size_t nelem, size_t size) {
+	return calloc(nelem, size);
+}
+
+static inline void *ntxm_umemalign(size_t align, size_t size) {
+	return memalign(align, size);
+}
+
+static inline char *ntxm_ustrdup(const char *text) {
+	return strdup(text);
+}
+
+#if defined(DEBUG)
+#define ntxm_cmalloc(size) __ntxm_cmalloc(size, __FILE__, __LINE__)
+#define ntxm_crealloc(ptr, size) __ntxm_crealloc(ptr, size, __FILE__, __LINE__)
+#define ntxm_ccalloc(nelem, size) __ntxm_ccalloc(nelem, size, __FILE__, __LINE__)
+#define ntxm_cmemalign(align, size) __ntxm_cmemalign(align, size, __FILE__, __LINE__)
+#define ntxm_cstrdup(text) __ntxm_cstrdup(text, __FILE__, __LINE__)
+#define ntxm_free(ptr) __ntxm_free(ptr, __FILE__, __LINE__)
 #else
-#define my_dprintf iprintf
+#define ntxm_cmalloc(size) __ntxm_cmalloc(size, NULL, 0)
+#define ntxm_crealloc(ptr, size) __ntxm_crealloc(ptr, size, NULL, 0)
+#define ntxm_ccalloc(nelem, size) __ntxm_ccalloc(nelem, size, NULL, 0)
+#define ntxm_cmemalign(align, size) __ntxm_cmemalign(align, size, NULL, 0)
+#define ntxm_cstrdup(text) __ntxm_cstrdup(text, NULL, 0)
+#define ntxm_free(ptr) __ntxm_free(ptr, NULL, 0)
 #endif
-#else
-#define my_malloc malloc
-#define my_free free
-#define my_start_malloc_invariant() {}
-#define my_end_malloc_invariant() {}
-#define my_memalign memalign
-static inline void my_dprintf(...) {}
-#endif /* ARM9 && DEBUG */
-bool my_file_exists(const char *name);
 
-inline s32 my_clamp(s32 val, s32 min, s32 max)
+// mark non-ntxm-annotated functions as deprecated
+void *malloc(size_t size) __attribute__((deprecated));
+void *realloc(void *ptr, size_t size) __attribute__((deprecated));
+void *calloc(size_t nelem, size_t size) __attribute__((deprecated));
+char *strdup(const char *text) __attribute__((deprecated));
+void *memalign(size_t align, size_t size) __attribute__((deprecated));
+void free(void *ptr) __attribute__((deprecated));
+
+// debug printf() calls
+#if defined(DEBUG)
+#define ntxm_dprintf printf
+#else
+static inline void ntxm_dprintf(...) {}
+#endif 
+
+bool ntxm_isFileExists(const char *name);
+
+inline s32 ntxm_clamp(s32 val, s32 min, s32 max)
 {
 	if(val < min)
 		return min;
@@ -71,9 +111,7 @@ inline s32 my_clamp(s32 val, s32 min, s32 max)
 	return val;
 }
 
-u32 my_getFreeDiskSpace(void); // Gets free disk space in bytes
-u32 my_getUsedRam(void);
-u32 my_getFileSize(const char *filename);
+u32 ntxm_getFileSize(const char *filename);
 
 void ntxm_unsigned2signed_8(uint8_t *buffer, size_t count);
 void ntxm_unsigned2signed_16(uint16_t *buffer, size_t count);

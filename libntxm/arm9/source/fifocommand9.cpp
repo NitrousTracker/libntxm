@@ -65,7 +65,7 @@ void CommandRecvHandler(int bytes, void *user_data) {
     switch(msg.commandType) {
 #ifdef DEBUG
         case DBG_OUT: // TODO it's not safe to do this in an interrupt handler
-            my_dprintf(msg.dbgOut.msg);
+            ntxm_dprintf(msg.dbgOut.msg);
             break;
 #endif
 

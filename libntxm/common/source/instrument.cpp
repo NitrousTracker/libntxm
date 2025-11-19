@@ -48,11 +48,11 @@ Instrument::Instrument(const char *_name, u8 _type, u8 _volume)
 	 n_vol_points(0), vol_env_on(false), vol_env_sustain(false), vol_env_loop(false),
 	 n_pan_points(0), pan_env_on(false), pan_env_sustain(false), pan_env_loop(false)
 {
-	name = (char*)malloc(MAX_INST_NAME_LENGTH+1);
+	name = (char*)ntxm_cmalloc(MAX_INST_NAME_LENGTH+1);
 	name[MAX_INST_NAME_LENGTH] = 0;
 	strncpy(name, _name, MAX_INST_NAME_LENGTH);
 	
-	note_samples = (u8*)calloc(sizeof(u8)*MAX_OCTAVE*12, 1);
+	note_samples = (u8*)ntxm_ccalloc(sizeof(u8)*MAX_OCTAVE*12, 1);
 	
 	samples = NULL;
 	n_samples = 0;
@@ -63,15 +63,15 @@ Instrument::Instrument(const char *_name, Sample *_sample, u8 _volume)
 	 n_vol_points(0), vol_env_on(false), vol_env_sustain(false), vol_env_loop(false),
 	 n_pan_points(0), pan_env_on(false), pan_env_sustain(false), pan_env_loop(false)
 {
-	name = (char*)malloc(MAX_INST_NAME_LENGTH+1);
+	name = (char*)ntxm_cmalloc(MAX_INST_NAME_LENGTH+1);
 	name[MAX_INST_NAME_LENGTH] = 0;
 	strncpy(name, _name, MAX_INST_NAME_LENGTH);
 	
-	samples = (Sample**)calloc(1, sizeof(Sample*)*1);
+	samples = (Sample**)ntxm_ccalloc(1, sizeof(Sample*)*1);
 	samples[0] = _sample;
 	n_samples = 1;
 	
-	note_samples = (u8*)malloc(sizeof(u8)*MAX_OCTAVE*12);
+	note_samples = (u8*)ntxm_cmalloc(sizeof(u8)*MAX_OCTAVE*12);
 	for(u16 i=0;i<MAX_OCTAVE*12; ++i)
 		note_samples[i] = 0;
 }
@@ -83,17 +83,17 @@ Instrument::~Instrument()
 			delete samples[i];
 	}
 	if(samples != NULL)
-		free(samples);
+		ntxm_free(samples);
 	
-	free(note_samples);
+	ntxm_free(note_samples);
 	
-	free(name);
+	ntxm_free(name);
 }
 
 void Instrument::addSample(Sample *sample)
 {
 	n_samples++;
-	samples = (Sample**)realloc(samples, sizeof(Sample*)*n_samples);
+	samples = (Sample**)ntxm_crealloc(samples, sizeof(Sample*)*n_samples);
 	samples[n_samples-1] = sample;
 }
 
@@ -106,7 +106,7 @@ void Instrument::setSample(u8 idx, Sample *sample)
 	// Resize sample list if necessary
 	if(n_samples < idx + 1)
 	{
-		samples = (Sample**)realloc(samples, sizeof(Sample*) * (idx + 1));
+		samples = (Sample**)ntxm_crealloc(samples, sizeof(Sample*) * (idx + 1));
 		
 		// Initialize new samples with 0
 		while(n_samples < idx + 1)

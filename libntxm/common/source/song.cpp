@@ -61,11 +61,11 @@ Song::Song(u8 _speed, u8 _bpm, u8 _channels)
 	:speed(_speed), bpm(_bpm), n_channels(_channels), restart_position(0), n_patterns(0)
 {
 	// Init arrays
-	patternlengths = (u16*)malloc(sizeof(u16)*MAX_PATTERNS);
-	internal_patternlengths = (u16*)malloc(sizeof(u16)*MAX_PATTERNS);
-	pattern_order_table = (u8*)malloc(sizeof(u8)*MAX_POT_LENGTH);
-	instruments = (Instrument**)calloc(1, sizeof(Instrument*)*MAX_INSTRUMENTS);
-	name = (char*)malloc(MAX_SONG_NAME_LENGTH+1);
+	patternlengths = (u16*)ntxm_cmalloc(sizeof(u16)*MAX_PATTERNS);
+	internal_patternlengths = (u16*)ntxm_cmalloc(sizeof(u16)*MAX_PATTERNS);
+	pattern_order_table = (u8*)ntxm_cmalloc(sizeof(u8)*MAX_POT_LENGTH);
+	instruments = (Instrument**)ntxm_ccalloc(1, sizeof(Instrument*)*MAX_INSTRUMENTS);
+	name = (char*)ntxm_cmalloc(MAX_SONG_NAME_LENGTH+1);
 	name[MAX_SONG_NAME_LENGTH] = 0;
 	strncpy(name, "unnamed", MAX_SONG_NAME_LENGTH);
 	
@@ -88,7 +88,7 @@ Song::Song(u8 _speed, u8 _bpm, u8 _channels)
 	memset(channels_muted, false, MAX_CHANNELS * sizeof(bool));
 	
 	// Init pattern array
-	patterns = (Cell***)malloc(sizeof(Cell**)*MAX_PATTERNS);
+	patterns = (Cell***)ntxm_cmalloc(sizeof(Cell**)*MAX_PATTERNS);
 
 	// Create first pattern
 	addPattern();
@@ -105,10 +105,10 @@ Song::~Song()
 	killPatterns();
 	
 	// Delete arrays
-	free(patternlengths);
-	free(internal_patternlengths);
-	free(pattern_order_table);
-	free(name);
+	ntxm_free(patternlengths);
+	ntxm_free(internal_patternlengths);
+	ntxm_free(pattern_order_table);
+	ntxm_free(name);
 }
 
 #endif
@@ -228,12 +228,12 @@ void Song::addPattern(u16 length)
 
 	n_patterns++;
 	
-	patterns[n_patterns-1] = (Cell**)malloc(sizeof(Cell*)*n_channels);
+	patterns[n_patterns-1] = (Cell**)ntxm_cmalloc(sizeof(Cell*)*n_channels);
 	
 	u16 i,j;
 	for(i=0;i<n_channels;++i)
 	{
-		patterns[n_patterns-1][i] = (Cell*)malloc(sizeof(Cell)*patternlengths[n_patterns-1]);
+		patterns[n_patterns-1][i] = (Cell*)ntxm_cmalloc(sizeof(Cell)*patternlengths[n_patterns-1]);
 		
 		Cell *cell;
 		for(j=0;j<patternlengths[n_patterns-1];++j)
@@ -251,8 +251,8 @@ void Song::channelAdd(void) {
 	
 	// Go through all patterns and add a channel
 	for(u8 pattern=0;pattern<n_patterns;++pattern) {
-		patterns[pattern] = (Cell**)realloc(patterns[pattern], sizeof(Cell*)*(n_channels+1));
-		patterns[pattern][n_channels] = (Cell*)malloc(sizeof(Cell)*internal_patternlengths[pattern]);
+		patterns[pattern] = (Cell**)ntxm_crealloc(patterns[pattern], sizeof(Cell*)*(n_channels+1));
+		patterns[pattern][n_channels] = (Cell*)ntxm_cmalloc(sizeof(Cell)*internal_patternlengths[pattern]);
 
 		// Clear
 		Cell *cell;
@@ -273,8 +273,8 @@ void Song::channelDel(void) {
 	
 	// Go through all patterns and delete the last channel
 	for(u8 pattern=0;pattern<n_patterns;++pattern) {
-		free(patterns[pattern][n_channels-1]);
-		patterns[pattern] = (Cell**)realloc(patterns[pattern], sizeof(Cell*)*(n_channels-1));
+		ntxm_free(patterns[pattern][n_channels-1]);
+		patterns[pattern] = (Cell**)ntxm_crealloc(patterns[pattern], sizeof(Cell*)*(n_channels-1));
 	}
 	
 	n_channels--;
@@ -303,7 +303,7 @@ void Song::resizePattern(u8 ptn, u16 newlength)
 	
 		// Go through all channels of this pattern and resize them
 		for(u8 channel=0; channel<n_channels; ++channel) {
-			patterns[ptn][channel] = (Cell*)realloc(patterns[ptn][channel], sizeof(Cell)*newlength);
+			patterns[ptn][channel] = (Cell*)ntxm_crealloc(patterns[ptn][channel], sizeof(Cell)*newlength);
 			
 			// The new cells must be cleared
 			Cell *cell;
@@ -380,7 +380,7 @@ void Song::zapPatterns(void) {
 	n_channels = DEFAULT_CHANNELS;
 	n_patterns = 0;
 	
-	patterns = (Cell***)malloc(sizeof(Cell**)*MAX_PATTERNS);
+	patterns = (Cell***)ntxm_cmalloc(sizeof(Cell**)*MAX_PATTERNS);
 	
 	addPattern();
 	
@@ -392,7 +392,7 @@ void Song::zapInstruments(void)
 {
 	killInstruments();
 	
-	instruments = (Instrument**)malloc(sizeof(Instrument*)*MAX_INSTRUMENTS);
+	instruments = (Instrument**)ntxm_cmalloc(sizeof(Instrument*)*MAX_INSTRUMENTS);
 	for(u16 i=0; i<MAX_INSTRUMENTS; ++i) {
 		instruments[i] = NULL;
 	}
@@ -439,13 +439,13 @@ void Song::killPatterns(void) {
 	for(u8 ptn=0; ptn<n_patterns; ++ptn) {
 		
 		for(u8 chn=0; chn<n_channels; ++chn) {
-			
-			free(patterns[ptn][chn]);
+			ntxm_free(patterns[ptn][chn]);
 		}
 		
-		free(patterns[ptn]);
+		ntxm_free(patterns[ptn]);
 	}
-	free(patterns);
+	ntxm_free(patterns);
+	patterns = NULL;
 }
 
 void Song::killInstruments(void) {
@@ -459,7 +459,7 @@ void Song::killInstruments(void) {
 		}
 	}
 	
-	free(instruments);
+	ntxm_free(instruments);
 	instruments = NULL;
 }
 

@@ -63,13 +63,13 @@ Player::Player(void (*_externalTimerHandler)(void))
 
 void* Player::operator new (size_t size) {
 
-	return malloc(size);
+	return ntxm_cmalloc(size);
 
 } // default ctor implicitly called here
 
 void Player::operator delete (void *p) {
 
-	if ( NULL != p ) free(p);
+	if ( NULL != p ) ntxm_free(p);
 
 } // default dtor implicitly called here
 

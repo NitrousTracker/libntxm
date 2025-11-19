@@ -34,61 +34,78 @@
 #include <string.h>
 #include <malloc.h>
 #include <nds.h>
-
-#include "ntxm/ntxmtools.h"
 #include <sys/statvfs.h>
 
-#ifdef ARM9
+__attribute__((noreturn))
+static void out_of_memory_error(const char *func, const char *file, int line) {
+#ifdef DEBUG
+	char text[256];
+	text[sizeof(text) - 1] = 0;
+	snprintf(text, sizeof(text) - 1, "%s() out of memory - %s:%d", func, file, line);
+	libndsCrash(text);
+#else
+	libndsCrash(func);
+#endif
+}
 
 #ifdef DEBUG
-s32 unfreed_malloc_calls = 0;
-u32 remaining_bytes = 0;
+__attribute__((noreturn))
+static void double_free_error(const char *file, int line) {
+	char text[256];
+	text[sizeof(text) - 1] = 0;
+	snprintf(text, sizeof(text) - 1, "double free - %s:%d", file, line);
+	libndsCrash(text);
+}
+#endif
 
-void *my_malloc(size_t size)
-{
+void *__ntxm_cmalloc(size_t size, const char *file, int line) {
 	void *ptr = malloc(size);
-	if(ptr!=0) {
-		unfreed_malloc_calls++;
-	}
+	if (ptr == NULL)
+		out_of_memory_error("ntxm_cmalloc", file, line);
 	return ptr;
 }
 
-void my_free(void *ptr)
-{
-	if(ptr!=0) {
-		unfreed_malloc_calls--;
-		free(ptr);
-	} else {
-		my_dprintf("Nullpointer free detected!\n");
-	}
+void *__ntxm_crealloc(void *ptr, size_t size, const char *file, int line) {
+	ptr = realloc(ptr, size);
+	if (ptr == NULL)
+		out_of_memory_error("ntxm_crealloc", file, line);
+	return ptr;
 }
 
-void my_start_malloc_invariant(void)
-{
-	unfreed_malloc_calls = 0;
+void *__ntxm_ccalloc(size_t nelem, size_t size, const char *file, int line) {
+	void *ptr = calloc(nelem, size);
+	if (ptr == NULL)
+		out_of_memory_error("ntxm_ccalloc", file, line);
+	return ptr;
 }
 
-void my_end_malloc_invariant(void)
-{
-	if(unfreed_malloc_calls != 0) {
-		my_dprintf("Allocation error! Unfreed mallocs: %d\n", (int)unfreed_malloc_calls);
-	}
+void *__ntxm_cmemalign(size_t align, size_t size, const char *file, int line) {
+	void *ptr = memalign(align, size);
+	if (ptr == NULL)
+		out_of_memory_error("ntxm_cmemalign", file, line);
+	return ptr;
 }
 
-void *my_memalign(size_t blocksize, size_t bytes)
-{
-	void *buf = memalign(blocksize, bytes);
-	if( ((u32)buf & blocksize) != 0) {
-		my_dprintf("Memalign error! %p ist not %u-aligned\n", buf, (u16)blocksize);
-		return 0;
-	} else {
-		unfreed_malloc_calls++;
-		return buf;
-	}
+char *__ntxm_cstrdup(const char *text, const char *file, int line) {
+	char *ptr = strdup(text);
+	if (ptr == NULL)
+		out_of_memory_error("ntxm_cstrdup", file, line);
+	return ptr;
 }
-#endif /* DEBUG */
 
-bool my_file_exists(const char *filename)
+void __ntxm_free(void *ptr, const char *file, int line) {
+#ifdef DEBUG
+	if (ptr == NULL)
+		double_free_error(file, line);
+#endif
+	free(ptr);
+}
+
+#include "ntxm/ntxmtools.h"
+
+#ifdef ARM9
+
+bool ntxm_isFileExists(const char *filename)
 {
 	bool res;
 	FILE* f = fopen(filename,"r");
@@ -102,30 +119,7 @@ bool my_file_exists(const char *filename)
 	return res;
 }
 
-#endif /* ARM9 */
-
-u32 my_getUsedRam(void)
-{
-	struct mallinfo info = mallinfo();
-
-	return info.usmblks + info.uordblks; 
-}
-
-#ifdef ARM9
-
-u32 my_getFreeDiskSpace(void)
-{
-	struct statvfs fiData;
-
-	if((statvfs("/",&fiData)) < 0 ) {
-		my_dprintf("stat failed!\n");
-		return 0;
-	} else {
-		return fiData.f_bsize*fiData.f_bfree;
-	}
-}
-
-u32 my_getFileSize(const char *filename)
+u32 ntxm_getFileSize(const char *filename)
 {
 	FILE *file = fopen(filename, "r");
 	fseek(file, 0, SEEK_END);
