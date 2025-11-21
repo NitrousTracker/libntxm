@@ -218,6 +218,7 @@ u32 Instrument::calcPlayLength(u8 note) {
 	return samples[note_samples[note]]->calcPlayLength(note);
 }
 
+
 #ifdef ARM9
 
 const char *Instrument::getName(void) {

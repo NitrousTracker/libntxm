@@ -152,6 +152,25 @@ void CommandUpdatePotPos(u16 potpos)
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
+void CommandUpdateCursorPos(u32 cursorpos)
+{
+    NTXMFifoMessage command;
+    command.commandType = UPDATE_CURSORPOS;
+
+    UpdateCursorPosCommand *c = &command.updateCursorPos;
+    c->cursorpos = cursorpos;
+
+    fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
+}
+
+void CommandStopCursor(void)
+{
+    NTXMFifoMessage command;
+    command.commandType = STOP_CURSOR;
+
+    fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
+}
+
 void CommandNotifyStop(void)
 {
     NTXMFifoMessage command;

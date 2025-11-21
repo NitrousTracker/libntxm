@@ -13,6 +13,8 @@ void (*onUpdateRow)(u16 row) = 0;
 void (*onStop)(void) = 0;
 void (*onPlaySampleFinished)(void) = 0;
 void (*onPotPosChange)(u16 potpos) = 0;
+void (*onCursorPosChange)(u32 samplepos) = 0;
+void (*onStopCursor)(void) = 0;
 
 void RegisterRowCallback(void (*onUpdateRow_)(u16))
 {
@@ -34,6 +36,16 @@ void RegisterPotPosChangeCallback(void (*onPotPosChange_)(u16))
     onPotPosChange = onPotPosChange_;
 }
 
+void RegisterCursorPosChangeCallback(void (*onCursorPosChange_)(u32))
+{
+    onCursorPosChange = onCursorPosChange_;
+}
+
+void RegisterStopCursorCallback(void (*onStopCursor_)(void))
+{
+    onStopCursor = onStopCursor_;
+}
+
 void RecvCommandUpdateRow(UpdateRowCommand *c)
 {
     if(onUpdateRow)
@@ -45,6 +57,19 @@ void RecvCommandUpdatePotPos(UpdatePotPosCommand *c)
     if(onPotPosChange)
         onPotPosChange(c->potpos);
 }
+
+void RecvCommandUpdateCursorPos(UpdateCursorPosCommand *c)
+{
+    if(onCursorPosChange)
+        onCursorPosChange(c->cursorpos);
+}
+
+void RecvComandStopCursor(void)
+{
+    if(onStopCursor)
+        onStopCursor();
+}
+
 
 void RecvCommandNotifyStop(void)
 {
@@ -68,15 +93,18 @@ void CommandRecvHandler(int bytes, void *user_data) {
             ntxm_dprintf(msg.dbgOut.msg);
             break;
 #endif
-
         case UPDATE_ROW:
             RecvCommandUpdateRow(&msg.updateRow);
             break;
-
         case UPDATE_POTPOS:
             RecvCommandUpdatePotPos(&msg.updatePotPos);
             break;
-
+        case UPDATE_CURSORPOS:
+            RecvCommandUpdateCursorPos(&msg.updateCursorPos);
+            break;
+        case STOP_CURSOR:
+            RecvComandStopCursor();
+            break;
         case NOTIFY_STOP:
             RecvCommandNotifyStop();
             break;

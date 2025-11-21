@@ -25,6 +25,8 @@ typedef enum {
     DBG_OUT,
     UPDATE_ROW,
     UPDATE_POTPOS,
+    UPDATE_CURSORPOS,
+    STOP_CURSOR,
     PLAY_INST,
     STOP_INST,
     STOP_MATCHING_INST,
@@ -84,6 +86,13 @@ struct UpdatePotPosCommand {
     u16 potpos;
 };
 
+struct UpdateCursorPosCommand {
+    u32 cursorpos;
+};
+
+struct StopCursorCommand {
+};
+
 struct PlayInstCommand {
     u8 inst;
     u8 note;
@@ -124,6 +133,8 @@ typedef struct NTXMFifoMessage {
 #endif
         UpdateRowCommand       updateRow;
         UpdatePotPosCommand    updatePotPos;
+        UpdateCursorPosCommand updateCursorPos;
+        StopCursorCommand      stopCursor;
         PlayInstCommand        playInst;
         StopInstCommand        stopInst;
         StopMatchingInstCommand    stopMatchingInst;
@@ -157,6 +168,8 @@ void RegisterRowCallback(void (*onUpdateRow_)(u16));
 void RegisterStopCallback(void (*onStop_)(void));
 void RegisterPlaySampleFinishedCallback(void (*onPlaySampleFinished_)(void));
 void RegisterPotPosChangeCallback(void (*onPotPosChange_)(u16));
+void RegisterCursorPosChangeCallback(void (*onCursorPosChange_)(u32));
+void RegisterStopCursorCallback(void (*onStopCursor_)(void));
 #endif
 
 #if defined(ARM7)
@@ -167,6 +180,8 @@ void CommandDbgOut(const char *formatstr, ...); // Print text from the ARM7, syn
 #endif
 void CommandUpdateRow(u16 row);
 void CommandUpdatePotPos(u16 potpos);
+void CommandUpdateCursorPos(u32 cursorpos);
+void CommandStopCursor(void);
 void CommandNotifyStop(void);
 void CommandSampleFinish(void);
 #endif

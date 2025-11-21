@@ -87,6 +87,17 @@ typedef struct
 	u32 single_sample_ms_remaining;
 	u8 single_sample_channel;
 
+	// pr11: maybe the tag for the note whose cursor is playing should be stored here
+	// (allows multiple cursors)
+	bool playing_piano_sample;
+	bool piano_sample_loopreverse;
+	u64 piano_sample_nsamps_position;		// 32.32 for accuracy. use nsamples for sampleToPixel--we dont need ms
+	u32 piano_sample_nsamps_total;
+	u32 piano_sample_playfreq;
+	u32 piano_sample_loopstart;
+	u32 piano_sample_looplen;
+	u8 piano_sample_looptype;
+
 	u8 last_autochannel;				// Last channel used for playing an inst with channel==255
 } PlayerState;
 
@@ -133,6 +144,8 @@ class Player {
 
 		void stop(void);
 
+		void cursorStart(u8 note, u8 instidx);
+		void cursorStop(void);
 		// Play the note with the given settings. channel == 255 -> search for free channel
 		void playNote(u8 note, u8 volume, u8 channel, u8 instidx);
 
@@ -179,6 +192,7 @@ class Player {
 
 		bool calcNextPos(u16 *nextrow, u8 *nextpotpos); // Calculate next row and pot position
 
+		void calcCursorPos(u32 n_ticks); // for sample display cursor. Send a fifo message with n_samples progress
 		Song *song;
 		PlayerState state;
 		EffectState effstate;
@@ -189,6 +203,7 @@ class Player {
 		void (*onSampleFinish)();
 
 		u32 lastms; // For timer
+		u32 sample_lastms; 
 };
 
 #endif
