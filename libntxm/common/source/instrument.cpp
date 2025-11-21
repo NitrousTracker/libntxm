@@ -99,6 +99,7 @@ void Instrument::addSample(Sample *sample)
 
 void Instrument::setSample(u8 idx, Sample *sample)
 {
+	
 	// Delete the sample if it already exists
 	if( (idx < n_samples) && (samples[idx] != 0) )
 		delete samples[idx];
@@ -130,6 +131,8 @@ Sample *Instrument::getSample(u8 idx)
 }
 
 Sample *Instrument::getSampleForNote(u8 _note) {
+	if(note_samples[_note] >= n_samples) return NULL;
+
 	return samples[note_samples[_note]];
 }
 

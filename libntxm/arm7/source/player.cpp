@@ -165,6 +165,10 @@ void Player::playNote(u8 note, u8 volume, u8 channel, u8 instidx)
 	if(inst == 0)
 		return;
 
+	Sample *smp = inst->getSampleForNote(note);
+	if (smp == 0)
+		return;
+
 	if(channel == 255) // Find a free channel
 	{
 		s8 c = MAX_CHANNELS-1;
@@ -186,13 +190,13 @@ void Player::playNote(u8 note, u8 volume, u8 channel, u8 instidx)
 	state.channel_instrument[channel] = instidx;
 	
 	if(volume == NO_VOLUME) {
-		state.channel_volume[channel] = MAX_VOLUME * inst->getSampleForNote(note)->getVolume() / 255;
+		state.channel_volume[channel] = MAX_VOLUME * smp->getVolume() / 255;
 	} else {
-		state.channel_volume[channel] = volume * inst->getSampleForNote(note)->getVolume() / 255;
+		state.channel_volume[channel] = volume * smp->getVolume() / 255;
 	}
-	state.channel_prev_sample_vol[channel] = inst->getSampleForNote(note)->getVolume(); //Store for later channel volume updates
+	state.channel_prev_sample_vol[channel] = smp->getVolume(); //Store for later channel volume updates
 
-	if(inst->getSampleForNote(note)->getLoop() != 0) {
+	if(smp->getLoop() != 0) {
 		state.channel_loop[channel] = true;
 		state.channel_ms_left[channel] = 0;
 	} else {
@@ -206,8 +210,8 @@ void Player::playNote(u8 note, u8 volume, u8 channel, u8 instidx)
 	state.channel_active[channel] = 1;
 
 	//xm standard is to reset effect panning each note
-	u8 pan = inst->getSampleForNote(note)->getBasePanning();
-	inst->getSampleForNote(note)->setPanning(pan);
+	u8 pan = smp->getBasePanning();
+	smp->setPanning(pan);
 	
 	inst->play(note, volume, channel);
 }
