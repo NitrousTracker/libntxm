@@ -1060,6 +1060,7 @@ void Player::initDefaultPanning(void)
 	for ( u8 i = 0; i < instcount; i++)
 	{
 		inst = song->instruments[i];
+		if (inst == 0) continue;
 		smpidx = inst->getSamples();
 		for (u16 j = 0; j < smpidx; j++)
 		{
@@ -1078,6 +1079,7 @@ void Player::resetPanning(void)
 	for ( u8 i = 0; i < instcount; i++)
 	{
 		inst = song->instruments[i];
+		if (inst == 0) continue;
 		smpidx = inst->getSamples();
 		for (u16 j = 0; j < smpidx; j++)
 		{
