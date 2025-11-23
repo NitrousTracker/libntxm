@@ -33,7 +33,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#ifdef ARM7
+#ifdef ARM9
+#include <set>
+#elifdef ARM7
 #include "ntxm/demokit.h"
 #endif
 
@@ -171,6 +173,42 @@ u8 Song::getInstruments(void)
 void Song::setInstrument(u8 idx, Instrument *instrument) {
 	instruments[idx] = instrument;
 	DC_FlushAll();
+}
+
+void Song::zapInstrument(u8 inst) {
+	if (instruments[inst] != NULL) {
+		delete instruments[inst];
+		instruments[inst] = NULL;
+	}
+}
+
+// return number of unused insts
+u8 Song::zapUnusedInstruments(u8 *instList) {
+	std::set <u8> s;
+
+	u8 n_chn = getChannels();
+	u8 n_pat = getNumPatterns();
+	for (int i = 0; i < n_pat; i++) {
+		Cell **p = getPattern(i);
+		u16 p_len = getPatternLength(i);
+
+		for (int j = 0; j < p_len; j++) {
+			for (int k = 0; k < n_chn; k++) {
+				Cell thisCell = p[k][j];
+				u8 inst = thisCell.instrument;
+				if (inst != NO_INSTRUMENT)
+					s.insert(thisCell.instrument);
+			}
+		}
+	}
+	u8 unused_i = 0;
+	for (u8 i = 0;i < MAX_INSTRUMENTS;++i)
+		if (s.find(i) == s.end()) {
+			zapInstrument(i);
+			instList[unused_i++] = i;
+		}
+
+	return unused_i;
 }
 
 // POT functions
