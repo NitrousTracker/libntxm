@@ -46,6 +46,8 @@
 
 #define DELAY_CMD 0x0ed0
 
+#define UNTAGGED 0xffff  // Indicates that this channel is not playing a note issued via MIDI or Piano Pak, etc.
+
 typedef struct
 {
 	u16 row;							// Current row
@@ -79,6 +81,8 @@ typedef struct
 	u8 channel_vib_accumulator[MAX_CHANNELS];
 	u8 channel_vib_phase_increment[MAX_CHANNELS];
 	u16 channel_vib_depth[MAX_CHANNELS];
+	u16 channel_tags[MAX_CHANNELS];  // For MIDI and Piano Pak, need to remember which channel holds which
+	                                 // user-played note so we can turn them off when the key is released.
 	
 	bool waitrow;							// Wait until the end of the last tick before muting instruments
 	bool patternloop;						// Loop the current pattern
@@ -86,8 +90,6 @@ typedef struct
 	bool playing_single_sample;
 	u32 single_sample_ms_remaining;
 	u8 single_sample_channel;
-
-	u8 last_autochannel;				// Last channel used for playing an inst with channel==255
 } PlayerState;
 
 typedef struct {
@@ -145,6 +147,13 @@ class Player {
 		// Stop playback on a channel
 		void stopChannel(u8 channel);
 
+		// Play a user-input note, finding a freely available channel.
+		// tag usually equals note, but lacks octave for Piano Pak inputs, and includes instrument for MIDI inputs.
+		void playNoteAuto(u8 instidx, u8 note, u8 volume, u16 tag);
+		
+		// Stop a user-input note on whichever channel it's playing.
+		void stopNoteAuto(u16 tag);
+
 		//
 		// Callbacks
 		//
@@ -168,6 +177,8 @@ class Player {
 		void handleEffects(void); // Row Effect handler
 		void handleTickEffects(void); // Tick Effect handler
 		void finishEffects(void); // Clean up after the effects
+
+		int getChannelForTag(u16 tag);
 
 		void initState(void);
 		void initEffState(void);

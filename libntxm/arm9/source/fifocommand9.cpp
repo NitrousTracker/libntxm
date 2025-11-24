@@ -218,6 +218,33 @@ void CommandStopMatchingInst(u8 inst, u8 note)
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
+void CommandPlayNoteAuto(u8 inst, u8 note, u8 volume, u16 tag)
+{
+    NTXMFifoMessage command;
+    command.commandType = PLAY_NOTE_AUTO;
+
+    PlayNoteAutoCommand* c = &command.playNoteAuto;
+
+    c->inst    = inst;
+    c->note    = note;
+    c->volume  = volume;
+    c->tag  = tag;
+
+    fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
+}
+
+void CommandStopNoteAuto(u16 tag)
+{
+    NTXMFifoMessage command;
+    command.commandType = STOP_NOTE_AUTO;
+
+    StopNoteAutoCommand* c = &command.stopNoteAuto;
+
+    c->tag = tag;
+
+    fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
+}
+
 void CommandMicOn(void)
 {
     NTXMFifoMessage command;

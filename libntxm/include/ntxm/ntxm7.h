@@ -60,8 +60,8 @@ class NTXM7
 		// instidx: index of the instrument
 		//    note: 48 corresponds to c-4
 		//  volume: 0-255
-		// channel: 0-15, 255=auto
-		void playNote(u8 instidx, u8 note=48, u8 volume=255, u8 channel=255);
+		// channel: 0-15
+		void playNote(u8 instidx, u8 note, u8 volume, u8 channel);
 
 		// Find all matching notes currently being played by an instument, and stop it.
 		void stopAllNotes(u8 note, u8 instidx);
@@ -71,6 +71,10 @@ class NTXM7
 		
 		// Stop playback on a channel
 		void stopChannel(u8 channel);
+		
+		void playNoteAuto(u8 instidx, u8 note, u8 volume, u16 tag);
+		
+		void stopNoteAuto(u16 tag);
 		
 		// Set a pattern to looping
 		void setPatternLoop(bool loopstate);

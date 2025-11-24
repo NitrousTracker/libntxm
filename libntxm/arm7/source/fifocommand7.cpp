@@ -93,6 +93,14 @@ static void RecvCommandStopInst(StopInstCommand *c) {
     ntxm7->stopChannel(c->channel);
 }
 
+static void RecvCommandPlayNoteAuto(PlayNoteAutoCommand *c) {
+    ntxm7->playNoteAuto(c->inst, c->note, c->volume, c->tag);
+}
+
+static void RecvCommandStopNoteAuto(StopNoteAutoCommand *c) {
+    ntxm7->stopNoteAuto(c->tag);
+}
+
 static void RecvCommandStopMatchingInst(StopMatchingInstCommand *c) {
     ntxm7->stopAllNotes(c->note, c->inst);
 }
@@ -203,6 +211,12 @@ void CommandRecvHandler(int bytes, void *user_data) {
             break;
         case STOP_MATCHING_INST:
             RecvCommandStopMatchingInst(&command.stopMatchingInst);
+            break;
+        case PLAY_NOTE_AUTO:
+            RecvCommandPlayNoteAuto(&command.playNoteAuto);
+            break;
+        case STOP_NOTE_AUTO:
+            RecvCommandStopNoteAuto(&command.stopNoteAuto);
             break;
         case MIC_ON:
             RecvCommandMicOn();

@@ -100,6 +100,16 @@ void NTXM7::stopChannel(u8 channel)
 	player->stopChannel(channel);
 }
 
+void NTXM7::playNoteAuto(u8 instidx, u8 note, u8 volume, u16 tag)
+{
+	player->playNoteAuto(instidx, note, volume, tag);
+}
+
+void NTXM7::stopNoteAuto(u16 tag)
+{
+	player->stopNoteAuto(tag);
+}
+
 void NTXM7::setPatternLoop(bool loopstate)
 {
 	player->setPatternLoop(loopstate);

@@ -149,13 +149,14 @@ void Player::stop(void)
 	resetPanning();
 }
 
-// Play the note with the given settings. channel == 255 -> search for free channel
+// Play the note with the given settings.
 void Player::playNote(u8 note, u8 volume, u8 channel, u8 instidx)
 {
 	//reset portamento to init
 	state.channel_porta_accumulator[channel] = 0;
 	state.channel_porta_increment[channel] = 0;
 	state.channel_porta_enabled[channel] = false;
+	state.channel_tags[channel] = UNTAGGED;
 	
 	if( (state.playing == true) && (song->channelMuted(channel) == true) )
 		return;
@@ -168,21 +169,6 @@ void Player::playNote(u8 note, u8 volume, u8 channel, u8 instidx)
 	Sample *smp = inst->getSampleForNote(note);
 	if (smp == 0)
 		return;
-
-	if(channel == 255) // Find a free channel
-	{
-		s8 c = MAX_CHANNELS-1;
-		while( ( state.channel_active[c] == 1) && ( c >= 0 ) )
-			--c;
-
-		if( c < 0 )
-			return;
-		else
-		{
-			channel = c;
-			state.last_autochannel = c;
-		}
-	}
 
 	// Stop possibly active fades
 	state.channel_fade_active[channel] = 0;
@@ -250,11 +236,6 @@ void Player::stopAllNotes(u8 note, u8 instidx)
 // Stop playback on a channel
 void Player::stopChannel(u8 channel)
 {
-	if(channel == 255) // Autochannel
-	{
-		channel = state.last_autochannel;
-	}
-
 	// Stop single sample if it's played on this channel
 	if((state.playing_single_sample == true) && (state.single_sample_channel == channel))
 	{
@@ -270,6 +251,53 @@ void Player::stopChannel(u8 channel)
 		state.channel_fade_active[channel]        = 1;
 		state.channel_fade_ms[channel]            = FADE_OUT_MS;
 		state.channel_fade_target_volume[channel] = 0;
+	}
+	
+	state.channel_tags[channel] = UNTAGGED;
+}
+
+int Player::getChannelForTag(u16 tag)
+{
+	int i;
+	
+	// First look for existing channels using this tag, just in case.
+	for (i = 0; i < MAX_CHANNELS; i++) {
+		if (state.channel_tags[i] == tag) {
+			return i;
+		}
+	}
+	// Look for inactive channels.
+	for (i = MAX_CHANNELS-1; i > 0; i--) {
+		if (state.channel_active[i] == 0) {
+			return i;
+		}
+	}
+	// Look for deprioritized channels.
+	for (i = MAX_CHANNELS-1; i > 0; i--) {
+		if (state.channel_active[i] == 2) {
+			return i;
+		}
+	}
+	// Fail
+	return -1;
+}
+
+void Player::playNoteAuto(u8 instidx, u8 note, u8 volume, u16 tag)
+{
+	int channel = getChannelForTag(tag);
+	if (channel != -1) {
+		playNote(note, volume, channel, instidx);
+		state.channel_tags[channel] = tag;
+	}
+}
+
+void Player::stopNoteAuto(u16 tag)
+{
+	for (int i = 0; i < MAX_CHANNELS; i++) {
+		if (state.channel_tags[i] == tag) {
+			stopChannel(i);
+			return;
+		}
 	}
 }
 
@@ -356,7 +384,7 @@ void Player::playTimerHandler(void)
 	}
 
 	// Update active channels
-	for(u8 channel=0; channel<song->n_channels && channel<MAX_CHANNELS; ++channel)
+	for(u8 channel=0; channel<MAX_CHANNELS; ++channel)
 	{
 		if(state.channel_ms_left[channel] > 0)
 		{
@@ -1031,6 +1059,7 @@ void Player::initState(void)
 	memset(state.channel_vib_accumulator, 0, sizeof(state.channel_vib_accumulator));
 	memset(state.channel_vib_phase_increment, 0, sizeof(state.channel_vib_phase_increment));
 	memset(state.channel_vib_depth, 0, sizeof(state.channel_vib_depth));
+	memset(state.channel_tags, 0xff, sizeof(state.channel_tags));  // fill with UNTAGGED (u16)
 	state.playing_single_sample = false;
 	state.single_sample_ms_remaining = 0;
 	state.single_sample_channel = 0;
@@ -1060,6 +1089,7 @@ void Player::initDefaultPanning(void)
 	for ( u8 i = 0; i < instcount; i++)
 	{
 		inst = song->instruments[i];
+		if (inst == 0) continue;
 		smpidx = inst->getSamples();
 		for (u16 j = 0; j < smpidx; j++)
 		{
@@ -1078,6 +1108,7 @@ void Player::resetPanning(void)
 	for ( u8 i = 0; i < instcount; i++)
 	{
 		inst = song->instruments[i];
+		if (inst == 0) continue;
 		smpidx = inst->getSamples();
 		for (u16 j = 0; j < smpidx; j++)
 		{

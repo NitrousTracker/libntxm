@@ -28,6 +28,8 @@ typedef enum {
     PLAY_INST,
     STOP_INST,
     STOP_MATCHING_INST,
+    PLAY_NOTE_AUTO,
+    STOP_NOTE_AUTO,
     NOTIFY_STOP,
     MIC_ON,
     MIC_OFF,
@@ -100,6 +102,17 @@ struct StopMatchingInstCommand {
     u8 note;
 };
 
+struct PlayNoteAutoCommand {
+    u8 inst;
+    u8 note;
+    u8 volume;
+    u16 tag;
+};
+
+struct StopNoteAutoCommand {
+    u16 tag;
+};
+
 struct PatternLoopCommand {
     bool state;
 };
@@ -127,6 +140,8 @@ typedef struct NTXMFifoMessage {
         PlayInstCommand        playInst;
         StopInstCommand        stopInst;
         StopMatchingInstCommand    stopMatchingInst;
+        PlayNoteAutoCommand    playNoteAuto;
+        StopNoteAutoCommand    stopNoteAuto;
         PatternLoopCommand     ptnLoop;
         SetStereoOutputCommand setStereoOutput;
     };
@@ -148,6 +163,8 @@ void CommandSetDebugStrPtr(char **arm7debugstrs, u16 debugstrsize, u8 n_debugbuf
 void CommandPlayInst(u8 inst, u8 note, u8 volume, u8 channel);
 void CommandStopInst(u8 channel);
 void CommandStopMatchingInst(u8 inst, u8 note);
+void CommandPlayNoteAuto(u8 inst, u8 note, u8 volume, u16 tag);
+void CommandStopNoteAuto(u16 tag);
 void CommandMicOn(void);
 void CommandMicOff(void);
 void CommandSetPatternLoop(bool state);
