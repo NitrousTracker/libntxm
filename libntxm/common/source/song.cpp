@@ -181,7 +181,6 @@ void Song::zapInstrument(u8 inst) {
 	}
 }
 
-// return number of unused insts
 void Song::zapUnusedInstruments(bool *used_insts) {
 	u8 n_chn = getChannels();
 	u8 n_pat = getNumPatterns();
@@ -200,7 +199,7 @@ void Song::zapUnusedInstruments(bool *used_insts) {
 	}
 
 	for (u8 i = 0; i < MAX_INSTRUMENTS; ++i)
-		if (used_insts[i])
+		if (!used_insts[i])
 			zapInstrument(i);
 }
 
