@@ -124,6 +124,9 @@ void Instrument::setSample(u8 idx, Sample *sample)
 
 Sample *Instrument::getSample(u8 idx)
 {
+	#ifdef ARM9
+	printf("Getting sample %d, n_samples=%d\n", idx, n_samples);
+	#endif
 	if((n_samples>0) && (idx<n_samples))
 		return samples[idx];
 	else
@@ -220,6 +223,7 @@ bool Instrument::getVolEnvEnabled(void)
 u32 Instrument::calcPlayLength(u8 note) {
 	return samples[note_samples[note]]->calcPlayLength(note);
 }
+
 
 #ifdef ARM9
 

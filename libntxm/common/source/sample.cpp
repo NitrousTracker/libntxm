@@ -212,7 +212,7 @@ void Sample::play(u8 note, u8 volume_ , u8 channel)
 		return;
 	}
 	*/
-
+	
 	u32 loop_bit;
 	if( ( ( loop == FORWARD_LOOP ) || (loop == PING_PONG_LOOP) ) && (loop_length > 0) )
 		loop_bit = SOUND_REPEAT;
@@ -288,7 +288,7 @@ void Sample::bendNoteDirect(s16 fine_step, u8 channel)
 
 u32 Sample::calcPlayLength(u8 note)
 {
-	u32 samples_per_second = LOOKUP_FREQ(48+note+rel_note,finetune);
+	u32 samples_per_second = getPlaybackFreq(note);
 	if (samples_per_second == 0) return 0;
 	return n_samples * 1000 / samples_per_second;
 }
@@ -321,6 +321,10 @@ u32 Sample::getSize(void)
 u32 Sample::getNSamples(void)
 {
 	return n_samples;
+}
+
+u32 Sample::getPlaybackFreq(u8 note_) {
+    return LOOKUP_FREQ(48+note_+rel_note,finetune);
 }
 
 void *Sample::getData(void)

@@ -76,7 +76,6 @@ class Instrument
 		
 		// Calculate how long in ms the instrument will play note given note
 		u32 calcPlayLength(u8 note);
-		
 		const char *getName(void);
 		void setName(const char *_name);
 	

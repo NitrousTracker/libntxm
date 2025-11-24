@@ -50,7 +50,7 @@ extern bool ntxm_recording;
 /* ===================== PUBLIC ===================== */
 
 Player::Player(void (*_externalTimerHandler)(void))
-	:song(0), externalTimerHandler(_externalTimerHandler)
+	:song(0), cursorpos(0), externalTimerHandler(_externalTimerHandler)
 {
 	initState();
 
@@ -149,6 +149,103 @@ void Player::stop(void)
 	resetPanning();
 }
 
+void Player::calcCursorPos(u32 n_ticks)
+{
+	if (!state.playing_piano_sample)
+		return;
+
+	const u8 looptype = state.piano_sample_looptype;
+
+	// promoted and shifted up for fixed point calcs, 
+	// for accuracy. only shift down when passing to sampledisp
+	const u64 loopstart = (u64)state.piano_sample_loopstart << 32;
+	const u64 looplen = (u64)state.piano_sample_looplen << 32;
+	const u64 nsamps = (u64)state.piano_sample_nsamps_total << 32;
+	const u64 loopend = loopstart + looplen;
+	
+	bool& looprev = state.piano_sample_loopreverse;
+	u64& playpos = state.piano_sample_nsamps_position; // alias the name for cleanliness
+
+	if (n_ticks == 0) return;
+	
+	// this should just be divide by 1000, but the timer obviously won't run at exactly 1000Hz
+	// due to the nature of the calculations. i found that dividing by 1012 produced essentially
+	// no drift after a lot of time on looped samples on both emulator and hardware
+	const u64 step = (((u64)state.piano_sample_playfreq * (u64)n_ticks) << 32) / 1012; // timer
+
+	if (looprev) {
+		if (step > playpos) {
+			playpos = loopstart + step - playpos;
+			looprev = false;
+		} else
+			playpos -= step;
+	} else
+		playpos += step;
+
+	if (looptype == FORWARD_LOOP && playpos >= loopend)
+		playpos = loopstart + playpos - loopend;
+	else if (looptype == PING_PONG_LOOP) {
+		if (looprev && playpos <= loopstart) {
+			// 2*playback pos, as the second one is used to calculate
+			// the error that needs to be corrected
+			playpos = 2 * loopstart - playpos;
+			looprev = false;
+		}
+		else if (!looprev && playpos >= loopend) {
+			// same here
+			playpos = 2 * loopend - playpos;
+			looprev = true;
+		}
+	}
+	else if (looptype == NO_LOOP && playpos >= nsamps) {
+		CommandStopCursor();
+		return;
+	}
+
+	if (looptype != NO_LOOP && looplen <= step && playpos > loopstart)
+		if (looptype == PING_PONG_LOOP && looprev)
+			playpos = loopend - (step % looplen);
+		else
+			playpos = loopstart + (step % looplen);
+
+	if (cursorpos == 0) return;
+	*cursorpos = (u32)(playpos >> 32);
+}
+
+void Player::cursorStart(u8 note, u8 instidx)
+{
+	Instrument *inst = song->getInstrument(instidx);
+	if (inst==0) return;
+
+	Sample *smp = inst->getSampleForNote(note);
+	if (smp==0) return;
+	sample_lastms = getTicks();
+	
+	state.piano_sample_playfreq = smp->getPlaybackFreq(note);
+	state.piano_sample_loopreverse = false;
+	state.piano_sample_nsamps_position = 0;
+	state.piano_sample_nsamps_total = smp->getNSamples();
+	state.piano_sample_looptype = smp->getLoop();
+	state.piano_sample_looplen = smp->getLoopLength(); // will be 0 for non loop
+	state.piano_sample_loopstart = smp->getLoopStart();  //
+
+	state.playing_piano_sample = true;
+}
+
+void Player::cursorStop(void)
+{
+	// no need to clear most of these as they will be
+	// reset in cursorStart if needed. still, may as well...
+	state.playing_piano_sample = false;
+	state.piano_sample_loopreverse = false;
+	state.piano_sample_nsamps_position = 0;
+	state.piano_sample_nsamps_total = 0;
+	state.piano_sample_playfreq = 0;
+	state.piano_sample_loopstart = 0;
+	state.piano_sample_looplen = 0;
+	state.piano_sample_looptype = NO_LOOP;
+}
+
 // Play the note with the given settings. channel == 255 -> search for free channel
 void Player::playNote(u8 note, u8 volume, u8 channel, u8 instidx)
 {
@@ -171,6 +268,8 @@ void Player::playNote(u8 note, u8 volume, u8 channel, u8 instidx)
 
 	if(channel == 255) // Find a free channel
 	{
+		cursorStart(note, instidx); // after pr11 merge: move this to playNoteAuto
+
 		s8 c = MAX_CHANNELS-1;
 		while( ( state.channel_active[c] == 1) && ( c >= 0 ) )
 			--c;
@@ -183,6 +282,7 @@ void Player::playNote(u8 note, u8 volume, u8 channel, u8 instidx)
 			state.last_autochannel = c;
 		}
 	}
+
 
 	// Stop possibly active fades
 	state.channel_fade_active[channel] = 0;
@@ -252,6 +352,7 @@ void Player::stopChannel(u8 channel)
 {
 	if(channel == 255) // Autochannel
 	{
+		cursorStop();  // pr11: move this to stopNoteAuto
 		channel = state.last_autochannel;
 	}
 
@@ -273,8 +374,21 @@ void Player::stopChannel(u8 channel)
 	}
 }
 
+
 void Player::playTimerHandler(void)
 {
+	// cursor calculations, may as well reuse the same timer
+	if (state.playing_piano_sample)
+	{
+		u32 sample_passed_time = getTicks() - sample_lastms;
+		if (sample_passed_time >= 16) // only calculate roughly every frame. (1 frame = 16.6666...ms)
+		{
+			sample_lastms = getTicks();
+			calcCursorPos(sample_passed_time);
+		}
+
+	}	
+
 	if(ntxm_recording && !state.playing)
 		return;
 
@@ -1034,6 +1148,14 @@ void Player::initState(void)
 	state.playing_single_sample = false;
 	state.single_sample_ms_remaining = 0;
 	state.single_sample_channel = 0;
+	state.playing_piano_sample = false;
+	state.piano_sample_loopreverse = false;
+	state.piano_sample_nsamps_position = 0;
+	state.piano_sample_nsamps_total = 0;
+	state.piano_sample_playfreq = 0;
+	state.piano_sample_loopstart = 0;
+	state.piano_sample_looplen = 0;
+	state.piano_sample_looptype = NO_LOOP;
 }
 
 void Player::initEffState(void)
@@ -1195,4 +1317,9 @@ bool Player::calcNextPos(u16 *nextrow, u8 *nextpotpos) // Calculate next row and
 	}
 
 	return false;
+}
+
+void Player::setCursorPosPtr(u32 *cpos)
+{
+	cursorpos = cpos;
 }

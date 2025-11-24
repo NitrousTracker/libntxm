@@ -104,3 +104,7 @@ void NTXM7::setPatternLoop(bool loopstate)
 {
 	player->setPatternLoop(loopstate);
 }
+
+void NTXM7::setCursorPosPtr(u32 *cursorptr) {
+	player->setCursorPosPtr(cursorptr);
+}

@@ -25,6 +25,7 @@ typedef enum {
     DBG_OUT,
     UPDATE_ROW,
     UPDATE_POTPOS,
+    STOP_CURSOR,
     PLAY_INST,
     STOP_INST,
     STOP_MATCHING_INST,
@@ -33,7 +34,8 @@ typedef enum {
     MIC_OFF,
     PATTERN_LOOP,
     SAMPLE_FINISH,
-    SET_STEREO_OUTPUT
+    SET_STEREO_OUTPUT,
+    SET_CURSORPOS_PTR
 } NTXMFifoMessageType;
 
 struct PlaySampleCommand
@@ -84,6 +86,13 @@ struct UpdatePotPosCommand {
     u16 potpos;
 };
 
+struct StopCursorCommand {
+};
+
+struct SetCursorPosPtrCommand {
+    u32 *cursorptr;
+};
+
 struct PlayInstCommand {
     u8 inst;
     u8 note;
@@ -124,11 +133,13 @@ typedef struct NTXMFifoMessage {
 #endif
         UpdateRowCommand       updateRow;
         UpdatePotPosCommand    updatePotPos;
+        StopCursorCommand      stopCursor;
         PlayInstCommand        playInst;
         StopInstCommand        stopInst;
         StopMatchingInstCommand    stopMatchingInst;
         PatternLoopCommand     ptnLoop;
         SetStereoOutputCommand setStereoOutput;
+        SetCursorPosPtrCommand setCursorPosPtr;
     };
 } NTXMFifoMessage;
 
@@ -145,6 +156,7 @@ void CommandSetSong(void *song);
 void CommandStartPlay(u8 potpos, u16 row, bool loop);
 void CommandStopPlay(void);
 void CommandSetDebugStrPtr(char **arm7debugstrs, u16 debugstrsize, u8 n_debugbufs);
+void CommandSetCursorPosPtr(u32 *cursorpos);
 void CommandPlayInst(u8 inst, u8 note, u8 volume, u8 channel);
 void CommandStopInst(u8 channel);
 void CommandStopMatchingInst(u8 inst, u8 note);
@@ -157,6 +169,8 @@ void RegisterRowCallback(void (*onUpdateRow_)(u16));
 void RegisterStopCallback(void (*onStop_)(void));
 void RegisterPlaySampleFinishedCallback(void (*onPlaySampleFinished_)(void));
 void RegisterPotPosChangeCallback(void (*onPotPosChange_)(u16));
+void RegisterCursorPosChangeCallback(void (*onCursorPosChange_)(u32));
+void RegisterStopCursorCallback(void (*onStopCursor_)(void));
 #endif
 
 #if defined(ARM7)
@@ -167,6 +181,7 @@ void CommandDbgOut(const char *formatstr, ...); // Print text from the ARM7, syn
 #endif
 void CommandUpdateRow(u16 row);
 void CommandUpdatePotPos(u16 potpos);
+void CommandStopCursor(void);
 void CommandNotifyStop(void);
 void CommandSampleFinish(void);
 #endif
