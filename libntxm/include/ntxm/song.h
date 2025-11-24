@@ -220,7 +220,7 @@ class Song {
 		void zapPatterns(void);
 		void zapInstruments(void);
 		void zapInstrument(u8 inst);
-		u8 zapUnusedInstruments(u8 *instlist);
+		void zapUnusedInstruments(bool *used_insts);
 		
 		void clearCell(Cell *cell);
 		

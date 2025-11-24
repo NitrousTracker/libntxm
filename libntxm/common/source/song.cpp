@@ -33,15 +33,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#ifdef ARM9
-#include <set>
-#elifdef ARM7
+#ifdef ARM7
 #include "ntxm/demokit.h"
 #endif
 
 #include "ntxm/song.h"
 #include "ntxm/ntxmtools.h"
 #include "ntxm/fifocommand.h"
+
 
 /*
 A word on pattern memory management:
@@ -183,32 +182,26 @@ void Song::zapInstrument(u8 inst) {
 }
 
 // return number of unused insts
-u8 Song::zapUnusedInstruments(u8 *instList) {
-	std::set <u8> s;
-
+void Song::zapUnusedInstruments(bool *used_insts) {
 	u8 n_chn = getChannels();
 	u8 n_pat = getNumPatterns();
-	for (int i = 0; i < n_pat; i++) {
-		Cell **p = getPattern(i);
-		u16 p_len = getPatternLength(i);
 
-		for (int j = 0; j < p_len; j++) {
-			for (int k = 0; k < n_chn; k++) {
-				Cell thisCell = p[k][j];
+	for (int ptn = 0; ptn < n_pat; ++ptn) {
+		Cell **p = getPattern(ptn);
+		u16 p_len = getPatternLength(ptn);
+
+		for (int row = 0; row < p_len; ++row)
+			for (int col = 0; col < n_chn; ++col) {
+				Cell thisCell = p[col][row];
 				u8 inst = thisCell.instrument;
 				if (inst != NO_INSTRUMENT)
-					s.insert(thisCell.instrument);
+					used_insts[inst] = true;
 			}
-		}
 	}
-	u8 unused_i = 0;
-	for (u8 i = 0;i < MAX_INSTRUMENTS;++i)
-		if (s.find(i) == s.end()) {
-			zapInstrument(i);
-			instList[unused_i++] = i;
-		}
 
-	return unused_i;
+	for (u8 i = 0; i < MAX_INSTRUMENTS; ++i)
+		if (used_insts[i])
+			zapInstrument(i);
 }
 
 // POT functions
