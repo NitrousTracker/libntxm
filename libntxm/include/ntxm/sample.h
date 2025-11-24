@@ -78,7 +78,9 @@ class Sample
 		u32 getNSamples(void); // Get the numer of (PCM) samples
 
 		void *getData(void);
-
+		u32 getMaxAmplitude(u32 startsample, u32 endsample);
+		u32 getDynamicRange(void);
+		
 		u8 getLoop(void); // 0: no loop, 1: loop, 2: ping pong loop
 		bool setLoop(u8 loop_); // Set loop type. Can fail due to memory constraints
 		bool is16bit(void);
@@ -108,7 +110,7 @@ class Sample
 		void fadeOut(u32 startsample, u32 endsample);
 		bool reverse(u32 startsample, u32 endsample);
 		void normalize(u16 percent, u32 startsample, u32 endsample);
-		void autoNormalize(u32 startsample, u32 endsample);
+		
 
 		// Draws a line into the sample
 		void drawLine(int x1, int y1, int x2, int y2);
