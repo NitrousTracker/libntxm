@@ -108,6 +108,7 @@ class Sample
 		void fadeOut(u32 startsample, u32 endsample);
 		bool reverse(u32 startsample, u32 endsample);
 		void normalize(u16 percent, u32 startsample, u32 endsample);
+		void autoNormalize(u32 startsample, u32 endsample);
 
 		// Draws a line into the sample
 		void drawLine(int x1, int y1, int x2, int y2);

@@ -622,6 +622,36 @@ bool Sample::reverse(u32 startsample, u32 endsample)
 	return true;
 }
 
+void Sample::autoNormalize(u32 startsample, u32 endsample)
+{
+	void *data = getData();
+	u32 max_smp = 0;
+	u32 dr = 0;
+	if(is_16_bit == true)
+	{
+		dr = 32767;
+		s16 *sounddata = (s16*)(data);
+
+		for(u32 i=startsample;i<endsample;++i) {
+			u32 ampl = abs((s32)sounddata[i]);
+			max_smp = MAX(ampl, max_smp);
+			if (ampl == 32767) break;
+		}
+
+	} else {
+		dr = 128;
+		s8 *sounddata = (s8*)(data);
+
+		for(u32 i=startsample;i<endsample;++i) {
+			u32 ampl = abs((s32)sounddata[i]);
+			max_smp = MAX(ampl, max_smp);
+			if (ampl == 127) break;
+		}
+	}
+	u16 factor = (dr << 16) / ((max_smp << 16) / 100);
+	factor = ntxm_clamp(factor, 100, 2000);
+	normalize(factor, startsample, endsample);
+}
 
 void Sample::normalize(u16 percent, u32 startsample, u32 endsample)
 {
