@@ -625,9 +625,9 @@ bool Sample::reverse(u32 startsample, u32 endsample)
 u32 Sample::getDynamicRange(void)
 {
 	if (is_16_bit == true)
-		return 0xffff;
+		return 0xffff + 1;
 	else
-		return 0xff;
+		return 0xff + 1;
 }
 
 u32 Sample::getMaxAmplitude(u32 startsample, u32 endsample)
