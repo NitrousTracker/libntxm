@@ -57,7 +57,8 @@ const char *xmtransporterrors[] =
 	"pattern too long",
 	"file is zero byte",
 	"disk is full",
-	"xm format hacks not supported"};
+	"xm format hacks not supported",
+	"too many channels"};
 
 /* ===================== PUBLIC ===================== */
 
