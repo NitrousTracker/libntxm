@@ -37,10 +37,7 @@
 
 #include "ntxm/sample.h"
 #include "ntxm/fifocommand.h"
-
-#ifdef ARM9
 #include "ntxm/ntxmtools.h"
-#endif
 
 #define MAX(x,y)						((x)>(y)?(x):(y))
 #define LOOKUP_FREQ(note,finetune)		(linear_freq_table_lookup(MAX(0,N_FINETUNE_STEPS*(note)+(finetune))))
@@ -202,7 +199,7 @@ void Sample::saveAsWav(char *filename)
 #if defined(ARM7)
 
 // volume_ ranges from 0-127. The value 255 means "no volume", i.e. the sample's own volume shall be used.
-void Sample::play(u8 note, u8 volume_ , u8 channel)
+void Sample::play(u8 note, u8 volume_, u8 channel, u8 offs)
 {
 	if(channel>15) return; // DS has only 16 channels!
 
@@ -241,22 +238,39 @@ void Sample::play(u8 note, u8 volume_ , u8 channel)
 	SCHANNEL_CR(channel) = 0;
 	SCHANNEL_TIMER(channel) = SOUND_FREQ((int)LOOKUP_FREQ(realnote,finetune));
 
-	if( loop == NO_LOOP )
+	u32 offs_samps = FT_OFFSET_SCALAR * offs * (sound_format == SOUNDXCNT_FORMAT_8BIT ? 1 : 2);
+	
+	// todo: only semi working with looping samples (for now)
+	// if the offset is less than the loop start it works fine (ty to exelotl :-D)
+	
+	// a fully working version of this would probably have to allocate more memory at the 
+	// start of the sound data specifically for the initial offset playback, either that
+	// or treat it as two separate notes and play the second one from the loop start as
+	// soon as the offset one ends
+
+	if (offs_samps > size)
 	{
-		SCHANNEL_SOURCE(channel) = (uint32)sound_data;
+		SCHANNEL_CR(channel) = 0;
+		return;
+	}
+	if (loop == NO_LOOP)
+	{
+		SCHANNEL_SOURCE(channel) = (uint32)sound_data + offs_samps;
 		SCHANNEL_REPEAT_POINT(channel) = 0;
-		SCHANNEL_LENGTH(channel) = size >> 2;
+		SCHANNEL_LENGTH(channel) = (size - offs_samps) >> 2;
 	}
 	else if( loop == FORWARD_LOOP || (loop == PING_PONG_LOOP && !pingpong_data) )
 	{
-		SCHANNEL_SOURCE(channel) = (uint32)sound_data;
-		SCHANNEL_REPEAT_POINT(channel) = loop_start >> 2;
-		SCHANNEL_LENGTH(channel) = loop_length >> 2;
+		u32 loop_offs_samps = ntxm_clamp(offs_samps, 0, loop_start);
+		SCHANNEL_SOURCE(channel) = (uint32)sound_data + loop_offs_samps;
+		SCHANNEL_REPEAT_POINT(channel) = (loop_start - loop_offs_samps) >> 2;
+		SCHANNEL_LENGTH(channel) = (loop_length) >> 2;
 	}
 	else if( loop == PING_PONG_LOOP )
 	{
-		SCHANNEL_SOURCE(channel) = (uint32)pingpong_data;
-		SCHANNEL_REPEAT_POINT(channel) = loop_start >> 2;
+		u32 loop_offs_samps = ntxm_clamp(offs_samps, 0, loop_start);
+		SCHANNEL_SOURCE(channel) = (uint32)sound_data + loop_offs_samps;
+		SCHANNEL_REPEAT_POINT(channel) = (loop_start - loop_offs_samps) >> 2;
 		SCHANNEL_LENGTH(channel) = loop_length >> 1;
 	}
 

@@ -138,7 +138,7 @@ Sample *Instrument::getSampleForNote(u8 _note) {
 
 #ifdef ARM7
 
-void Instrument::play(u8 _note, u8 _volume, u8 _channel /* effects here */)
+void Instrument::play(u8 _note, u8 _volume, u8 _channel /* effects here */, u8 offs)
 {
 	envelope_ms[_channel] = 0;
 	envelope_pixels[_channel] = 0;
@@ -156,7 +156,7 @@ void Instrument::play(u8 _note, u8 _volume, u8 _channel /* effects here */)
 	switch(type) {
 		case INST_SAMPLE:
 			if( (n_samples > 0) && (samples[note_samples[_note]] != 0) )
-				samples[note_samples[_note]]->play(_note, play_volume, _channel);
+				samples[note_samples[_note]]->play(_note, play_volume, _channel, offs);
 			break;
 	}
 }

@@ -53,6 +53,8 @@ enum LoopType
 
 #define SAMPLE_NAME_LENGTH		24
 
+#define FT_OFFSET_SCALAR 256
+
 class Sample
 {
 	public:
@@ -63,7 +65,7 @@ class Sample
 
 		void saveAsWav(char *filename);
 
-		void play(u8 note, u8 volume_, u8 channel  /* effects here */);
+		void play(u8 note, u8 volume_, u8 channel  /* effects here */, u8 offs = 0);
 		void bendNote(u8 note, u8 basenote, s16 _finetune, u8 channel);
 		void bendNoteDirect(s16 fine_step, u8 channel);
 		u32 calcPlayLength(u8 note);

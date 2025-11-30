@@ -198,8 +198,16 @@ void Player::playNote(u8 note, u8 volume, u8 channel, u8 instidx)
 	//xm standard is to reset effect panning each note
 	u8 pan = smp->getBasePanning();
 	smp->setPanning(pan);
+
+	// special case: check for sample offset
+	u8 effect = song->patterns[state.pattern][channel][state.row].effect;
+	u8 param  = song->patterns[state.pattern][channel][state.row].effect_param;
+
+	u8 offs = 0;
+	if (effect == EFFECT_SAMPLE_OFFSET)
+		offs = param;
 	
-	inst->play(note, volume, channel);
+	inst->play(note, volume, channel, offs);
 }
 
 // Play the given sample (and send a notification when done)
