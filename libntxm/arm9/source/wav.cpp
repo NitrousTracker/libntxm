@@ -60,6 +60,7 @@ Wav::~Wav() {
 
 #define FOURCC_RIFF 0x46464952
 #define FOURCC_WAVE 0x45564157
+#define FOURCC_JUNK 0x4b4e554a
 #define FOURCC_fmt 0x20746D66
 #define FOURCC_data 0x61746164
 #define FOURCC_smpl 0x6C706D73
@@ -98,8 +99,15 @@ bool Wav::load(const char *filename)
 	// fmt chunk
 	fread(&cc, 4, 1, fileh);
 	if(cc != FOURCC_fmt) {
-		fclose(fileh);
-		return false;
+		if (cc == FOURCC_JUNK) {
+			long junksize;
+			fread(&junksize, 4, 1, fileh);
+			fseek(fileh, junksize+4, SEEK_CUR);
+		}
+		else {
+			fclose(fileh);
+			return false;
+		}
 	}
 
 	u32 fmt_chunk_size;
