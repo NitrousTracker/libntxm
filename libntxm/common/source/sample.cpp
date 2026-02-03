@@ -269,7 +269,7 @@ void Sample::play(u8 note, u8 volume_, u8 channel, u8 offs)
 	else if( loop == PING_PONG_LOOP )
 	{
 		u32 loop_offs_samps = ntxm_clamp(offs_samps, 0, loop_start);
-		SCHANNEL_SOURCE(channel) = (uint32)sound_data + loop_offs_samps;
+		SCHANNEL_SOURCE(channel) = (uint32)pingpong_data + loop_offs_samps;
 		SCHANNEL_REPEAT_POINT(channel) = (loop_start - loop_offs_samps) >> 2;
 		SCHANNEL_LENGTH(channel) = loop_length >> 1;
 	}
