@@ -706,7 +706,10 @@ void Player::handleEffects(void)
 				{
 					if (inst == NULL)
 						continue;
-					state.channel_porta_increment[channel] = (u16) param;
+					
+					if (param != 0)
+						state.channel_porta_increment[channel] = (u16) param;
+					
 					if (state.channel_porta_enabled[channel] == false)
 					{
 						state.channel_porta_enabled[channel] = true;
@@ -715,7 +718,7 @@ void Player::handleEffects(void)
 						s8 fine = inst->getSampleForNote(note)->getFinetune();
 						note += (48 + rel); 	// Add 48 to the note, because otherwise note can get negative (later on)
 																	// Also add rel note and finetune from sample settings so the effect won't be out of tune
-						state.channel_porta_accumulator[channel] = (u32)((128 * note) + fine); // 128 is max finesteps per note
+						state.channel_porta_accumulator[channel] = (s32)((128 * note) + fine) << PORTA_PRECISION; // 128 is max finesteps per note
 					}
 					break;
 				}
@@ -724,7 +727,10 @@ void Player::handleEffects(void)
 				{
 					if (inst == NULL)
 						continue;
-					state.channel_porta_increment[channel] = (u16) param;
+					
+					if (param != 0)
+						state.channel_porta_increment[channel] = (u16) param;
+					
 					if (state.channel_porta_enabled[channel] == false)
 					{
 						state.channel_porta_enabled[channel] = true;
@@ -733,7 +739,7 @@ void Player::handleEffects(void)
 						s8 fine = inst->getSampleForNote(note)->getFinetune();
 						note += (48 + rel); 	// Add 48 to the note, because otherwise note can get negative (later on)
 																	// Also add rel note and finetune from sample settings so the effect won't be out of tune
-						state.channel_porta_accumulator[channel] = (u32)((128 * note) + fine); // 128 is max finesteps per note
+						state.channel_porta_accumulator[channel] = (s32)((128 * note) + fine) << PORTA_PRECISION; // 128 is max finesteps per note
 					}
 					break;
 				}
@@ -742,7 +748,10 @@ void Player::handleEffects(void)
 				{
 					if (inst == NULL)
 						continue;
-					state.channel_porta_increment[channel] = (u16) param;
+					
+					if (param != 0)
+						state.channel_porta_increment[channel] = (u16) param;
+					
 					if (state.channel_porta_enabled[channel] == false)
 					{
 						state.channel_porta_enabled[channel] = true;
@@ -751,13 +760,13 @@ void Player::handleEffects(void)
 						s8 fine = inst->getSampleForNote(note)->getFinetune();
 						note += (48 + rel); 	// Add 48 to the note, because otherwise note can get negative (later on)
 																	// Also add rel note and finetune from sample settings so the effect won't be out of tune
-						state.channel_porta_accumulator[channel] = (u32)((128 * note) + fine); // 128 is max finesteps per note
+						state.channel_porta_accumulator[channel] = (s32)((128 * note) + fine) << PORTA_PRECISION; // 128 is max finesteps per note
 						note = state.channel_note[channel];
 						note += (48 + rel); 
 
 						//Target note uses first note's sample, so we'll borrow it's finetune and rel note
 						// to stay in tune
-						state.channel_porta_tone_target[channel] = (u32)((128 * note) + fine);
+						state.channel_porta_tone_target[channel] = (s32)((128 * note) + fine) << PORTA_PRECISION;
 
 						if (state.channel_porta_tone_target[channel] > state.channel_porta_accumulator[channel])
 						{
@@ -843,12 +852,12 @@ void Player::handleTickEffects(void)
 					if (inst == NULL)
 						continue;
 
-					state.channel_porta_accumulator[channel] += state.channel_porta_increment[channel];
-					if (state.channel_porta_accumulator[channel] > 19968)
+					state.channel_porta_accumulator[channel] += PORTA_FIX(state.channel_porta_increment[channel]);
+					if (state.channel_porta_accumulator[channel] > (19968 << PORTA_PRECISION))
 					{
-						state.channel_porta_accumulator[channel] = 19968;
+						state.channel_porta_accumulator[channel] = (19968 << PORTA_PRECISION);
 					}
-					inst->bendNoteDirect(state.channel_note[channel], state.channel_porta_accumulator[channel], channel);
+					inst->bendNoteDirect(state.channel_note[channel], state.channel_porta_accumulator[channel] >> PORTA_PRECISION, channel);
 					break;
 				}
 
@@ -857,12 +866,12 @@ void Player::handleTickEffects(void)
 					if (inst == NULL)
 						continue;
 
-					state.channel_porta_accumulator[channel] -= state.channel_porta_increment[channel];
+					state.channel_porta_accumulator[channel] -= PORTA_FIX(state.channel_porta_increment[channel]);
 					if (state.channel_porta_accumulator[channel] < 0)
 					{
 						state.channel_porta_accumulator[channel] = 0;
 					}
-					inst->bendNoteDirect(state.channel_note[channel], state.channel_porta_accumulator[channel], channel);
+					inst->bendNoteDirect(state.channel_note[channel], state.channel_porta_accumulator[channel] >> PORTA_PRECISION, channel);
 					break;
 				}
 
@@ -873,13 +882,13 @@ void Player::handleTickEffects(void)
 
 					if (state.channel_porta_up[channel] == true)
 					{
-						state.channel_porta_accumulator[channel] += state.channel_porta_increment[channel];
+						state.channel_porta_accumulator[channel] += PORTA_FIX(state.channel_porta_increment[channel]);
 						if (state.channel_porta_accumulator[channel] > state.channel_porta_tone_target[channel])
 						{
 							state.channel_porta_accumulator[channel] = state.channel_porta_tone_target[channel];
 						}
 					} else {
-						state.channel_porta_accumulator[channel] -= state.channel_porta_increment[channel];
+						state.channel_porta_accumulator[channel] -= PORTA_FIX(state.channel_porta_increment[channel]);
 						if (state.channel_porta_accumulator[channel] < state.channel_porta_tone_target[channel])
 						{
 							state.channel_porta_accumulator[channel] = state.channel_porta_tone_target[channel];
@@ -891,11 +900,11 @@ void Player::handleTickEffects(void)
 						state.channel_porta_accumulator[channel] = 0;
 					}
 
-					if (state.channel_porta_accumulator[channel] > 19968)
+					if (state.channel_porta_accumulator[channel] > (19968 << PORTA_PRECISION))
 					{
-						state.channel_porta_accumulator[channel] = 19968;
+						state.channel_porta_accumulator[channel] = (19968 << PORTA_PRECISION);
 					}
-					inst->bendNoteDirect(state.channel_note[channel], state.channel_porta_accumulator[channel], channel);
+					inst->bendNoteDirect(state.channel_note[channel], state.channel_porta_accumulator[channel] >> PORTA_PRECISION, channel);
 					break;
 				}
 
