@@ -612,6 +612,59 @@ void Player::handleEffects(void)
 
 					switch(e_effect_type)
 					{
+						case (EFFECT_E_FINE_PORTA_UP):
+						{
+							if (inst == NULL)
+								continue;
+					
+							if (e_effect_param != 0)
+								state.channel_porta_increment[channel] = (u16) e_effect_param;
+							
+							if (state.channel_porta_enabled[channel] == false)
+							{
+								state.channel_porta_enabled[channel] = true;
+								u8 note = state.channel_note[channel];
+								u8 rel = inst->getSampleForNote(note)->getRelNote();
+								s8 fine = inst->getSampleForNote(note)->getFinetune();
+								note += (48 + rel);
+								state.channel_porta_accumulator[channel] = (s32)((128 * note) + fine) << PORTA_PRECISION; // 128 is max finesteps per note
+							}
+							
+							state.channel_porta_accumulator[channel] += PORTA_FIX(state.channel_porta_increment[channel]);
+							if (state.channel_porta_accumulator[channel] > (19968 << PORTA_PRECISION))
+							{
+								state.channel_porta_accumulator[channel] = (19968 << PORTA_PRECISION);
+							}
+							inst->bendNoteDirect(state.channel_note[channel], state.channel_porta_accumulator[channel] >> PORTA_PRECISION, channel);
+							break;
+						}
+
+						case (EFFECT_E_FINE_PORTA_DOWN):
+						{
+							if (inst == NULL)
+								continue;
+					
+							if (e_effect_param != 0)
+								state.channel_porta_increment[channel] = (u16) e_effect_param;
+							
+							if (state.channel_porta_enabled[channel] == false)
+							{
+								state.channel_porta_enabled[channel] = true;
+								u8 note = state.channel_note[channel];
+								u8 rel = inst->getSampleForNote(note)->getRelNote();
+								s8 fine = inst->getSampleForNote(note)->getFinetune();
+								note += (48 + rel);
+								state.channel_porta_accumulator[channel] = (s32)((128 * note) + fine) << PORTA_PRECISION; // 128 is max finesteps per note
+							}
+							
+							state.channel_porta_accumulator[channel] -= PORTA_FIX(state.channel_porta_increment[channel]);
+							if (state.channel_porta_accumulator[channel] < 0)
+							{
+								state.channel_porta_accumulator[channel] = 0;
+							}
+							inst->bendNoteDirect(state.channel_note[channel], state.channel_porta_accumulator[channel] >> PORTA_PRECISION, channel);
+							break;
+						}
 						case(EFFECT_E_SET_LOOP):
 						{
 							// If param is 0, the loop start is set at the current row.
