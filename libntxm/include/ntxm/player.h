@@ -48,6 +48,8 @@
 
 #define UNTAGGED 0xffff  // Indicates that this channel is not playing a note issued via MIDI or Piano Pak, etc.
 
+// NT's `linear_freq_table` works in finesteps but this is _not_ the unit FT2 uses for portamento, vibrato etc.
+// To get decent accuracy for these effects, we use 24.8 fixed point and a hand-picked multiplier.
 #define PORTA_PRECISION 8             // Number of fractional bits for portamento state.
 #define PORTA_FIX(n) ((s32)n * 1704)  // Found through trial and error.
 
@@ -76,7 +78,7 @@ typedef struct
 	u8 channel_env_vol[MAX_CHANNELS];			// Current envelope height (0..63)
 	u8 channel_fade_vol[MAX_CHANNELS];			// Current fading volume (0..127)
 	u8 channel_prev_sample_vol[MAX_CHANNELS];      // Last sample volume
-	s32 channel_porta_accumulator[MAX_CHANNELS];  // Pitch offset, measured in 256ths of a fine-step.
+	s32 channel_porta_accumulator[MAX_CHANNELS];  // Absolute pitch, measured in 256ths of a fine-step.
 	s32 channel_porta_tone_target[MAX_CHANNELS];  // Target value for portamento to note effect
 	u16 channel_porta_increment[MAX_CHANNELS];
 	bool channel_porta_up[MAX_CHANNELS];
