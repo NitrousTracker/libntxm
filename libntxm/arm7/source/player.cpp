@@ -1039,7 +1039,11 @@ void Player::handleTickEffects(void)
 					u8 note = state.channel_note[channel];
 					u8 vib_depth = (param & 0x0f);
 					s16 fine = ((s16)(vibrato_sine_table[state.channel_vib_accumulator[channel]] * vib_depth) / 2);
-					inst->bendNote(note, note, fine, channel);
+					if (state.channel_porta_enabled[channel]) {
+						inst->bendNoteDirect(note, (state.channel_porta_accumulator[channel] >> PORTA_PRECISION) + fine, channel);
+					} else {
+						inst->bendNote(note, note, fine, channel);
+					}
 					state.channel_vib_accumulator[channel] += state.channel_vib_phase_increment[channel];
 					break;
 				}
