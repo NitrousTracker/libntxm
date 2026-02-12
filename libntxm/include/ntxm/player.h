@@ -80,7 +80,13 @@ typedef struct
 	u8 channel_prev_sample_vol[MAX_CHANNELS];      // Last sample volume
 	s32 channel_porta_accumulator[MAX_CHANNELS];  // Absolute pitch, measured in 256ths of a fine-step.
 	s32 channel_porta_tone_target[MAX_CHANNELS];  // Target value for portamento to note effect
-	u16 channel_porta_increment[MAX_CHANNELS];
+	u8 channel_porta_tone_increment[MAX_CHANNELS];
+	u8 channel_porta_increment[MAX_CHANNELS];
+	u8 channel_porta_decrement[MAX_CHANNELS];
+	u8 channel_fine_porta_increment[MAX_CHANNELS];
+	u8 channel_fine_porta_decrement[MAX_CHANNELS];
+	u8 channel_exfine_porta_increment[MAX_CHANNELS];
+	u8 channel_exfine_porta_decrement[MAX_CHANNELS];
 	bool channel_porta_up[MAX_CHANNELS];
 	bool channel_porta_enabled[MAX_CHANNELS];
 	u8 channel_vib_accumulator[MAX_CHANNELS];

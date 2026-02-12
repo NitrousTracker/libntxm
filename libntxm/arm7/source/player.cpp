@@ -141,7 +141,13 @@ void Player::stop(void)
 		state.channel_fade_target_volume[chn] = 0;
 		
 		state.channel_porta_accumulator[chn] = 0;
+		state.channel_porta_tone_increment[chn] = 0;
 		state.channel_porta_increment[chn] = 0;
+		state.channel_porta_decrement[chn] = 0;
+		state.channel_fine_porta_increment[chn] = 0;
+		state.channel_fine_porta_decrement[chn] = 0;
+		state.channel_exfine_porta_increment[chn] = 0;
+		state.channel_exfine_porta_decrement[chn] = 0;
 		state.channel_porta_enabled[chn] = false;
 		resetVibrato(chn);
 	}
@@ -154,7 +160,6 @@ void Player::playNote(u8 note, u8 volume, u8 channel, u8 instidx)
 {
 	//reset portamento to init
 	state.channel_porta_accumulator[channel] = 0;
-	state.channel_porta_increment[channel] = 0;
 	state.channel_porta_enabled[channel] = false;
 	state.channel_tags[channel] = UNTAGGED;
 	
@@ -618,7 +623,7 @@ void Player::handleEffects(void)
 								continue;
 					
 							if (e_effect_param != 0)
-								state.channel_porta_increment[channel] = (u16) e_effect_param;
+								state.channel_fine_porta_increment[channel] = (u16) e_effect_param;
 							
 							if (state.channel_porta_enabled[channel] == false)
 							{
@@ -630,7 +635,7 @@ void Player::handleEffects(void)
 								state.channel_porta_accumulator[channel] = (s32)((128 * note) + fine) << PORTA_PRECISION; // 128 is max finesteps per note
 							}
 							
-							state.channel_porta_accumulator[channel] += PORTA_FIX(state.channel_porta_increment[channel]);
+							state.channel_porta_accumulator[channel] += PORTA_FIX(state.channel_fine_porta_increment[channel]);
 							if (state.channel_porta_accumulator[channel] > (19968 << PORTA_PRECISION))
 							{
 								state.channel_porta_accumulator[channel] = (19968 << PORTA_PRECISION);
@@ -645,7 +650,7 @@ void Player::handleEffects(void)
 								continue;
 					
 							if (e_effect_param != 0)
-								state.channel_porta_increment[channel] = (u16) e_effect_param;
+								state.channel_porta_decrement[channel] = (u16) e_effect_param;
 							
 							if (state.channel_porta_enabled[channel] == false)
 							{
@@ -657,7 +662,7 @@ void Player::handleEffects(void)
 								state.channel_porta_accumulator[channel] = (s32)((128 * note) + fine) << PORTA_PRECISION; // 128 is max finesteps per note
 							}
 							
-							state.channel_porta_accumulator[channel] -= PORTA_FIX(state.channel_porta_increment[channel]);
+							state.channel_porta_accumulator[channel] -= PORTA_FIX(state.channel_porta_decrement[channel]);
 							if (state.channel_porta_accumulator[channel] < 0)
 							{
 								state.channel_porta_accumulator[channel] = 0;
@@ -782,7 +787,7 @@ void Player::handleEffects(void)
 						continue;
 					
 					if (param != 0)
-						state.channel_porta_increment[channel] = (u16) param;
+						state.channel_porta_decrement[channel] = (u16) param;
 					
 					if (state.channel_porta_enabled[channel] == false)
 					{
@@ -803,7 +808,7 @@ void Player::handleEffects(void)
 						continue;
 					
 					if (param != 0)
-						state.channel_porta_increment[channel] = (u16) param;
+						state.channel_porta_tone_increment[channel] = (u16) param;
 					
 					if (state.channel_porta_enabled[channel] == false)
 					{
@@ -829,7 +834,7 @@ void Player::handleEffects(void)
 							state.channel_porta_up[channel] = false;
 						} else {
 							//it's equal.... don't do porta
-							state.channel_porta_increment[channel] = 0;
+							state.channel_porta_tone_increment[channel] = 0;
 						}
 					}
 					break;
@@ -865,7 +870,7 @@ void Player::handleEffects(void)
 								continue;
 							
 							if (extra_fine_param != 0)
-								state.channel_porta_increment[channel] = (u16) extra_fine_param;
+								state.channel_exfine_porta_increment[channel] = (u16) extra_fine_param;
 							
 							if (state.channel_porta_enabled[channel] == false)
 							{
@@ -877,7 +882,7 @@ void Player::handleEffects(void)
 								state.channel_porta_accumulator[channel] = (s32)((128 * note) + fine) << PORTA_PRECISION; // 128 is max finesteps per note
 							}
 							
-							state.channel_porta_accumulator[channel] += PORTA_FIX(state.channel_porta_increment[channel]) >> 2;
+							state.channel_porta_accumulator[channel] += PORTA_FIX(state.channel_exfine_porta_increment[channel]) >> 2;
 							if (state.channel_porta_accumulator[channel] > (19968 << PORTA_PRECISION))
 							{
 								state.channel_porta_accumulator[channel] = (19968 << PORTA_PRECISION);
@@ -892,7 +897,7 @@ void Player::handleEffects(void)
 								continue;
 							
 							if (extra_fine_param != 0)
-								state.channel_porta_increment[channel] = (u16) extra_fine_param;
+								state.channel_exfine_porta_decrement[channel] = (u16) extra_fine_param;
 							
 							if (state.channel_porta_enabled[channel] == false)
 							{
@@ -904,7 +909,7 @@ void Player::handleEffects(void)
 								state.channel_porta_accumulator[channel] = (s32)((128 * note) + fine) << PORTA_PRECISION; // 128 is max finesteps per note
 							}
 							
-							state.channel_porta_accumulator[channel] -= PORTA_FIX(state.channel_porta_increment[channel]) >> 2;
+							state.channel_porta_accumulator[channel] -= PORTA_FIX(state.channel_exfine_porta_decrement[channel]) >> 2;
 							if (state.channel_porta_accumulator[channel] < 0)
 							{
 								state.channel_porta_accumulator[channel] = 0;
@@ -984,7 +989,7 @@ void Player::handleTickEffects(void)
 					if (inst == NULL)
 						continue;
 
-					state.channel_porta_accumulator[channel] -= PORTA_FIX(state.channel_porta_increment[channel]);
+					state.channel_porta_accumulator[channel] -= PORTA_FIX(state.channel_porta_decrement[channel]);
 					if (state.channel_porta_accumulator[channel] < 0)
 					{
 						state.channel_porta_accumulator[channel] = 0;
@@ -1000,13 +1005,13 @@ void Player::handleTickEffects(void)
 
 					if (state.channel_porta_up[channel] == true)
 					{
-						state.channel_porta_accumulator[channel] += PORTA_FIX(state.channel_porta_increment[channel]);
+						state.channel_porta_accumulator[channel] += PORTA_FIX(state.channel_porta_tone_increment[channel]);
 						if (state.channel_porta_accumulator[channel] > state.channel_porta_tone_target[channel])
 						{
 							state.channel_porta_accumulator[channel] = state.channel_porta_tone_target[channel];
 						}
 					} else {
-						state.channel_porta_accumulator[channel] -= PORTA_FIX(state.channel_porta_increment[channel]);
+						state.channel_porta_accumulator[channel] -= PORTA_FIX(state.channel_porta_tone_increment[channel]);
 						if (state.channel_porta_accumulator[channel] < state.channel_porta_tone_target[channel])
 						{
 							state.channel_porta_accumulator[channel] = state.channel_porta_tone_target[channel];
@@ -1188,7 +1193,13 @@ void Player::initState(void)
 	memset(state.channel_prev_sample_vol, 0, sizeof(state.channel_prev_sample_vol));
 	memset(state.channel_porta_accumulator, 0, sizeof(state.channel_porta_accumulator));
 	memset(state.channel_porta_tone_target, 0, sizeof(state.channel_porta_tone_target));
+	memset(state.channel_porta_tone_increment, 0, sizeof(state.channel_porta_tone_increment));
 	memset(state.channel_porta_increment, 0, sizeof(state.channel_porta_increment));
+	memset(state.channel_porta_decrement, 0, sizeof(state.channel_porta_decrement));
+	memset(state.channel_fine_porta_increment, 0, sizeof(state.channel_fine_porta_increment));
+	memset(state.channel_fine_porta_decrement, 0, sizeof(state.channel_fine_porta_decrement));
+	memset(state.channel_exfine_porta_increment, 0, sizeof(state.channel_exfine_porta_increment));
+	memset(state.channel_exfine_porta_decrement, 0, sizeof(state.channel_exfine_porta_decrement));
 	memset(state.channel_porta_up, false, sizeof(state.channel_porta_up));
 	memset(state.channel_porta_enabled, false, sizeof(state.channel_porta_enabled));
 	memset(state.channel_vib_accumulator, 0, sizeof(state.channel_vib_accumulator));
