@@ -178,6 +178,17 @@ void CommandStopPlay(void) {
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
+void CommandSetCursorPosPtr(SampleCursor *cptr)
+{
+    NTXMFifoMessage command;
+    command.commandType = SET_CURSORPOS_PTR;
+
+    SetCursorPosPtrCommand* c = &command.setCursorPosPtr;
+
+    c->cursorptr = cptr;
+
+    fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
+}
 void CommandPlayInst(u8 inst, u8 note, u8 volume, u8 channel)
 {
     NTXMFifoMessage command;

@@ -25,6 +25,7 @@ typedef enum {
     DBG_OUT,
     UPDATE_ROW,
     UPDATE_POTPOS,
+    STOP_CURSOR,
     PLAY_INST,
     STOP_INST,
     STOP_MATCHING_INST,
@@ -35,7 +36,8 @@ typedef enum {
     MIC_OFF,
     PATTERN_LOOP,
     SAMPLE_FINISH,
-    SET_STEREO_OUTPUT
+    SET_STEREO_OUTPUT,
+    SET_CURSORPOS_PTR
 } NTXMFifoMessageType;
 
 struct PlaySampleCommand
@@ -84,6 +86,10 @@ struct UpdateRowCommand {
 
 struct UpdatePotPosCommand {
     u16 potpos;
+};
+
+struct SetCursorPosPtrCommand {
+    SampleCursor *cursorptr;
 };
 
 struct PlayInstCommand {
@@ -144,6 +150,7 @@ typedef struct NTXMFifoMessage {
         StopNoteAutoCommand    stopNoteAuto;
         PatternLoopCommand     ptnLoop;
         SetStereoOutputCommand setStereoOutput;
+        SetCursorPosPtrCommand setCursorPosPtr;
     };
 } NTXMFifoMessage;
 
@@ -160,6 +167,7 @@ void CommandSetSong(void *song);
 void CommandStartPlay(u8 potpos, u16 row, bool loop);
 void CommandStopPlay(void);
 void CommandSetDebugStrPtr(char **arm7debugstrs, u16 debugstrsize, u8 n_debugbufs);
+void CommandSetCursorPosPtr(SampleCursor *cursorpos);
 void CommandPlayInst(u8 inst, u8 note, u8 volume, u8 channel);
 void CommandStopInst(u8 channel);
 void CommandStopMatchingInst(u8 inst, u8 note);

@@ -50,7 +50,7 @@ extern bool ntxm_recording;
 /* ===================== PUBLIC ===================== */
 
 Player::Player(void (*_externalTimerHandler)(void))
-	:song(0), externalTimerHandler(_externalTimerHandler)
+	:song(0), playingNotes(0), externalTimerHandler(_externalTimerHandler)
 {
 	initState();
 
@@ -121,6 +121,9 @@ void Player::play(u8 potpos, u16 row, bool loop)
 
 void Player::stop(void)
 {
+	for (int i = 0; i < 16; ++i)
+		clearPlayingData(i);
+
 	if (!state.playing)
 		return;
 
@@ -212,6 +215,18 @@ void Player::playNote(u8 note, u8 volume, u8 channel, u8 instidx)
 	if (effect == EFFECT_SAMPLE_OFFSET)
 		offs = param;
 	
+	if (smp->getLoop() != 0)
+		offs = ntxm_clamp(offs, 0, smp->getLoopStart());
+		
+	playingNotes[channel] = 
+	{
+		.playbackpos = ((u64)((FT_OFFSET_SCALAR * offs * (smp->is16bit() ? 2 : 1)))) << 32,
+		.note = note,
+		.active = true,
+		.looprev = false,
+		.instidx = instidx,
+		.smpidx = inst->getNoteSample(note),
+	};
 	inst->play(note, volume, channel, offs);
 }
 
@@ -249,6 +264,8 @@ void Player::stopAllNotes(u8 note, u8 instidx)
 // Stop playback on a channel
 void Player::stopChannel(u8 channel)
 {
+	clearPlayingData(channel);
+
 	// Stop single sample if it's played on this channel
 	if((state.playing_single_sample == true) && (state.single_sample_channel == channel))
 	{
@@ -443,6 +460,9 @@ void Player::playTimerHandler(void)
 				} else {
 				chnvol = (u8)((state.channel_volume[channel]) * ((state.channel_env_vol[channel] << 8) / 0x210) / 0x1f);
 				}
+
+			if (state.channel_env_vol[channel] < 0x01)
+				clearPlayingData(channel);
 
 			SCHANNEL_VOL(channel) = SOUND_VOL(chnvol);
 
@@ -1308,6 +1328,8 @@ void Player::handleFade(u32 passed_time)
 			// If we reached 0 ms, disable the fader (and the channel)
 			if(state.channel_fade_ms[channel] == 0)
 			{
+				clearPlayingData(channel);
+				
 				state.channel_fade_active[channel] = 0;
 
 				state.channel_volume[channel] = state.channel_fade_target_volume[channel];
@@ -1376,4 +1398,22 @@ bool Player::calcNextPos(u16 *nextrow, u8 *nextpotpos) // Calculate next row and
 	}
 
 	return false;
+}
+
+void Player::clearPlayingData(u8 chn)
+{
+	playingNotes[chn] = 
+	{
+		.playbackpos = 0,
+		.note = 0,
+		.active = 0,
+		.looprev = 0,
+		.instidx = 255,
+		.smpidx = 0,
+	};
+}
+
+void Player::setCursorPosPtr(SampleCursor *cpos)
+{
+	playingNotes = cpos;
 }

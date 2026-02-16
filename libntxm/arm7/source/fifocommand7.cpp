@@ -77,6 +77,10 @@ static void RecvCommandSetSong(SetSongCommand *c) {
     ntxm7->setSong((Song*)c->ptr);
 }
 
+static void RecvCommandSetCursorPosPtr(SetCursorPosPtrCommand *c) {
+    ntxm7->setCursorPosPtr(c->cursorptr);
+}
+
 static void RecvCommandStartPlay(StartPlayCommand *c) {
     ntxm7->play(c->loop, c->potpos, c->row);
 }
@@ -202,6 +206,9 @@ void CommandRecvHandler(int bytes, void *user_data) {
             break;
         case STOP_PLAY:
             RecvCommandStopPlay(&command.stopPlay);
+            break;
+        case SET_CURSORPOS_PTR:
+            RecvCommandSetCursorPosPtr(&command.setCursorPosPtr);
             break;
         case PLAY_INST:
             RecvCommandPlayInst(&command.playInst);

@@ -179,7 +179,7 @@ class Player {
 
 		void playTimerHandler(void);
 		void stopSampleFadeoutTimerHandler(void);
-
+		void setCursorPosPtr(SampleCursor *cursorptr);
 	private:
 
 		void startPlayTimer(void);
@@ -201,9 +201,13 @@ class Player {
 
 		bool calcNextPos(u16 *nextrow, u8 *nextpotpos); // Calculate next row and pot position
 
+		void clearPlayingData(u8 chn);
+
 		Song *song;
 		PlayerState state;
 		EffectState effstate;
+
+		SampleCursor *playingNotes;
 
 		void (*externalTimerHandler)(void);
 		void (*onRow)(u16);

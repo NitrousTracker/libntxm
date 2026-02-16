@@ -43,6 +43,7 @@
 
 #define NO_VOLUME				255
 
+
 enum LoopType
 {
 	NO_LOOP = 0,
@@ -50,6 +51,17 @@ enum LoopType
 	PING_PONG_LOOP = 2,
 	LOOP_TYPE_COUNT = 3
 };
+
+typedef struct
+{
+	u64 playbackpos;	
+	u8 note;			
+	u8 active;
+	u8 looprev;
+	u8 instidx;						
+	u8 smpidx;						
+} SampleCursor;
+
 
 #define SAMPLE_NAME_LENGTH		24
 
@@ -78,7 +90,8 @@ class Sample
 
 		u32 getSize(void); // Get the size in bytes
 		u32 getNSamples(void); // Get the numer of (PCM) samples
-
+		u32 getPlaybackFreq(u8 note_);
+		
 		void *getData(void);
 		u32 getMaxAmplitude(u32 startsample, u32 endsample);
 		u32 getDynamicRange(void);
@@ -117,9 +130,9 @@ class Sample
 		// Draws a line into the sample
 		void drawLine(int x1, int y1, int x2, int y2);
 		//void cutSilence(void); // Heuristically cut silence in the beginning
+		void calcSize(void);
 
 	private:
-		void calcSize(void);
 		void setFormat(void);
 		void calcRelnoteAndFinetune(u32 freq);
 		u16 findClosestFreq(u32 freq);
@@ -143,6 +156,8 @@ class Sample
 		u8 volume;
 		u8 panning;
 		u8 base_panning; // xm panning effects resets when a new note is played
+		u32 sampling_frequency;
+
 		char name[SAMPLE_NAME_LENGTH + 1];
 
 		// These are calculated in the constructor
