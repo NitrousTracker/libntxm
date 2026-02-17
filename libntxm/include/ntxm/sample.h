@@ -55,11 +55,11 @@ enum LoopType
 typedef struct
 {
 	u64 playbackpos;	
-	u8 note;			
+	u32 playbackfreq;			
 	u8 active;
 	u8 looprev;
 	u8 instidx;						
-	u8 smpidx;						
+	u8 smpidx;
 } SampleCursor;
 
 
@@ -78,8 +78,8 @@ class Sample
 		void saveAsWav(char *filename);
 
 		void play(u8 note, u8 volume_, u8 channel  /* effects here */, u8 offs = 0);
-		void bendNote(u8 note, u8 basenote, s16 _finetune, u8 channel);
-		void bendNoteDirect(s16 fine_step, u8 channel);
+		u32 bendNote(u8 note, u8 basenote, s16 _finetune, u8 channel);
+		u32 bendNoteDirect(s16 fine_step, u8 channel);
 		u32 calcPlayLength(u8 note);
 
 		void setRelNote(s8 _rel_note);
@@ -130,9 +130,9 @@ class Sample
 		// Draws a line into the sample
 		void drawLine(int x1, int y1, int x2, int y2);
 		//void cutSilence(void); // Heuristically cut silence in the beginning
-		void calcSize(void);
 
 	private:
+		void calcSize(void);
 		void setFormat(void);
 		void calcRelnoteAndFinetune(u32 freq);
 		u16 findClosestFreq(u32 freq);

@@ -220,8 +220,8 @@ void Player::playNote(u8 note, u8 volume, u8 channel, u8 instidx)
 		
 	playingNotes[channel] = 
 	{
-		.playbackpos = ((u64)((FT_OFFSET_SCALAR * offs * (smp->is16bit() ? 2 : 1)))) << 32,
-		.note = note,
+		.playbackpos = ((u64)((FT_OFFSET_SCALAR * offs * (smp->is16bit() ? 2 : 1)))) << 31, // we also need to divide by two, so lshift 31 instead of 32
+		.playbackfreq = smp->getPlaybackFreq(note),
 		.active = true,
 		.looprev = false,
 		.instidx = instidx,
@@ -971,22 +971,24 @@ void Player::handleTickEffects(void)
 					if (inst == NULL)
 						continue;
 
+					u32 newfreq = 0;
 					switch(state.row_ticks % 3)
 					{
 						case(0):
-							inst->bendNote(state.channel_note[channel] + 0,
+							newfreq = inst->bendNote(state.channel_note[channel] + 0,
 									state.channel_note[channel], 0, channel);
 							break;
 						case(1):
-							inst->bendNote(state.channel_note[channel] + halftone1,
+							newfreq = inst->bendNote(state.channel_note[channel] + halftone1,
 									state.channel_note[channel], 0, channel);
 							break;
 						case(2):
-							inst->bendNote(state.channel_note[channel] + halftone2,
+							newfreq = inst->bendNote(state.channel_note[channel] + halftone2,
 									state.channel_note[channel], 0, channel);
 							break;
 					}
 
+					if (newfreq) playingNotes[channel].playbackfreq = newfreq;
 					break;
 				}
 
@@ -1000,7 +1002,9 @@ void Player::handleTickEffects(void)
 					{
 						state.channel_porta_accumulator[channel] = (19968 << PORTA_PRECISION);
 					}
-					inst->bendNoteDirect(state.channel_note[channel], state.channel_porta_accumulator[channel] >> PORTA_PRECISION, channel);
+
+					u32 bendfreq = inst->bendNoteDirect(state.channel_note[channel], state.channel_porta_accumulator[channel] >> PORTA_PRECISION, channel);
+					if (bendfreq) playingNotes[channel].playbackfreq = bendfreq;
 					break;
 				}
 
@@ -1014,7 +1018,9 @@ void Player::handleTickEffects(void)
 					{
 						state.channel_porta_accumulator[channel] = 0;
 					}
-					inst->bendNoteDirect(state.channel_note[channel], state.channel_porta_accumulator[channel] >> PORTA_PRECISION, channel);
+
+					u32 bendfreq = inst->bendNoteDirect(state.channel_note[channel], state.channel_porta_accumulator[channel] >> PORTA_PRECISION, channel);
+					if (bendfreq) playingNotes[channel].playbackfreq = bendfreq;
 					break;
 				}
 
@@ -1047,7 +1053,9 @@ void Player::handleTickEffects(void)
 					{
 						state.channel_porta_accumulator[channel] = (19968 << PORTA_PRECISION);
 					}
-					inst->bendNoteDirect(state.channel_note[channel], state.channel_porta_accumulator[channel] >> PORTA_PRECISION, channel);
+
+					u32 bendfreq = inst->bendNoteDirect(state.channel_note[channel], state.channel_porta_accumulator[channel] >> PORTA_PRECISION, channel);
+					if (bendfreq) playingNotes[channel].playbackfreq = bendfreq;
 					break;
 				}
 
@@ -1405,7 +1413,7 @@ void Player::clearPlayingData(u8 chn)
 	playingNotes[chn] = 
 	{
 		.playbackpos = 0,
-		.note = 0,
+		.playbackfreq = 0,
 		.active = 0,
 		.looprev = 0,
 		.instidx = 255,
