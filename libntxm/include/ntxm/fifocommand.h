@@ -25,7 +25,6 @@ typedef enum {
     DBG_OUT,
     UPDATE_ROW,
     UPDATE_POTPOS,
-    STOP_CURSOR,
     PLAY_INST,
     STOP_INST,
     STOP_MATCHING_INST,
