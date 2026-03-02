@@ -405,16 +405,17 @@ void Sample::setLoopStartAndLength(u32 _loop_start, u32 _loop_length)
 
 	if(is_16_bit)
 	{
-		loop_length = _loop_length * 2;
-		loop_start = _loop_start * 2;
+		_loop_length *= 2;
+		_loop_start *= 2;
 	}
-	else
+
+	if(loop_length != _loop_length || loop_start != _loop_start)
 	{
 		loop_length = _loop_length;
 		loop_start = _loop_start;
-	}
 
-	onSampleDataChanged();
+		onSampleDataChanged();
+	}
 }
 
 #endif
