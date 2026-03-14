@@ -24,6 +24,19 @@
 
 #if defined(__3DS__)
 #include <3ds.h>
+
+// Disable float printf/scanf variants
+#ifdef __cplusplus
+#include <cstdio>
+#else
+#include <stdio.h>
+#endif
+#define printf iprintf
+#define fprintf fiprintf
+#define sprintf siprintf
+#define snprintf sniprintf
+#define fscanf fiscanf
+
 #elif defined(__NDS__)
 #include <nds.h>
 #else
