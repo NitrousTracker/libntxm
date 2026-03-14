@@ -33,7 +33,7 @@
 #ifndef SONG_H
 #define SONG_H
 
-#include <nds.h>
+#include "common.h"
 
 #include "instrument.h"
 

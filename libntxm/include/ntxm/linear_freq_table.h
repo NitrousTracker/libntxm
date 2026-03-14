@@ -33,7 +33,7 @@
 #ifndef _LINEAR_FREQ_TABLE_
 #define _LINEAR_FREQ_TABLE_
 
-#include <nds.h>
+#include "common.h"
 
 #define LINEAR_FREQ_TABLE_MIN_NOTE	264
 #define LINEAR_FREQ_TABLE_MAX_NOTE	276

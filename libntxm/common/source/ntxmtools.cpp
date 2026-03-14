@@ -31,10 +31,20 @@
  ***** END LICENSE BLOCK *****/
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
-#include <nds.h>
 #include <sys/statvfs.h>
+#include "ntxm/common.h"
+
+__attribute__((noreturn))
+static inline void ntxm_crash(const char *text) {
+#if defined(__NDS__)
+	libndsCrash(text);
+#else
+	exit(1);
+#endif
+}
 
 __attribute__((noreturn))
 static void out_of_memory_error(const char *func, const char *file, int line) {
@@ -42,9 +52,9 @@ static void out_of_memory_error(const char *func, const char *file, int line) {
 	char text[256];
 	text[sizeof(text) - 1] = 0;
 	snprintf(text, sizeof(text) - 1, "%s() out of memory - %s:%d", func, file, line);
-	libndsCrash(text);
+	ntxm_crash(text);
 #else
-	libndsCrash(func);
+	ntxm_crash(func);
 #endif
 }
 

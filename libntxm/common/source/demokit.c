@@ -32,7 +32,7 @@
 
 #include "ntxm/demokit.h"
 
-#define timers2ms(tlow,thigh)(tlow | (thigh<<16)) >> 5
+#define nds_timers2ms(tlow,thigh)(tlow | (thigh<<16)) >> 5
 
 int ticksSpeed;
 unsigned int lastTime;
@@ -47,15 +47,23 @@ void demoInit(void)
 
 void reStartRealTicks(void)
 {
+#if defined(__NDS__)
 	TIMER2_DATA=0;
 	TIMER3_DATA=0;
 	TIMER2_CR=TIMER_DIV_1024 | TIMER_ENABLE;
 	TIMER3_CR=TIMER_CASCADE | TIMER_ENABLE;
+#endif
 }
 
 unsigned int getRealTicks(void)
 {
-	return timers2ms(TIMER2_DATA, TIMER3_DATA);
+#if defined(__NDS__)
+	return nds_timers2ms(TIMER2_DATA, TIMER3_DATA);
+#elif defined(__3DS__)
+	return svcGetSystemTick() / CPU_TICKS_PER_MSEC;
+#else
+#error "Unimplemented getRealTicks() for platform!"
+#endif
 }
 
 void reStartTicks(void)
@@ -114,7 +122,6 @@ void delay(unsigned int d) {
 	unsigned int start = getTicks();
 	while (getTicks() <= start+d);
 }
-
 
 int my_rand(void)
 {

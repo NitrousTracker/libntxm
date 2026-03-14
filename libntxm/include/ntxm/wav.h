@@ -36,7 +36,7 @@
 #define CMP_PCM		0
 #define CMP_ADPCM	1
 
-#include <nds.h>
+#include "common.h"
 
 /*
 

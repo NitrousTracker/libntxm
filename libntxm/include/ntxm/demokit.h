@@ -33,7 +33,7 @@
 #ifndef _DEMOKIT_H_
 #define _DEMOKIT_H_
 
-#include <nds.h>
+#include "common.h"
 
 /*
  * Some fancy functions for emulating getticks using ds timers

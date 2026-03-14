@@ -33,7 +33,7 @@
 #ifndef SAMPLE_H
 #define SAMPLE_H
 
-#include <nds.h>
+#include "common.h"
 #include "wav.h"
 #include "linear_freq_table.h"
 

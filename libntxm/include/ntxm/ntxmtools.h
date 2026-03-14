@@ -37,7 +37,7 @@
 #include <string.h>
 #include <malloc.h>
 #include <stdio.h>
-#include <fat.h>
+#include "common.h"
 
 // ntxm_cmalloc() - checked malloc() - crashes on OOM
 // ntxm_umalloc() - unchecked malloc() - can return null

@@ -1,16 +1,8 @@
-/*
- * libNTXM - XM Player Library for the Nintendo DS
- *
- *    Copyright (C) 2005-2008 Tobias Weyand (0xtob)
- *                         me@nitrotracker.tobw.net
- *
- */
-
 /***** BEGIN LICENSE BLOCK *****
- *
+ * 
  * Version: Noncommercial zLib License / GPL 3.0
- *
- * The contents of this file are subject to the Noncommercial zLib License
+ * 
+ * The contents of this file are subject to the Noncommercial zLib License 
  * (the "License"); you may not use this file except in compliance with
  * the License. You should have recieved a copy of the license with this package.
  *
@@ -27,14 +19,13 @@
  * provisions required by the GPL. If you do not delete the provisions above,
  * a recipient may use your version of this file under the terms of any one of
  * the GPL or the Noncommercial zLib License.
- *
+ * 
  ***** END LICENSE BLOCK *****/
- 
-#ifndef VIBRATO_SINE_TABLE_H
-#define VIBRATO_SINE_TABLE_H
 
-#include "common.h"
-
-extern const u16 vibrato_sine_table[256];
-
+#if defined(__3DS__)
+#include <3ds.h>
+#elif defined(__NDS__)
+#include <nds.h>
+#else
+#error "Unsupported platform!"
 #endif
