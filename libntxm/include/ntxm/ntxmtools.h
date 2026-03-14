@@ -39,6 +39,14 @@
 #include <stdio.h>
 #include "common.h"
 
+static inline void ntxm_flush_dcache(void) {
+#if defined(__NDS__)
+#ifdef ARM9
+	DC_FlushAll();
+#endif
+#endif
+}
+
 // ntxm_cmalloc() - checked malloc() - crashes on OOM
 // ntxm_umalloc() - unchecked malloc() - can return null
 

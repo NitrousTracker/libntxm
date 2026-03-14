@@ -36,12 +36,7 @@
 #include <sys/stat.h>
 #include <algorithm>
 #include <iterator>
-// DBG
 #include <stdio.h>
-#include <nds.h>
-// DBG
-
-#include <fat.h>
 
 #include "ntxm/xm_transport.h"
 #include "ntxm/ntxmtools.h"

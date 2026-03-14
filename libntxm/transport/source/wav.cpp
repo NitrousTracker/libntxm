@@ -33,17 +33,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <nds.h>
 
-#ifdef ARM9
-#include <fat.h>
-#endif
-
-#include "ntxm/wav.h"
-
-#ifdef ARM9
 #include "ntxm/ntxmtools.h"
-#endif
+#include "ntxm/wav.h"
 
 /* ===================== PUBLIC ===================== */
 
@@ -67,7 +59,6 @@ Wav::~Wav() {
 
 bool Wav::load(const char *filename)
 {
-#if defined(ARM9)
 	// Init
 
 	FILE *fileh;
@@ -259,7 +250,6 @@ bool Wav::load(const char *filename)
 		loop_start_ = 0;
 		loop_end_ = n_samples_ - 1;
 	}
-#endif
 	return true;
 }
 

@@ -17,7 +17,7 @@ include $(DEVKITARM)/3ds_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	ntxm
 BUILD		:=	build_3ds
-SOURCES		:=	common/source
+SOURCES		:=	common/source transport/source
 DATA		:=	data
 INCLUDES	:=	include
 
