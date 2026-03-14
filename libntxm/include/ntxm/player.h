@@ -177,12 +177,12 @@ class Player {
 		// Misc
 		//
 
+		const int getPlayTimerFrequency(void) { return 1000; }
 		void playTimerHandler(void);
 		void stopSampleFadeoutTimerHandler(void);
 
 	private:
 
-		void startPlayTimer(void);
 		void playRow(void);
 		void updateChannelVol(u8 volume, u8 channel); //Pattern volume updates per channel
 		void handleEffects(void); // Row Effect handler

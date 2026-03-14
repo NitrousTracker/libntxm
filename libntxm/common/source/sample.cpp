@@ -38,17 +38,11 @@
 #include "ntxm/sample.h"
 #include "ntxm/fifocommand.h"
 #include "ntxm/ntxmtools.h"
+#include "ntxm/ntxmsound.h"
 
 #define MAX(x,y)						((x)>(y)?(x):(y))
 #define LOOKUP_FREQ(note,finetune)		(linear_freq_table_lookup(MAX(0,N_FINETUNE_STEPS*(note)+(finetune))))
 #define GET_FREQ_DIRECT(fine_step)		(linear_freq_table_lookup(MAX(0,fine_step)))
-
-// This is defined in audio.h for arm7 but not for arm9
-#if !defined(SOUND_FORMAT_ADPCM)
-#define SOUND_FORMAT_ADPCM	(2<<29)
-#define SOUND_16BIT 		(1<<29)
-#define SOUND_8BIT 		(0)
-#endif
 
 extern bool ntxm_stereo_output;
 
@@ -132,14 +126,14 @@ Sample::Sample(const char *filename, u8 _loop, bool *_success)
 		is_16_bit = false;
 
 	if(wav.getCompression() == CMP_ADPCM)
-		sound_format = SOUND_FORMAT_ADPCM;
+		sound_format = NTXMSOUND_FORMAT_ADPCM;
 	else
 		setFormat();
 
 	n_samples = wav.getNSamples();
 
 	/*
-	if(sound_format == SOUND_FORMAT_ADPCM) {
+	if(sound_format == NTXMSOUND_FORMAT_ADPCM) {
 		n_samples = wav.getNSamples() * 4; // ADPCM compresses 4 samples in 1
 	} else {
 		n_samples = wav.getNSamples();
@@ -188,7 +182,7 @@ void Sample::saveAsWav(char *filename)
 
 #endif
 
-#if defined(ARM7)
+#if defined(ARM7) || !defined(__NDS__)
 
 // volume_ ranges from 0-127. The value 255 means "no volume", i.e. the sample's own volume shall be used.
 void Sample::play(u8 note, u8 volume_, u8 channel, u8 offs)
@@ -204,9 +198,9 @@ void Sample::play(u8 note, u8 volume_, u8 channel, u8 offs)
 
 	u32 loop_bit;
 	if( ( ( loop == FORWARD_LOOP ) || (loop == PING_PONG_LOOP) ) && (loop_length > 0) )
-		loop_bit = SOUND_REPEAT;
+		loop_bit = NTXMSOUND_REPEAT;
 	else
-		loop_bit = SOUND_ONE_SHOT;
+		loop_bit = NTXMSOUND_ONE_SHOT;
 
 	// Add 48 to the note, because otherwise absolute_note can get negative.
 	// (The minimum value of relative note is -48)
@@ -227,10 +221,10 @@ void Sample::play(u8 note, u8 volume_, u8 channel, u8 offs)
 	else
 		smpvolume = volume_; // Channel volume is 0..127
 
-	SCHANNEL_CR(channel) = 0;
-	SCHANNEL_TIMER(channel) = SOUND_FREQ((int)LOOKUP_FREQ(realnote,finetune));
+	ntxm_sound_channel_stop(channel);
+	ntxm_sound_channel_set_frequency(channel, LOOKUP_FREQ(realnote,finetune));
 
-	u32 offs_samps = FT_OFFSET_SCALAR * offs * (sound_format == SOUNDXCNT_FORMAT_8BIT ? 1 : 2);
+	u32 offs_samps = FT_OFFSET_SCALAR * offs * (sound_format == NTXMSOUND_FORMAT_8BIT ? 1 : 2);
 	
 	// todo: only semi working with looping samples (for now)
 	// if the offset is less than the loop start it works fine (ty to exelotl :-D)
@@ -242,36 +236,24 @@ void Sample::play(u8 note, u8 volume_, u8 channel, u8 offs)
 
 	if (offs_samps > size)
 	{
-		SCHANNEL_CR(channel) = 0;
 		return;
 	}
 	if (loop == NO_LOOP)
 	{
-		SCHANNEL_SOURCE(channel) = (uint32)sound_data + offs_samps;
-		SCHANNEL_REPEAT_POINT(channel) = 0;
-		SCHANNEL_LENGTH(channel) = (size - offs_samps) >> 2;
+		ntxm_sound_channel_set_source((uint8_t*) sound_data + offs_samps, 0, size - offs_samps);
 	}
 	else if( loop == FORWARD_LOOP || (loop == PING_PONG_LOOP && !pingpong_data) )
 	{
 		u32 loop_offs_samps = ntxm_clamp(offs_samps, 0, loop_start);
-		SCHANNEL_SOURCE(channel) = (uint32)sound_data + loop_offs_samps;
-		SCHANNEL_REPEAT_POINT(channel) = (loop_start - loop_offs_samps) >> 2;
-		SCHANNEL_LENGTH(channel) = (loop_length) >> 2;
+		ntxm_sound_channel_set_source((uint8_t*) sound_data + loop_offs_samps, loop_start - loop_offs_samps, loop_length);
 	}
 	else if( loop == PING_PONG_LOOP )
 	{
 		u32 loop_offs_samps = ntxm_clamp(offs_samps, 0, loop_start);
-		SCHANNEL_SOURCE(channel) = (uint32)pingpong_data + loop_offs_samps;
-		SCHANNEL_REPEAT_POINT(channel) = (loop_start - loop_offs_samps) >> 2;
-		SCHANNEL_LENGTH(channel) = loop_length >> 1;
+		ntxm_sound_channel_set_source((uint8_t*) pingpong_data + loop_offs_samps, loop_start - loop_offs_samps, loop_length << 1);
 	}
 
-	SCHANNEL_CR(channel) =
-		SCHANNEL_ENABLE |
-		loop_bit |
-		sound_format |
-		SOUND_PAN(ntxm_stereo_output ? panning/2 : 64) |
-		SOUND_VOL(smpvolume);
+	ntxm_sound_channel_play(channel, loop_bit, sound_format, ntxm_stereo_output ? panning : 128, smpvolume);
 }
 
 void Sample::bendNote(u8 note, u8 basenote, s16 _finetune, u8 channel)
@@ -281,13 +263,13 @@ void Sample::bendNote(u8 note, u8 basenote, s16 _finetune, u8 channel)
 	u8 absolute_note = note + 48;
 	u8 realnote = (absolute_note+rel_note);
 	_finetune += finetune; //Need to offset by sample's finetune
-	SCHANNEL_TIMER(channel) = SOUND_FREQ((int)LOOKUP_FREQ(realnote,_finetune));
+	ntxm_sound_channel_set_frequency(channel, LOOKUP_FREQ(realnote,_finetune));
 }
 
 void Sample::bendNoteDirect(s16 fine_step, u8 channel)
 {
-	CommandDbgOut("finestep: 0x%x channel: 0x%x\n", fine_step, channel);
-	SCHANNEL_TIMER(channel) = SOUND_FREQ((int)GET_FREQ_DIRECT(fine_step));
+	ntxm_dprintf("finestep: 0x%x channel: 0x%x\n", fine_step, channel);
+	ntxm_sound_channel_set_frequency(channel, GET_FREQ_DIRECT(fine_step));
 }
 
 #endif
@@ -448,14 +430,11 @@ u8 Sample::getBasePanning(void)
 	return base_panning;
 }
 
-#if defined(ARM7)
+#if defined(ARM7) || !defined(__NDS__)
 
 void Sample::updatePanning(u8 channel)
 {
-	//The idea is to update panning when it's changed during playback
-	u32 control_reg_val = SCHANNEL_CR(channel) & 0xff80ffff;
-
-	SCHANNEL_CR(channel) = control_reg_val | SOUND_PAN(ntxm_stereo_output ? panning/2 : 64);
+	ntxm_sound_channel_set_panning(channel, ntxm_stereo_output ? panning : 128);
 }
 
 #endif
@@ -783,9 +762,9 @@ void Sample::setFormat(void) {
 
 	// TODO ADPCM and stuff
 	if(is_16_bit) {
-		sound_format = SOUND_16BIT;
+		sound_format = NTXMSOUND_FORMAT_16BIT;
 	} else {
-		sound_format = SOUND_8BIT;
+		sound_format = NTXMSOUND_FORMAT_8BIT;
 	}
 }
 

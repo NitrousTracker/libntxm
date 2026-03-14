@@ -48,6 +48,8 @@ class NTXM7
 		// Exchange commands with ARM9, call this every vblank
 		void updateCommands(void);
 		
+		const int getPlayTimerFrequency(void) { return player->getPlayTimerFrequency(); }
+
 		// call this from the timer0 irq handler
 		// the timer is set up for you.
 		void timerHandler(void);

@@ -68,6 +68,9 @@ int main(int argc, char *argv[])
     irqSet(IRQ_TIMER0, ntxm_timer_handler);
     irqEnable(IRQ_TIMER0);
 
+    TIMER0_DATA = TIMER_FREQ_64(ntxm7->getPlayTimerFrequency());
+    TIMER0_CR = TIMER_ENABLE | TIMER_IRQ_REQ | TIMER_DIV_64;
+
     // Now that the FIFO is setup we can start sending input data to the ARM9.
     irqSet(IRQ_VBLANK, vblank_handler);
     irqEnable(IRQ_VBLANK);

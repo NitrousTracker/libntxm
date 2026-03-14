@@ -38,6 +38,7 @@ extern "C" {
 }
 
 #include "ntxm/ntxmtools.h"
+#include "ntxm/ntxmsound.h"
 #include "ntxm/fifocommand.h"
 #include "ntxm/song.h"
 #include "ntxm/player.h"
@@ -46,6 +47,14 @@ extern "C" {
 #define MIN(x,y)	((x)<(y)?(x):(y))
 
 extern bool ntxm_recording;
+
+#if !defined(__NDS__)
+// FIXME: Implement these functions outside of the ARM9/ARM7 context
+static void CommandSampleFinish(void) { }
+static void CommandNotifyStop(void) { }
+static void CommandUpdateRow(u16 row) { }
+static void CommandUpdatePotPos(u16 potpos) { }
+#endif
 
 /* ===================== PUBLIC ===================== */
 
@@ -57,8 +66,6 @@ Player::Player(void (*_externalTimerHandler)(void))
 	initEffState();
 
 	demoInit();
-
-	startPlayTimer();
 }
 
 void* Player::operator new (size_t size) {
@@ -254,14 +261,14 @@ void Player::stopChannel(u8 channel)
 	// Stop single sample if it's played on this channel
 	if((state.playing_single_sample == true) && (state.single_sample_channel == channel))
 	{
-		SCHANNEL_CR(channel) = 0;
+		ntxm_sound_channel_stop(channel);
 
 		state.playing_single_sample = false;
 		state.single_sample_ms_remaining = 0;
 
 		CommandSampleFinish();
 	}
-	else if(SCHANNEL_CR(channel) & BIT(31))
+	else if(ntxm_sound_channel_is_playing(channel))
 	{
 		state.channel_fade_active[channel]        = 1;
 		state.channel_fade_ms[channel]            = FADE_OUT_MS;
@@ -334,7 +341,7 @@ void Player::playTimerHandler(void)
 		// Count down, and send signal when done
 		if(state.single_sample_ms_remaining < passed_time)
 		{
-			SCHANNEL_CR(state.single_sample_channel) = 0;
+			ntxm_sound_channel_stop(state.single_sample_channel);
 
 			state.playing_single_sample = false;
 			state.single_sample_ms_remaining = 0;
@@ -446,12 +453,12 @@ void Player::playTimerHandler(void)
 				chnvol = (u8)((state.channel_volume[channel]) * ((state.channel_env_vol[channel] << 8) / 0x210) / 0x1f);
 				}
 
-			SCHANNEL_VOL(channel) = SOUND_VOL(chnvol);
+			ntxm_sound_channel_set_volume(channel, chnvol);
 
 			if(state.channel_active[channel] == CHANNEL_TO_BE_DISABLED)
 			{
 				state.channel_active[channel] = 0;
-				SCHANNEL_CR(channel) = 0;
+				ntxm_sound_channel_stop(channel);
 			}
 		}
 	}
@@ -537,12 +544,6 @@ void Player::playTimerHandler(void)
 }
 
 /* ===================== PRIVATE ===================== */
-
-void Player::startPlayTimer(void)
-{
-	TIMER0_DATA = TIMER_FREQ_64(1000); // Call handler every millisecond
-	TIMER0_CR = TIMER_ENABLE | TIMER_IRQ_REQ | TIMER_DIV_64;
-}
 
 void Player::playRow(void)
 {
