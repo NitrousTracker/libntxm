@@ -47,7 +47,7 @@ static inline void ntxm_sound_channel_set_volume(int channel, int volume) {
 	SCHANNEL_VOL(channel) = SOUND_VOL(volume);
 }
 
-static inline void ntxm_sound_channel_set_frequency(int channel, u32 freq) {
+static inline void ntxm_sound_channel_set_frequency(int channel, int freq) {
 	SCHANNEL_TIMER(channel) = SOUND_FREQ(freq);
 }
 
@@ -85,7 +85,7 @@ static inline void ntxm_sound_channel_set_volume(int channel, int volume) {
 
 }
 
-static inline void ntxm_sound_channel_set_frequency(int channel, u32 freq) {
+static inline void ntxm_sound_channel_set_frequency(int channel, int freq) {
 
 }
 
