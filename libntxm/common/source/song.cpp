@@ -33,10 +33,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#ifdef ARM7
-#include "ntxm/demokit.h"
-#endif
-
 #include "ntxm/song.h"
 #include "ntxm/ntxmtools.h"
 #include "ntxm/fifocommand.h"
@@ -56,7 +52,7 @@ allocated as far as needed.
 // Everything that changes the song is only possible on arm9.
 // This saves memory on arm7 (there's only 96k) and is safer.
 
-#ifdef ARM9
+#ifndef ARM7
 
 Song::Song(u8 _speed, u8 _bpm, u8 _channels)
 	:speed(_speed), bpm(_bpm), n_channels(_channels), restart_position(0), n_patterns(0)
@@ -167,11 +163,11 @@ u8 Song::getInstruments(void)
 	return n_inst;
 }
 
-#ifdef ARM9
+#ifndef ARM7
 
 void Song::setInstrument(u8 idx, Instrument *instrument) {
 	instruments[idx] = instrument;
-	DC_FlushAll();
+	ntxm_flush_dcache();
 }
 
 void Song::zapInstrument(u8 inst) {
@@ -208,7 +204,7 @@ void Song::potAdd(u8 ptn)
 {
 	pattern_order_table[potsize] = ptn;
 	potsize++;
-	DC_FlushAll();
+	ntxm_flush_dcache();
 }
 
 void Song::potDel(u8 element)
@@ -219,7 +215,7 @@ void Song::potDel(u8 element)
 	if(potsize > 1) {
 		potsize--;
 	}
-	DC_FlushAll();
+	ntxm_flush_dcache();
 }
 
 bool Song::potIns(u8 idx, u8 pattern)
@@ -232,7 +228,7 @@ bool Song::potIns(u8 idx, u8 pattern)
 	}
 	pattern_order_table[idx] = pattern;
 	potsize++;
-	DC_FlushAll();
+	ntxm_flush_dcache();
 	return true;
 }
 
@@ -246,11 +242,11 @@ u8 Song::getPotEntry(u8 idx) {
 	return pattern_order_table[idx];
 }
 
-#ifdef ARM9
+#ifndef ARM7
 
 void Song::setPotEntry(u8 idx, u8 value) {
 	pattern_order_table[idx] = value;
-	DC_FlushAll();
+	ntxm_flush_dcache();
 }
 
 void Song::addPattern(u16 length)
@@ -274,7 +270,7 @@ void Song::addPattern(u16 length)
 			clearCell(cell);
 		}
 	}
-	DC_FlushAll();
+	ntxm_flush_dcache();
 }
 
 void Song::channelAdd(void) {
@@ -296,7 +292,7 @@ void Song::channelAdd(void) {
 
 	n_channels++;
 	
-	DC_FlushAll();
+	ntxm_flush_dcache();
 }
 
 void Song::channelDel(void) {
@@ -311,7 +307,7 @@ void Song::channelDel(void) {
 	
 	n_channels--;
 	
-	DC_FlushAll();
+	ntxm_flush_dcache();
 }
 
 #endif
@@ -320,7 +316,7 @@ u8 Song::getNumPatterns(void) {
 	return n_patterns;
 }
 
-#ifdef ARM9
+#ifndef ARM7
 
 void Song::resizePattern(u8 ptn, u16 newlength)
 {
@@ -349,7 +345,7 @@ void Song::resizePattern(u8 ptn, u16 newlength)
 		internal_patternlengths[ptn] = newlength;
 	}
 	
-	DC_FlushAll();
+	ntxm_flush_dcache();
 }
 
 // The most important function
@@ -363,11 +359,11 @@ const char *Song::getName(void) {
 	return name;
 }
 
-#ifdef ARM9
+#ifndef ARM7
 
 void Song::setRestartPosition(u8 _restart_position) {
 	restart_position = _restart_position;
-	DC_FlushAll();
+	ntxm_flush_dcache();
 }
 
 #endif
@@ -386,19 +382,19 @@ u8 Song::getBPM(void) {
 
 void Song::setTempo(u8 _tempo) {
 	speed = _tempo;
-#ifdef ARM9
-	DC_FlushAll();
+#ifndef ARM7
+	ntxm_flush_dcache();
 #endif
 }
 
 void Song::setBpm(u8 _bpm) {
 	bpm = _bpm;
-#ifdef ARM9
-	DC_FlushAll();
+#ifndef ARM7
+	ntxm_flush_dcache();
 #endif
 }
 
-#ifdef ARM9
+#ifndef ARM7
 
 // Zapping
 void Song::zapPatterns(void) {
@@ -417,7 +413,7 @@ void Song::zapPatterns(void) {
 	addPattern();
 	
 	restart_position = 0;
-	DC_FlushAll();
+	ntxm_flush_dcache();
 }
 
 void Song::zapInstruments(void)
@@ -429,7 +425,7 @@ void Song::zapInstruments(void)
 		instruments[i] = NULL;
 	}
 	
-	DC_FlushAll();
+	ntxm_flush_dcache();
 }
 
 void Song::clearCell(Cell *cell)
@@ -449,7 +445,7 @@ void Song::setChannelMute(u8 chn, bool muted)
 		return;
 	
 	channels_muted[chn] = muted;
-	DC_FlushAll();
+	ntxm_flush_dcache();
 }
 
 #endif
@@ -464,7 +460,7 @@ bool Song::channelMuted(u8 chn)
 
 /* ===================== PRIVATE ===================== */
 
-#ifdef ARM9
+#ifndef ARM7
 
 void Song::killPatterns(void) {
 	

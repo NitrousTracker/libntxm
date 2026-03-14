@@ -113,8 +113,6 @@ void __ntxm_free(void *ptr, const char *file, int line) {
 
 #include "ntxm/ntxmtools.h"
 
-#ifdef ARM9
-
 bool ntxm_isFileExists(const char *filename)
 {
 	bool res;
@@ -137,8 +135,6 @@ u32 ntxm_getFileSize(const char *filename)
 	fclose(file);
 	return filesize;
 }
-
-#endif
 
 void ntxm_unsigned2signed_8(uint8_t *buffer, size_t count)
 {

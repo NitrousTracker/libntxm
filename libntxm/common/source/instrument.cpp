@@ -30,7 +30,7 @@
  * 
  ***** END LICENSE BLOCK *****/
 
-#ifdef ARM9
+#ifndef ARM7
 #include <stdio.h>
 #endif
 
@@ -41,7 +41,7 @@
 #include "ntxm/ntxmtools.h"
 #include "ntxm/fifocommand.h"
 
-#ifdef ARM9
+#ifndef ARM7
 
 Instrument::Instrument(const char *_name, u8 _type, u8 _volume)
 	:type(_type), volume(_volume),
@@ -136,8 +136,6 @@ Sample *Instrument::getSampleForNote(u8 _note) {
 	return samples[note_samples[_note]];
 }
 
-#ifdef ARM7
-
 void Instrument::play(u8 _note, u8 _volume, u8 _channel /* effects here */, u8 offs)
 {
 	envelope_ms[_channel] = 0;
@@ -187,9 +185,7 @@ void Instrument::bendNoteDirect(u8 _note, s16 _fine_step, u8 _channel)
 	}
 }
 
-#endif
-
-#ifdef ARM9
+#ifndef ARM7
 
 void Instrument::setNoteSample(u16 note, u8 sample_id) {
 	note_samples[note] = sample_id;
@@ -201,12 +197,12 @@ u8 Instrument::getNoteSample(u16 note) {
 	return note_samples[note];
 }
 
-#ifdef ARM9
+#ifndef ARM7
 
 void Instrument::setVolEnvEnabled(bool is_enabled)
 {
 	vol_env_on = is_enabled;
-	DC_FlushAll();
+	ntxm_flush_dcache();
 }
 
 #endif
@@ -221,7 +217,7 @@ u32 Instrument::calcPlayLength(u8 note) {
 	return samples[note_samples[note]]->calcPlayLength(note);
 }
 
-#ifdef ARM9
+#ifndef ARM7
 
 const char *Instrument::getName(void) {
 	return name;
@@ -237,7 +233,7 @@ u16 Instrument::getSamples(void) {
 	return n_samples;
 }
 
-#ifdef ARM9
+#ifndef ARM7
 
 void Instrument::setVolumeEnvelope(u16 *envelope, u8 n_points, u8 v_sustain_point, bool vol_env_on_, bool vol_env_sustain_, bool vol_env_loop_)
 {

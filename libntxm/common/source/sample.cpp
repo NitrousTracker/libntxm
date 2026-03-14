@@ -64,15 +64,7 @@ inline u32 linear_freq_table_lookup(u32 note)
 		} else {
 			u32 octaveoffset = ((LINEAR_FREQ_TABLE_MIN_NOTE*N_FINETUNE_STEPS-1)-note) / (12*N_FINETUNE_STEPS) + 1;
 			u32 relnote = note % (12*N_FINETUNE_STEPS);
-			#ifdef ARM7
-			//CommandDbgOut("minoct:%u noteoct:%u\n",
-			//	      (LINEAR_FREQ_TABLE_MIN_NOTE*N_FINETUNE_STEPS-1)/(12*N_FINETUNE_STEPS),
-			//	      note/(12*N_FINETUNE_STEPS)
-			//	     );
-			#endif
-			#ifdef ARM9
 			ntxm_dprintf("%u %u\n",octaveoffset,relnote);
-			#endif
 			return linear_freq_table[relnote] >> octaveoffset;
 		}
 	}
@@ -92,7 +84,7 @@ inline u32 linear_freq_table_lookup(u32 note)
 	return 0;
 }
 
-#ifdef ARM9
+#ifndef ARM7
 
 Sample::Sample(void *_sound_data, u32 _n_samples, u16 _sampling_frequency, bool _is_16_bit,
 	u8 _loop, u8 _volume)
@@ -307,7 +299,7 @@ u32 Sample::calcPlayLength(u8 note)
 	return n_samples * 1000 / samples_per_second;
 }
 
-#ifdef ARM9
+#ifndef ARM7
 
 void Sample::setRelNote(s8 _rel_note) {
 	rel_note = _rel_note;
@@ -346,7 +338,7 @@ u8 Sample::getLoop(void) {
 	return loop;
 }
 
-#ifdef ARM9
+#ifndef ARM7
 
 bool Sample::setLoop(u8 loop_) // Set loop type. Can fail due to memory constraints
 {
@@ -389,7 +381,7 @@ u32 Sample::getLoopStart(void)
 		return loop_start;
 }
 
-#ifdef ARM9
+#ifndef ARM7
 
 void Sample::setLoopStartAndLength(u32 _loop_start, u32 _loop_length)
 {
@@ -478,7 +470,7 @@ const char *Sample::getName(void)
 	return name;
 }
 
-#ifdef ARM9
+#ifndef ARM7
 
 
 void Sample::delAll(void)
@@ -785,7 +777,7 @@ void Sample::calcSize(void)
 	}
 }
 
-#ifdef ARM9
+#ifndef ARM7
 
 void Sample::setFormat(void) {
 
@@ -970,7 +962,7 @@ bool Sample::setupPingPongLoop(void)
 
 	memcpy((u8*)pingpong_data + pos + loop_length, (u8*)sound_data + pos, size - pos);
 
-	DC_FlushAll();
+	ntxm_flush_dcache();
 	return true;
 }
 
