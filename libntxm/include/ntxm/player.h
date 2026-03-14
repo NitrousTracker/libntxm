@@ -177,7 +177,7 @@ class Player {
 		// Misc
 		//
 
-		const int getPlayTimerFrequency(void) { return 1000; }
+		int getPlayTimerFrequency(void) const { return 1000; }
 		void playTimerHandler(void);
 		void stopSampleFadeoutTimerHandler(void);
 

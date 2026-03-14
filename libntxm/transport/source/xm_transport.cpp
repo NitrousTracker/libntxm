@@ -69,7 +69,7 @@ u16 XMTransport::load(const char *filename, Song **_song)
 	}
 
 	FILE *xmfile = fopen(filename, "rb");
-	if((s32)xmfile == -1)
+	if(!xmfile)
 		return XM_TRANSPORT_ERROR_FOPENFAIL;
 
 
@@ -713,9 +713,8 @@ u16 XMTransport::save(const char *filename, Song *song)
 
 	FILE *xmfile = fopen(filename, "wb");
 
-	if((s32)xmfile == -1) {
+	if(!xmfile)
 		return XM_TRANSPORT_ERROR_FOPENFAIL;
-	}
 
 	//
 	// Write header

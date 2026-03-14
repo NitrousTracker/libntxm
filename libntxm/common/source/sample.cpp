@@ -109,7 +109,7 @@ Sample::Sample(const char *filename, u8 _loop, bool *_success)
 		return;
 	}
 
-	char *smpname = strrchr(filename, '/') + 1;
+	const char *smpname = strrchr(filename, '/') + 1;
 	strncpy(name, smpname, SAMPLE_NAME_LENGTH);
 	name[SAMPLE_NAME_LENGTH] = 0;
 

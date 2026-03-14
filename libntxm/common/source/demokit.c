@@ -31,6 +31,9 @@
  ***** END LICENSE BLOCK *****/
 
 #include "ntxm/demokit.h"
+#ifdef SDL3
+#include <SDL3/SDL.h>
+#endif
 
 #define nds_timers2ms(tlow,thigh)(tlow | (thigh<<16)) >> 5
 
@@ -61,6 +64,8 @@ unsigned int getRealTicks(void)
 	return nds_timers2ms(TIMER2_DATA, TIMER3_DATA);
 #elif defined(__3DS__)
 	return svcGetSystemTick() / CPU_TICKS_PER_MSEC;
+#elif defined(SDL3)
+	return SDL_GetTicks();
 #else
 #error "Unimplemented getRealTicks() for platform!"
 #endif
