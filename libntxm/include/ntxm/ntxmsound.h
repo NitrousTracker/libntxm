@@ -53,10 +53,10 @@ static inline void ntxm_sound_channel_set_frequency(int channel, u32 freq) {
 
 static inline void ntxm_sound_channel_set_panning(int channel, u32 panning) {
 	u32 control_reg_val = SCHANNEL_CR(channel) & 0xff80ffff;
-	SCHANNEL_CR(channel) = control_reg_val | SOUND_PAN(panning/2);
+	SCHANNEL_CR(channel) = control_reg_val | SOUND_PAN(panning >> 1);
 }
 
-static inline void ntxm_sound_channel_set_source(const void *src, uint32_t repeat_point, uint32_t length) {
+static inline void ntxm_sound_channel_set_source(int channel, const void *src, uint32_t repeat_point, uint32_t length) {
     SCHANNEL_SOURCE(channel) = (uint32_t) src;
     SCHANNEL_REPEAT_POINT(channel) = repeat_point >> 2;
     SCHANNEL_LENGTH(channel) = length >> 2;
@@ -67,7 +67,7 @@ static inline void ntxm_sound_channel_play(int channel, u32 loop, u32 format, u3
 		SCHANNEL_ENABLE |
 		loop |
 		format |
-		SOUND_PAN(panning/2) |
+		SOUND_PAN(panning >> 1) |
 		SOUND_VOL(volume);
 }
 #endif
@@ -90,10 +90,10 @@ static inline void ntxm_sound_channel_set_frequency(int channel, u32 freq) {
 }
 
 static inline void ntxm_sound_channel_set_panning(int channel, u32 panning) {
-    
+
 }
 
-static inline void ntxm_sound_channel_set_source(const void *src, uint32_t repeat_point, uint32_t length) {
+static inline void ntxm_sound_channel_set_source(int channel, const void *src, uint32_t repeat_point, uint32_t length) {
 
 }
 

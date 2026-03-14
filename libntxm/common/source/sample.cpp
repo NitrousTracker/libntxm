@@ -240,17 +240,17 @@ void Sample::play(u8 note, u8 volume_, u8 channel, u8 offs)
 	}
 	if (loop == NO_LOOP)
 	{
-		ntxm_sound_channel_set_source((uint8_t*) sound_data + offs_samps, 0, size - offs_samps);
+		ntxm_sound_channel_set_source(channel, ((uint8_t*) sound_data) + offs_samps, 0, size - offs_samps);
 	}
 	else if( loop == FORWARD_LOOP || (loop == PING_PONG_LOOP && !pingpong_data) )
 	{
 		u32 loop_offs_samps = ntxm_clamp(offs_samps, 0, loop_start);
-		ntxm_sound_channel_set_source((uint8_t*) sound_data + loop_offs_samps, loop_start - loop_offs_samps, loop_length);
+		ntxm_sound_channel_set_source(channel, ((uint8_t*) sound_data) + loop_offs_samps, loop_start - loop_offs_samps, loop_length);
 	}
 	else if( loop == PING_PONG_LOOP )
 	{
 		u32 loop_offs_samps = ntxm_clamp(offs_samps, 0, loop_start);
-		ntxm_sound_channel_set_source((uint8_t*) pingpong_data + loop_offs_samps, loop_start - loop_offs_samps, loop_length << 1);
+		ntxm_sound_channel_set_source(channel, ((uint8_t*) pingpong_data) + loop_offs_samps, loop_start - loop_offs_samps, loop_length << 1);
 	}
 
 	ntxm_sound_channel_play(channel, loop_bit, sound_format, ntxm_stereo_output ? panning : 128, smpvolume);
