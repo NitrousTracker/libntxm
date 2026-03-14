@@ -149,7 +149,7 @@ typedef struct NTXMFifoMessage {
 
 void CommandInit();
 
-#if defined(ARM9)
+#if !defined(ARM7)
 void CommandPlayOneShotSample(int channel, int frequency, const void* data, int length, int volume, int format, bool loop);
 void CommandPlaySample(Sample *sample, u8 note, u8 volume, u8 channel);
 void CommandPlaySample(Sample *sample);
