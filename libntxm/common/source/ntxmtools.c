@@ -38,6 +38,10 @@
 #include <sys/statvfs.h>
 #include "ntxm/common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 __attribute__((noreturn))
 static inline void ntxm_crash(const char *text) {
 #if defined(__NDS__)
@@ -216,3 +220,7 @@ void ntxm_unsigned2signed_16(uint16_t *buffer, size_t count)
 	}
 	if (count & 1) buffer[count - 1] ^= 0x8000;
 }
+
+#ifdef __cplusplus
+}
+#endif

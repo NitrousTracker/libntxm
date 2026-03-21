@@ -39,6 +39,10 @@
 #include <stdio.h>
 #include "common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static inline void ntxm_flush_dcache(void) {
 #if defined(__NDS__)
 #ifdef ARM9
@@ -139,5 +143,9 @@ u32 ntxm_getFileSize(const char *filename);
 
 void ntxm_unsigned2signed_8(uint8_t *buffer, size_t count);
 void ntxm_unsigned2signed_16(uint16_t *buffer, size_t count);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
