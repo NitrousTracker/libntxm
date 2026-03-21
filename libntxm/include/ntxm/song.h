@@ -194,8 +194,8 @@ class Song {
 		// POT functions
 		void potAdd(u8 ptn=0);
 		void potDel(u8 element);
-		void potIns(u8 idx, u8 pattern);
-		u8 getPotLength(void);
+		bool potIns(u8 idx, u8 pattern);
+		u16 getPotLength(void);
 		u8 getPotEntry(u8 idx);
 		void setPotEntry(u8 idx, u8 value);
 		

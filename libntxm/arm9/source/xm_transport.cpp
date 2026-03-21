@@ -785,7 +785,7 @@ u16 XMTransport::save(const char *filename, Song *song)
 
 	// POT
 	u8 pot[256] = {0};
-	for(u8 i=0; i<song->getPotLength(); ++i) {
+	for(int i=0; i<song->getPotLength(); ++i) {
 		pot[i] = song->getPotEntry(i);
 	}
 	fwrite(pot, 1, 256, xmfile);

@@ -222,21 +222,23 @@ void Song::potDel(u8 element)
 	DC_FlushAll();
 }
 
-void Song::potIns(u8 idx, u8 pattern)
+bool Song::potIns(u8 idx, u8 pattern)
 {
-	if(potsize < MAX_POT_LENGTH) {
-		for(u8 i=255;i>idx;--i) {
-			pattern_order_table[i] = pattern_order_table[i-1];
-		}
-		pattern_order_table[idx] = pattern;
-		potsize++;
+	if(potsize >= MAX_POT_LENGTH)
+		return false;
+
+	for(int i=potsize;i>idx;--i) {
+		pattern_order_table[i] = pattern_order_table[i-1];
 	}
+	pattern_order_table[idx] = pattern;
+	potsize++;
 	DC_FlushAll();
+	return true;
 }
 
 #endif
 
-u8 Song::getPotLength(void) {
+u16 Song::getPotLength(void) {
 	return potsize;
 }
 
