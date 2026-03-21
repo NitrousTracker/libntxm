@@ -56,6 +56,10 @@ extern void *__ntxm_ccalloc(size_t nelem, size_t size, const char *file, int lin
 extern void *__ntxm_cmemalign(size_t align, size_t size, const char *file, int line);
 extern char *__ntxm_cstrdup(const char *text, const char *file, int line);
 extern void __ntxm_free(void *ptr, const char *file, int line);
+extern void *__ntxm_smpmalloc(size_t size, const char *file, int line);
+extern void *__ntxm_smprealloc(void *ptr, size_t size, const char *file, int line);
+extern void *__ntxm_smpcalloc(size_t nelem, size_t size, const char *file, int line);
+extern void __ntxm_smpfree(void *ptr, const char *file, int line);
 
 static inline void *ntxm_umalloc(size_t size) {
 	return malloc(size);
@@ -84,6 +88,11 @@ static inline char *ntxm_ustrdup(const char *text) {
 #define ntxm_cmemalign(align, size) __ntxm_cmemalign(align, size, __FILE__, __LINE__)
 #define ntxm_cstrdup(text) __ntxm_cstrdup(text, __FILE__, __LINE__)
 #define ntxm_free(ptr) __ntxm_free(ptr, __FILE__, __LINE__)
+
+#define ntxm_smpmalloc(size) __ntxm_smpmalloc(size, __FILE__, __LINE__)
+#define ntxm_smprealloc(ptr, size) __ntxm_smprealloc(ptr, size, __FILE__, __LINE__)
+#define ntxm_smpcalloc(nelem, size) __ntxm_smpcalloc(nelem, size, __FILE__, __LINE__)
+#define ntxm_smpfree(ptr) __ntxm_smpfree(ptr, __FILE__, __LINE__)
 #else
 #define ntxm_cmalloc(size) __ntxm_cmalloc(size, NULL, 0)
 #define ntxm_crealloc(ptr, size) __ntxm_crealloc(ptr, size, NULL, 0)
@@ -91,6 +100,11 @@ static inline char *ntxm_ustrdup(const char *text) {
 #define ntxm_cmemalign(align, size) __ntxm_cmemalign(align, size, NULL, 0)
 #define ntxm_cstrdup(text) __ntxm_cstrdup(text, NULL, 0)
 #define ntxm_free(ptr) __ntxm_free(ptr, NULL, 0)
+
+#define ntxm_smpmalloc(size) __ntxm_smpmalloc(size, NULL, 0)
+#define ntxm_smprealloc(ptr, size) __ntxm_smprealloc(ptr, size, NULL, 0)
+#define ntxm_smpcalloc(nelem, size) __ntxm_smpcalloc(nelem, size, NULL, 0)
+#define ntxm_smpfree(ptr) __ntxm_smpfree(ptr, NULL, 0)
 #endif
 
 // mark non-ntxm-annotated functions as deprecated

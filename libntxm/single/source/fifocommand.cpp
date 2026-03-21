@@ -71,10 +71,13 @@ void CommandStopSample(int channel)
 
 void CommandStartRecording(u16* buffer, int length)
 {
+    ntxm_recording = true;
+
 }
 
 int CommandStopRecording(void)
 {
+    ntxm_recording = false;
     return 0;
 }
 

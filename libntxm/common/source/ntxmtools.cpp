@@ -112,6 +112,46 @@ void __ntxm_free(void *ptr, const char *file, int line) {
 	free(ptr);
 }
 
+#ifdef __3DS__
+void *__ntxm_smpmalloc(size_t size, const char *file, int line) {
+	void *ptr = linearAlloc(size);
+	if (ptr == NULL)
+		out_of_memory_error("ntxm_smpmalloc", file, line);
+	return ptr;
+}
+
+void *__ntxm_smprealloc(void *ptr, size_t size, const char *file, int line) {
+	size_t old_size = linearGetSize(ptr);
+	void *new_ptr = linearAlloc(size);
+	if (new_ptr == NULL)
+		out_of_memory_error("ntxm_smprealloc", file, line);
+	memcpy(new_ptr, ptr, size > old_size ? old_size : size);
+	linearFree(ptr);
+	return new_ptr;
+}
+
+void *__ntxm_smpcalloc(size_t nelem, size_t size, const char *file, int line) {
+	void *ptr = linearAlloc(size);
+	if (ptr == NULL)
+		out_of_memory_error("ntxm_smpcalloc", file, line);
+	memset(ptr, 0, size);
+	return ptr;
+}
+
+void __ntxm_smpfree(void *ptr, const char *file, int line) {
+#ifdef DEBUG
+	if (ptr == NULL)
+		double_free_error(file, line);
+#endif
+	linearFree(ptr);
+}
+#else
+void *__ntxm_smpmalloc(size_t size, const char *file, int line) __attribute__((alias("__ntxm_cmalloc")));
+void *__ntxm_smprealloc(void *ptr, size_t size, const char *file, int line) __attribute__((alias("__ntxm_crealloc")));
+void *__ntxm_smpcalloc(size_t nelem, size_t size, const char *file, int line) __attribute__((alias("__ntxm_ccalloc")));
+void __ntxm_smpfree(void *ptr, const char *file, int line) __attribute__((alias("__ntxm_free")));
+#endif
+
 #if defined(__3DS__) || defined(__NDS__)
 /* https://devkitpro.org/viewtopic.php?f=6&t=3057 */
 
