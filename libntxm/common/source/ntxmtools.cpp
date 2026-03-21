@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
+#include <unistd.h>
 #include <sys/statvfs.h>
 #include "ntxm/common.h"
 
@@ -110,6 +111,20 @@ void __ntxm_free(void *ptr, const char *file, int line) {
 #endif
 	free(ptr);
 }
+
+#if defined(__3DS__) || defined(__NDS__)
+/* https://devkitpro.org/viewtopic.php?f=6&t=3057 */
+
+extern u8 *fake_heap_end;
+extern u8 *fake_heap_start;
+
+int ntxm_getFreeMem(void) {
+	struct mallinfo mi = mallinfo();
+	return mi.fordblks + (fake_heap_end - (u8*)sbrk(0));
+}
+#else
+int ntxm_getFreeMem(void) { return 1048576; }
+#endif
 
 #include "ntxm/ntxmtools.h"
 

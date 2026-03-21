@@ -6,6 +6,7 @@
 
 static Player *player = new Player();
 bool ntxm_stereo_output = false;
+bool ntxm_recording = false;
 
 void (*onUpdateRow)(u16 row) = 0;
 void (*onStop)(void) = 0;

@@ -108,6 +108,8 @@ void free(void *ptr) __attribute__((deprecated));
 static inline void ntxm_dprintf(...) {}
 #endif 
 
+int ntxm_getFreeMem(void);
+
 bool ntxm_isFileExists(const char *name);
 
 inline s32 ntxm_clamp(s32 val, s32 min, s32 max)
