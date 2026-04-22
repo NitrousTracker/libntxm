@@ -610,7 +610,7 @@ bool Sample::reverse(u32 startsample, u32 endsample)
 		}
 
 		// Then copy it into the sample
-		memcpy(sounddata + offset, new_sounddata, 2 * length);
+		memmove(sounddata + offset, new_sounddata, 2 * length);
 
 		ntxm_free(new_sounddata);
 
@@ -627,7 +627,7 @@ bool Sample::reverse(u32 startsample, u32 endsample)
 		}
 
 		// Then copy it into the sample
-		memcpy(sounddata + offset, new_sounddata, length);
+		memmove(sounddata + offset, new_sounddata, length);
 
 		ntxm_free(new_sounddata);
 	}
@@ -866,7 +866,7 @@ bool Sample::convertStereoToMono(void)
 		}
 
 		// Overwrite the original with the converted sample
-		memcpy(sound_data, tmpbuf, size);
+		memmove(sound_data, tmpbuf, size);
 
 		// Delete the temporary buffer
 		ntxm_free(tmpbuf);
@@ -885,7 +885,7 @@ bool Sample::convertStereoToMono(void)
 		}
 
 		// Overwrite the original with the converted sample
-		memcpy(sound_data, tmpbuf, size);
+		memmove(sound_data, tmpbuf, size);
 
 		// Delete the temporary buffer
 		ntxm_free(tmpbuf);
@@ -943,7 +943,7 @@ bool Sample::setupPingPongLoop(void)
 		return false;
 
 	// Copy sound data until loop end
-	memcpy(pingpong_data, sound_data, loop_start + loop_length);
+	memmove(pingpong_data, sound_data, loop_start + loop_length);
 
 	// Copy reverse loop
 	if(is_16_bit)
@@ -968,7 +968,7 @@ bool Sample::setupPingPongLoop(void)
 	// Copy rest
 	u32 pos = loop_start + loop_length;
 
-	memcpy((u8*)pingpong_data + pos + loop_length, (u8*)sound_data + pos, size - pos);
+	memmove((u8*)pingpong_data + pos + loop_length, (u8*)sound_data + pos, size - pos);
 
 	DC_FlushAll();
 	return true;
