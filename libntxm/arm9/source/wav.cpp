@@ -198,17 +198,24 @@ bool Wav::load(const char *filename)
 
 			// Read the data
 			if(bit_per_sample > bit_per_sample_) {
-				int skip_bytes = (bit_per_sample - bit_per_sample_) / 8;
-				u32 i = 0;
+				int byte_per_sample = bit_per_sample_/8;
+
+				u8 *audio_data_tmp = (u8*)ntxm_umalloc(chunk_size);
+				if (audio_data_tmp == 0) {
+					ntxm_dprintf("Could not alloc mem(%ld) for wav.\n", chunk_size);
+					ntxm_free(audio_data_);
+					fclose(fileh);
+					return false;
+				}
+				fread(audio_data_tmp, 1, chunk_size, fileh);
+
+				u32 i=0;
 				for(; i < n_samples_; i++) {
-					fseek(fileh, skip_bytes, SEEK_CUR);
-					if(fread(audio_data_ + i * 2, 2, 1, fileh) <= 0) {
-						break;
-					}
+					memcpy(audio_data_ + i * byte_per_sample, audio_data_tmp + i * byte_per_sample + skip_bytes, 
+						   (bit_per_sample_ / 8));
 				}
-				if(i < n_samples_) {
-					memset(audio_data_ + i * 2, 0, chunk_size - i * 2);
-				}
+
+				ntxm_free(audio_data_tmp);
 			} else {
 				size_t bytes_read = fread(audio_data_, 1, chunk_size, fileh);
 				if (bytes_read < chunk_size) {
