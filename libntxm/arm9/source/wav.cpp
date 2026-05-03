@@ -198,6 +198,7 @@ bool Wav::load(const char *filename)
 
 			// Read the data
 			if(bit_per_sample > bit_per_sample_) {
+				int skip_bytes = (bit_per_sample - bit_per_sample_) / 8;
 				int byte_per_sample = bit_per_sample_/8;
 
 				u8 *audio_data_tmp = (u8*)ntxm_umalloc(chunk_size);
