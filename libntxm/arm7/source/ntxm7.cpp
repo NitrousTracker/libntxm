@@ -114,3 +114,7 @@ void NTXM7::setPatternLoop(bool loopstate)
 {
 	player->setPatternLoop(loopstate);
 }
+
+void NTXM7::setPlayingSampleInfoPtr(PlayingSampleInfo *sampleinfoptr) {
+	player->setPlayingSampleInfoPtr(sampleinfoptr);
+}

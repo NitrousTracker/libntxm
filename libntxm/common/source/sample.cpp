@@ -97,7 +97,8 @@ inline u32 linear_freq_table_lookup(u32 note)
 Sample::Sample(void *_sound_data, u32 _n_samples, u16 _sampling_frequency, bool _is_16_bit,
 	u8 _loop, u8 _volume)
 	:pingpong_data(0), n_samples(_n_samples), is_16_bit(_is_16_bit), loop(_loop),
-	loop_start(0), loop_length(0), volume(_volume), panning(128), base_panning(128)
+	loop_start(0), loop_length(0), volume(_volume), panning(128), base_panning(128),
+	sampling_frequency(_sampling_frequency)
 {
 	sound_data = _sound_data;
 
@@ -131,7 +132,7 @@ Sample::Sample(const char *filename, u8 _loop, bool *_success)
 	sound_data = wav.getAudioData();
 
 	calcRelnoteAndFinetune( wav.getSamplingRate() );
-
+	sampling_frequency = wav.getSamplingRate();
 	u8 bit_per_sample = wav.getBitPerSample();
 
 	if(bit_per_sample == 16)
@@ -282,27 +283,31 @@ void Sample::play(u8 note, u8 volume_, u8 channel, u8 offs)
 		SOUND_VOL(smpvolume);
 }
 
-void Sample::bendNote(u8 note, u8 basenote, s16 _finetune, u8 channel)
+u32 Sample::bendNote(u8 note, u8 basenote, s16 _finetune, u8 channel)
 {
 	// Add 48 to the note, because otherwise absolute_note can get negative.
 	// (The minimum value of relative note is -48)
 	u8 absolute_note = note + 48;
 	u8 realnote = (absolute_note+rel_note);
 	_finetune += finetune; //Need to offset by sample's finetune
-	SCHANNEL_TIMER(channel) = SOUND_FREQ((int)LOOKUP_FREQ(realnote,_finetune));
+	u32 bendfreq = LOOKUP_FREQ(realnote,_finetune);
+	SCHANNEL_TIMER(channel) = SOUND_FREQ((int)bendfreq);
+	return bendfreq;
 }
 
-void Sample::bendNoteDirect(s16 fine_step, u8 channel)
+u32 Sample::bendNoteDirect(s16 fine_step, u8 channel)
 {
 	CommandDbgOut("finestep: 0x%x channel: 0x%x\n", fine_step, channel);
-	SCHANNEL_TIMER(channel) = SOUND_FREQ((int)GET_FREQ_DIRECT(fine_step));
+	u32 bendfreq = GET_FREQ_DIRECT(fine_step);
+	SCHANNEL_TIMER(channel) = SOUND_FREQ((int)bendfreq);
+	return bendfreq;
 }
 
 #endif
 
 u32 Sample::calcPlayLength(u8 note)
 {
-	u32 samples_per_second = LOOKUP_FREQ(48+note+rel_note,finetune);
+	u32 samples_per_second = getPlaybackFreq(note);
 	if (samples_per_second == 0) return 0;
 	return n_samples * 1000 / samples_per_second;
 }
@@ -335,6 +340,10 @@ u32 Sample::getSize(void)
 u32 Sample::getNSamples(void)
 {
 	return n_samples;
+}
+
+u32 Sample::getPlaybackFreq(u8 note_) {
+    return LOOKUP_FREQ(48+note_+rel_note,finetune);
 }
 
 void *Sample::getData(void)
