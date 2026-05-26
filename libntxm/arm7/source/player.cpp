@@ -50,7 +50,7 @@ extern bool ntxm_recording;
 /* ===================== PUBLIC ===================== */
 
 Player::Player(void (*_externalTimerHandler)(void))
-	:song(0), playingSamples(0), externalTimerHandler(_externalTimerHandler)
+	:song(0), playingSamples(NULL), externalTimerHandler(_externalTimerHandler)
 {
 	initState();
 
@@ -991,7 +991,7 @@ void Player::handleTickEffects(void)
 							break;
 					}
 
-					if (newfreq) playingSamples[channel].playbackfreq = newfreq;
+					if (newfreq && playingSamples != NULL) playingSamples[channel].playbackfreq = newfreq;
 					break;
 				}
 
@@ -1007,7 +1007,7 @@ void Player::handleTickEffects(void)
 					}
 
 					u32 bendfreq = inst->bendNoteDirect(state.channel_note[channel], state.channel_porta_accumulator[channel] >> PORTA_PRECISION, channel);
-					if (bendfreq) playingSamples[channel].playbackfreq = bendfreq;
+					if (bendfreq && playingSamples != NULL) playingSamples[channel].playbackfreq = bendfreq;
 					break;
 				}
 
@@ -1023,7 +1023,7 @@ void Player::handleTickEffects(void)
 					}
 
 					u32 bendfreq = inst->bendNoteDirect(state.channel_note[channel], state.channel_porta_accumulator[channel] >> PORTA_PRECISION, channel);
-					if (bendfreq) playingSamples[channel].playbackfreq = bendfreq;
+					if (bendfreq && playingSamples != NULL) playingSamples[channel].playbackfreq = bendfreq;
 					break;
 				}
 
@@ -1058,7 +1058,7 @@ void Player::handleTickEffects(void)
 					}
 
 					u32 bendfreq = inst->bendNoteDirect(state.channel_note[channel], state.channel_porta_accumulator[channel] >> PORTA_PRECISION, channel);
-					if (bendfreq) playingSamples[channel].playbackfreq = bendfreq;
+					if (bendfreq && playingSamples != NULL) playingSamples[channel].playbackfreq = bendfreq;
 					break;
 				}
 
@@ -1413,6 +1413,8 @@ bool Player::calcNextPos(u16 *nextrow, u8 *nextpotpos) // Calculate next row and
 
 void Player::clearPlayingSampleInfo(u8 chn)
 {
+	if (playingSamples == NULL) return;
+
 	playingSamples[chn] = 
 	{
 		.playbackpos = 0,
