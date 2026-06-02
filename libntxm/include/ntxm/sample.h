@@ -53,7 +53,7 @@ enum LoopType
 
 typedef struct
 {
-	u64 playbackpos;	
+	u32 playbackpos;	
 	u32 playbackfreq;			
 	u8 active;
 	u8 looprev;
@@ -63,6 +63,9 @@ typedef struct
 
 
 #define SAMPLE_NAME_LENGTH		24
+
+// for accurate playback freq calculations (required above 4137Hz) 
+#define TIMER_FREQ_SHIFT_INV(m) ((-(BUS_CLOCK+1)) / (((m) << 1) + 1))
 
 #define FT_OFFSET_SCALAR 256
 

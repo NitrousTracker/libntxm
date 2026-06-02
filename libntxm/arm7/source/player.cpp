@@ -220,10 +220,10 @@ void Player::playNote(u8 note, u8 volume, u8 channel, u8 instidx)
 	if (smp->getLoop() != 0)
 		offs = ntxm_clamp(offs, 0, smp->getLoopStart());
 		
-	playingSamples[channel] = 
+	if (playingSamples != NULL) playingSamples[channel] = 
 	{
 		// Since playbackpos is in samples, not bytes, we don't need to adjust for 16bit/8bit
-		.playbackpos = (u64)(FT_OFFSET_SCALAR * offs) << 32, 
+		.playbackpos = FT_OFFSET_SCALAR * offs, 
 		.playbackfreq = smp->getPlaybackFreq(note),
 		.active = true,
 		.looprev = false,
@@ -464,7 +464,7 @@ void Player::playTimerHandler(void)
 				chnvol = (u8)((state.channel_volume[channel]) * ((state.channel_env_vol[channel] << 8) / 0x210) / 0x1f);
 				}
 
-			if (state.channel_env_vol[channel] < 0x01)
+			if (state.channel_env_vol[channel] == 0)
 				clearPlayingSampleInfo(channel);
 
 			SCHANNEL_VOL(channel) = SOUND_VOL(chnvol);

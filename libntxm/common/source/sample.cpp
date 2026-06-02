@@ -291,16 +291,19 @@ u32 Sample::bendNote(u8 note, u8 basenote, s16 _finetune, u8 channel)
 	u8 realnote = (absolute_note+rel_note);
 	_finetune += finetune; //Need to offset by sample's finetune
 	u32 bendfreq = LOOKUP_FREQ(realnote,_finetune);
-	SCHANNEL_TIMER(channel) = SOUND_FREQ((int)bendfreq);
-	return bendfreq;
+	int s_bendfreq = SOUND_FREQ((int)bendfreq);
+	SCHANNEL_TIMER(channel) = s_bendfreq;
+	// at and above 4137Hz SOUND_FREQ will start aliasing frequencies 
+	return bendfreq < 4137 ? bendfreq : TIMER_FREQ_SHIFT_INV(s_bendfreq);
 }
 
 u32 Sample::bendNoteDirect(s16 fine_step, u8 channel)
 {
 	CommandDbgOut("finestep: 0x%x channel: 0x%x\n", fine_step, channel);
 	u32 bendfreq = GET_FREQ_DIRECT(fine_step);
-	SCHANNEL_TIMER(channel) = SOUND_FREQ((int)bendfreq);
-	return bendfreq;
+	int s_bendfreq = SOUND_FREQ((int)bendfreq);
+	SCHANNEL_TIMER(channel) = s_bendfreq;
+	return bendfreq < 4137 ? bendfreq : TIMER_FREQ_SHIFT_INV(s_bendfreq);
 }
 
 #endif
