@@ -214,7 +214,10 @@ bool Instrument::getVolEnvEnabled(void)
 
 // Calculate how long in ms the instrument will play note given note
 u32 Instrument::calcPlayLength(u8 note) {
-	return samples[note_samples[note]]->calcPlayLength(note);
+	if (samples == NULL)
+		return 0;
+	else 
+		return samples[note_samples[note]]->calcPlayLength(note);
 }
 
 #ifndef ARM7
