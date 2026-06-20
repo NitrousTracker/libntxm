@@ -144,7 +144,7 @@ bool Wav::load(const char *filename)
 	u32 sampling_rate;
 	fread(&sampling_rate, 4, 1, fileh);
 
-	sampling_rate_ = sampling_rate;
+	sampling_rate_ = sampling_rate > 1190 ? sampling_rate : 1191;
 
 	u32 avg_bytes_per_sec; // We don't need this
 	fread(&avg_bytes_per_sec, 4, 1, fileh);
