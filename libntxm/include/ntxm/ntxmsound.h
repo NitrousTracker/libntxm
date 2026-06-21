@@ -1,8 +1,8 @@
 /***** BEGIN LICENSE BLOCK *****
- * 
+ *
  * Version: Noncommercial zLib License / GPL 3.0
- * 
- * The contents of this file are subject to the Noncommercial zLib License 
+ *
+ * The contents of this file are subject to the Noncommercial zLib License
  * (the "License"); you may not use this file except in compliance with
  * the License. You should have recieved a copy of the license with this package.
  *
@@ -19,7 +19,7 @@
  * provisions required by the GPL. If you do not delete the provisions above,
  * a recipient may use your version of this file under the terms of any one of
  * the GPL or the Noncommercial zLib License.
- * 
+ *
  ***** END LICENSE BLOCK *****/
 
 #ifndef _NTXMSOUND_H_
@@ -30,10 +30,11 @@
 #define NTXMSOUND_FORMAT_ADPCM	    (2<<29)
 #define NTXMSOUND_FORMAT_16BIT 		(1<<29)
 #define NTXMSOUND_FORMAT_8BIT 		(0)
+
+#if defined(__NDS__)
 #define NTXMSOUND_REPEAT SOUND_REPEAT
 #define NTXMSOUND_ONE_SHOT SOUND_ONE_SHOT
 
-#if defined(__NDS__)
 #if defined(ARM7)
 static inline void ntxm_sound_channel_stop(int channel) {
 	SCHANNEL_CR(channel) = 0;
@@ -71,8 +72,11 @@ static inline void ntxm_sound_channel_play(int channel, u32 loop, u32 format, u3
 		SOUND_VOL(volume);
 }
 #endif
-#elif defined(__3DS__)
+#else
 // TODO
+#define NTXMSOUND_REPEAT 1
+#define NTXMSOUND_ONE_SHOT 0
+
 static inline void ntxm_sound_channel_stop(int channel) {
 
 }
@@ -100,8 +104,6 @@ static inline void ntxm_sound_channel_set_source(int channel, const void *src, u
 static inline void ntxm_sound_channel_play(int channel, u32 loop, u32 format, u32 panning, u32 volume) {
 
 }
-#else
-#error "Unsupported target!"
 #endif
 
 #endif
