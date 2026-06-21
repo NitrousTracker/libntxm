@@ -1,10 +1,9 @@
-// TODO
-
+#include <cstdio>
 #include "ntxm/fifocommand.h"
 #include "ntxm/ntxmtools.h"
 #include "ntxm/player.h"
 
-static Player *player = new Player();
+Player *player = new Player();
 bool ntxm_stereo_output = false;
 bool ntxm_recording = false;
 
@@ -12,6 +11,9 @@ void (*onUpdateRow)(u16 row) = 0;
 void (*onStop)(void) = 0;
 void (*onPlaySampleFinished)(void) = 0;
 void (*onPotPosChange)(u16 potpos) = 0;
+
+extern bool NtxmPlayerLock(void);
+extern void NtxmPlayerUnlock(void);
 
 void RegisterRowCallback(void (*onUpdateRow_)(u16))
 {
@@ -33,40 +35,42 @@ void RegisterPotPosChangeCallback(void (*onPotPosChange_)(u16))
     onPotPosChange = onPotPosChange_;
 }
 
-void RecvCommandUpdateRow(UpdateRowCommand *c)
+void CommandUpdateRow(u16 row)
 {
     if(onUpdateRow)
-        onUpdateRow(c->row);
+        onUpdateRow(row);
 }
 
-void RecvCommandUpdatePotPos(UpdatePotPosCommand *c)
+void CommandUpdatePotPos(u16 potpos)
 {
     if(onPotPosChange)
-        onPotPosChange(c->potpos);
+        onPotPosChange(potpos);
 }
 
-void RecvCommandNotifyStop(void)
+void CommandNotifyStop(void)
 {
     if(onStop)
         onStop();
 }
 
-void RecvCommandSampleFinish(void) {
+void CommandSampleFinish(void)
+{
     if(onPlaySampleFinished)
         onPlaySampleFinished();
 }
 
-void CommandInit() {
-}
-
 void CommandPlaySample(Sample *sample, u8 note, u8 volume, u8 channel)
 {
+    if (!player || !NtxmPlayerLock()) return;
     player->playSample(sample, note, volume, channel);
+    NtxmPlayerUnlock();
 }
 
 void CommandStopSample(int channel)
 {
+    if (!player || !NtxmPlayerLock()) return;
     player->stopChannel(channel);
+    NtxmPlayerUnlock();
 }
 
 void CommandStartRecording(u16* buffer, int length)
@@ -83,42 +87,58 @@ int CommandStopRecording(void)
 
 void CommandSetSong(void *song)
 {
+    if (!player || !NtxmPlayerLock()) return;
     player->setSong((Song*) song);
+    NtxmPlayerUnlock();
 }
 
 void CommandStartPlay(u8 potpos, u16 row, bool loop)
 {
+    if (!player || !NtxmPlayerLock()) return;
     player->play(loop, potpos, row);
+    NtxmPlayerUnlock();
 }
 
 void CommandStopPlay(void)
 {
+    if (!player || !NtxmPlayerLock()) return;
     player->stop();
+    NtxmPlayerUnlock();
 }
 
 void CommandPlayInst(u8 inst, u8 note, u8 volume, u8 channel)
 {
+    if (!player || !NtxmPlayerLock()) return;
     player->playNote(inst, note, volume, channel);
+    NtxmPlayerUnlock();
 }
 
 void CommandStopInst(u8 channel)
 {
+    if (!player || !NtxmPlayerLock()) return;
     player->stopChannel(channel);
+    NtxmPlayerUnlock();
 }
 
 void CommandStopMatchingInst(u8 inst, u8 note)
 {
+    if (!player || !NtxmPlayerLock()) return;
     player->stopAllNotes(note, inst);
+    NtxmPlayerUnlock();
 }
 
 void CommandPlayNoteAuto(u8 inst, u8 note, u8 volume, u16 tag)
 {
+    if (!player || !NtxmPlayerLock()) return;
     player->playNoteAuto(inst, note, volume, tag);
+    NtxmPlayerUnlock();
 }
 
 void CommandStopNoteAuto(u16 tag)
 {
+    if (!player || !NtxmPlayerLock()) return;
     player->stopNoteAuto(tag);
+    NtxmPlayerUnlock();
 }
 
 void CommandMicOn(void)
@@ -131,7 +151,9 @@ void CommandMicOff(void)
 
 void CommandSetPatternLoop(bool state)
 {
+    if (!player || !NtxmPlayerLock()) return;
     player->setPatternLoop(state);
+    NtxmPlayerUnlock();
 }
 
 void CommandSetStereoOutput(bool state)

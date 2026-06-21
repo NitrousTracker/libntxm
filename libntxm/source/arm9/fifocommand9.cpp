@@ -90,9 +90,10 @@ void CommandRecvHandler(int bytes, void *user_data) {
     }
 }
 
-void CommandInit() {
+bool CommandInit() {
     fifoSetDatamsgHandler(FIFO_NTXM, CommandRecvHandler, 0);
     //fifoSetValue32Handler(FIFO_NTXM, CommandRecvHandler, 0);
+    return true;
 }
 
 void CommandPlaySample(Sample *sample, u8 note, u8 volume, u8 channel)

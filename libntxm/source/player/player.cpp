@@ -48,14 +48,6 @@ extern "C" {
 
 extern bool ntxm_recording;
 
-#if !defined(__NDS__)
-// FIXME: Implement these functions outside of the ARM9/ARM7 context
-static void CommandSampleFinish(void) { }
-static void CommandNotifyStop(void) { }
-static void CommandUpdateRow(u16 row) { }
-static void CommandUpdatePotPos(u16 potpos) { }
-#endif
-
 /* ===================== PUBLIC ===================== */
 
 Player::Player(void (*_externalTimerHandler)(void))
@@ -146,7 +138,7 @@ void Player::stop(void)
 		state.channel_fade_active[chn] = 1;
 		state.channel_fade_ms[chn] = FADE_OUT_MS;
 		state.channel_fade_target_volume[chn] = 0;
-		
+
 		state.channel_porta_accumulator[chn] = 0;
 		state.channel_porta_tone_increment[chn] = 0;
 		state.channel_porta_increment[chn] = 0;
@@ -158,7 +150,7 @@ void Player::stop(void)
 		state.channel_porta_enabled[chn] = false;
 		resetVibrato(chn);
 	}
-	
+
 	resetPanning();
 }
 
@@ -169,7 +161,7 @@ void Player::playNote(u8 note, u8 volume, u8 channel, u8 instidx)
 	state.channel_porta_accumulator[channel] = 0;
 	state.channel_porta_enabled[channel] = false;
 	state.channel_tags[channel] = UNTAGGED;
-	
+
 	if( (state.playing == true) && (song->channelMuted(channel) == true) )
 		return;
 
@@ -186,7 +178,7 @@ void Player::playNote(u8 note, u8 volume, u8 channel, u8 instidx)
 	state.channel_fade_active[channel] = 0;
 	state.channel_fade_ms[channel] = 0;
 	state.channel_instrument[channel] = instidx;
-	
+
 	if(volume == NO_VOLUME) {
 		state.channel_volume[channel] = MAX_VOLUME * smp->getVolume() / 255;
 	} else {
@@ -220,7 +212,7 @@ void Player::playNote(u8 note, u8 volume, u8 channel, u8 instidx)
 		if (effect == EFFECT_SAMPLE_OFFSET)
 			offs = param;
 	}
-	
+
 	inst->play(note, volume, channel, offs);
 }
 
@@ -274,14 +266,14 @@ void Player::stopChannel(u8 channel)
 		state.channel_fade_ms[channel]            = FADE_OUT_MS;
 		state.channel_fade_target_volume[channel] = 0;
 	}
-	
+
 	state.channel_tags[channel] = UNTAGGED;
 }
 
 int Player::getChannelForTag(u16 tag)
 {
 	int i;
-	
+
 	// First look for existing channels using this tag, just in case.
 	for (i = 0; i < MAX_CHANNELS; i++) {
 		if (state.channel_tags[i] == tag) {
@@ -488,13 +480,13 @@ void Player::playTimerHandler(void)
 		if(state.row_ticks >= song->getTempo())
 		{
 			state.row_ticks = 0;
-			
+
 			if (effstate.pattern_delay_store > 0)
 			{
 				effstate.pattern_delay = effstate.pattern_delay_store;
 				effstate.pattern_delay_store = 0;
 			}
-			
+
 			bool finished = calcNextPos(&state.row, &state.potpos);
 			if(finished || state.waitrow)
 			{
@@ -512,8 +504,8 @@ void Player::playTimerHandler(void)
 				CommandUpdatePotPos(state.potpos);
 
 			finishEffects();
-			
-			
+
+
 			if(effstate.pattern_delay > 1)
 			{
 				effstate.pattern_delay--;
@@ -538,7 +530,7 @@ void Player::playTimerHandler(void)
 		{
 		  state.channel_prev_note[channel] = state. channel_note[channel];
 		}
-		
+
 		state.tick_ms -= song->getMsPerTick();
 	}
 }
@@ -608,7 +600,7 @@ void Player::handleEffects(void)
 		u8 param  = song->patterns[state.pattern][channel][state.row].effect_param;
 		u8 instidx = state.channel_instrument[channel];
 		Instrument *inst = song->getInstrument(instidx);
-		
+
 		if(effect != NO_EFFECT)
 		{
 			switch(effect)
@@ -624,10 +616,10 @@ void Player::handleEffects(void)
 						{
 							if (inst == NULL)
 								continue;
-					
+
 							if (e_effect_param != 0)
 								state.channel_fine_porta_increment[channel] = (u16) e_effect_param;
-							
+
 							if (state.channel_porta_enabled[channel] == false)
 							{
 								state.channel_porta_enabled[channel] = true;
@@ -637,7 +629,7 @@ void Player::handleEffects(void)
 								note += (48 + rel);
 								state.channel_porta_accumulator[channel] = (s32)((128 * note) + fine) << PORTA_PRECISION; // 128 is max finesteps per note
 							}
-							
+
 							state.channel_porta_accumulator[channel] += PORTA_FIX(state.channel_fine_porta_increment[channel]);
 							if (state.channel_porta_accumulator[channel] > (19968 << PORTA_PRECISION))
 							{
@@ -651,10 +643,10 @@ void Player::handleEffects(void)
 						{
 							if (inst == NULL)
 								continue;
-					
+
 							if (e_effect_param != 0)
 								state.channel_porta_decrement[channel] = (u16) e_effect_param;
-							
+
 							if (state.channel_porta_enabled[channel] == false)
 							{
 								state.channel_porta_enabled[channel] = true;
@@ -664,7 +656,7 @@ void Player::handleEffects(void)
 								note += (48 + rel);
 								state.channel_porta_accumulator[channel] = (s32)((128 * note) + fine) << PORTA_PRECISION; // 128 is max finesteps per note
 							}
-							
+
 							state.channel_porta_accumulator[channel] -= PORTA_FIX(state.channel_porta_decrement[channel]);
 							if (state.channel_porta_accumulator[channel] < 0)
 							{
@@ -701,7 +693,7 @@ void Player::handleEffects(void)
 							}
 							break;
 						}
-						
+
 						case(EFFECT_E_PATTERN_DELAY):
 						{
 							if (effstate.pattern_delay == 0)
@@ -767,10 +759,10 @@ void Player::handleEffects(void)
 				{
 					if (inst == NULL)
 						continue;
-					
+
 					if (param != 0)
 						state.channel_porta_increment[channel] = (u16) param;
-					
+
 					if (state.channel_porta_enabled[channel] == false)
 					{
 						state.channel_porta_enabled[channel] = true;
@@ -788,10 +780,10 @@ void Player::handleEffects(void)
 				{
 					if (inst == NULL)
 						continue;
-					
+
 					if (param != 0)
 						state.channel_porta_decrement[channel] = (u16) param;
-					
+
 					if (state.channel_porta_enabled[channel] == false)
 					{
 						state.channel_porta_enabled[channel] = true;
@@ -809,10 +801,10 @@ void Player::handleEffects(void)
 				{
 					if (inst == NULL)
 						continue;
-					
+
 					if (param != 0)
 						state.channel_porta_tone_increment[channel] = (u16) param;
-					
+
 					if (state.channel_porta_enabled[channel] == false)
 					{
 						state.channel_porta_enabled[channel] = true;
@@ -823,7 +815,7 @@ void Player::handleEffects(void)
 																	// Also add rel note and finetune from sample settings so the effect won't be out of tune
 						state.channel_porta_accumulator[channel] = (s32)((128 * note) + fine) << PORTA_PRECISION; // 128 is max finesteps per note
 						note = state.channel_note[channel];
-						note += (48 + rel); 
+						note += (48 + rel);
 
 						//Target note uses first note's sample, so we'll borrow it's finetune and rel note
 						// to stay in tune
@@ -859,7 +851,7 @@ void Player::handleEffects(void)
 					song->instruments[inst]->getSampleForNote(note)->updatePanning(channel);
 					break;
 				}
-				
+
 				case EFFECT_EXTRA_FINE_PORTAMENTO:
 				{
 					u8 extra_fine_type  = (param >> 4);
@@ -871,10 +863,10 @@ void Player::handleEffects(void)
 						{
 							if (inst == NULL)
 								continue;
-							
+
 							if (extra_fine_param != 0)
 								state.channel_exfine_porta_increment[channel] = (u16) extra_fine_param;
-							
+
 							if (state.channel_porta_enabled[channel] == false)
 							{
 								state.channel_porta_enabled[channel] = true;
@@ -884,7 +876,7 @@ void Player::handleEffects(void)
 								note += (48 + rel);
 								state.channel_porta_accumulator[channel] = (s32)((128 * note) + fine) << PORTA_PRECISION; // 128 is max finesteps per note
 							}
-							
+
 							state.channel_porta_accumulator[channel] += PORTA_FIX(state.channel_exfine_porta_increment[channel]) >> 2;
 							if (state.channel_porta_accumulator[channel] > (19968 << PORTA_PRECISION))
 							{
@@ -898,10 +890,10 @@ void Player::handleEffects(void)
 						{
 							if (inst == NULL)
 								continue;
-							
+
 							if (extra_fine_param != 0)
 								state.channel_exfine_porta_decrement[channel] = (u16) extra_fine_param;
-							
+
 							if (state.channel_porta_enabled[channel] == false)
 							{
 								state.channel_porta_enabled[channel] = true;
@@ -911,7 +903,7 @@ void Player::handleEffects(void)
 								note += (48 + rel);
 								state.channel_porta_accumulator[channel] = (s32)((128 * note) + fine) << PORTA_PRECISION; // 128 is max finesteps per note
 							}
-							
+
 							state.channel_porta_accumulator[channel] -= PORTA_FIX(state.channel_exfine_porta_decrement[channel]) >> 2;
 							if (state.channel_porta_accumulator[channel] < 0)
 							{
@@ -921,7 +913,7 @@ void Player::handleEffects(void)
 							break;
 						}
 					}
-					
+
 					break;
 				}
 			}
@@ -1152,17 +1144,17 @@ void Player::finishEffects(void)
 
 					break;
 				}
-				
+
 				case(EFFECT_PORTA_UP):
 				{
 				  break;
 				}
-				
+
 				case(EFFECT_PORTA_DOWN):
 				{
 				  break;
 				}
-				
+
 				case(EFFECT_VIBRATO):
 				{
 					if (inst == NULL)
@@ -1238,7 +1230,7 @@ void Player::initDefaultPanning(void)
 	u8 instcount = song->getInstruments();
 	u16 smpidx = 0;
 	Instrument *inst;
-	
+
 	for ( u8 i = 0; i < instcount; i++)
 	{
 		inst = song->instruments[i];
@@ -1331,10 +1323,10 @@ bool Player::calcNextPos(u16 *nextrow, u8 *nextpotpos) // Calculate next row and
 	{
 		*nextrow = state.row;
 		*nextpotpos = state.potpos;
-		
+
 		return false;
 	}
-	
+
 	if(effstate.pattern_loop_jump_now == true)
 	{
 		*nextrow = effstate.pattern_loop_begin;
@@ -1346,7 +1338,7 @@ bool Player::calcNextPos(u16 *nextrow, u8 *nextpotpos) // Calculate next row and
 	if(effstate.pattern_break_requested == true)
 	{
 		*nextrow = effstate.pattern_break_row;
-		
+
 		int next_pos = effstate.position_jump_requested ? effstate.position_jump_pos : state.potpos + 1;
 
 		if(next_pos < song->getPotLength())

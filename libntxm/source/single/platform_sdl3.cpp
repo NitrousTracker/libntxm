@@ -1,3 +1,5 @@
+#include <SDL3/SDL_mutex.h>
+#ifdef SDL3
 /*
  * libNTXM - XM Player Library for the Nintendo DS
  *
@@ -29,50 +31,34 @@
  * the GPL or the Noncommercial zLib License.
  *
  ***** END LICENSE BLOCK *****/
+#include <cstdio>
+#include <SDL3/SDL.h>
+#include "ntxm/player.h"
 
-#include "ntxm/ntxm9.h"
-#include "ntxm/demokit.h"
-#include "ntxm/fifocommand.h"
+extern Player *player;
+static SDL_Mutex *playerMutex;
 
-NTXM9::NTXM9()
-	:xm_transport(0), song(0)
-{
-    CommandInit();
-	xm_transport = new XMTransport();
+bool NtxmPlayerLock(void) {
+    SDL_LockMutex(playerMutex);
+    return true;
 }
 
-NTXM9::~NTXM9()
-{
-	delete xm_transport;
-
-	if(song != 0)
-		delete song;
+void NtxmPlayerUnlock(void) {
+    SDL_UnlockMutex(playerMutex);
 }
 
-u16 NTXM9::load(const char *filename)
-{
-	u16 err = xm_transport->load(filename, &song);
-	CommandSetSong(song);
-	return err;
+static uint32_t NtxmTimerHandler(void *userdata, SDL_TimerID timerID, uint32_t interval) {
+    if (NtxmPlayerLock()) {
+        player->playTimerHandler();
+        NtxmPlayerUnlock();
+    }
+    return 1;
 }
 
-const char *NTXM9::getError(u16 error_id)
-{
-	return xm_transport->getError(error_id);
+bool CommandInit() {
+    playerMutex = SDL_CreateMutex();
+    player = new Player(NULL);
+    SDL_AddTimer(1, NtxmTimerHandler, NULL);
+    return true;
 }
-
-void NTXM9::play(bool repeat)
-{
-	if(song == 0)
-		return;
-
-	CommandStartPlay(0, 0, repeat);
-}
-
-void NTXM9::stop(void)
-{
-	if(song == 0)
-		return;
-
-	CommandStopPlay();
-}
+#endif

@@ -8,6 +8,7 @@
 #ifndef FIFOCOMMAND_H_
 #define FIFOCOMMAND_H_
 
+#include <stdbool.h>
 #include <stdio.h>
 #include "ntxm/sample.h"
 
@@ -147,9 +148,9 @@ typedef struct NTXMFifoMessage {
     };
 } NTXMFifoMessage;
 
-void CommandInit();
+bool CommandInit();
 
-#if !defined(ARM7)
+#if !defined(__NDS__) || defined(ARM9)
 void CommandPlayOneShotSample(int channel, int frequency, const void* data, int length, int volume, int format, bool loop);
 void CommandPlaySample(Sample *sample, u8 note, u8 volume, u8 channel);
 void CommandPlaySample(Sample *sample);
@@ -176,7 +177,7 @@ void RegisterPlaySampleFinishedCallback(void (*onPlaySampleFinished_)(void));
 void RegisterPotPosChangeCallback(void (*onPotPosChange_)(u16));
 #endif
 
-#if defined(ARM7)
+#if !defined(__NDS__) || defined(ARM7)
 #ifdef DEBUG
 void CommandDbgOut(const char *formatstr, ...); // Print text from the ARM7, syntax like printf
 #else

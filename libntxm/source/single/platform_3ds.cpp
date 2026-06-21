@@ -1,3 +1,4 @@
+#ifdef __3DS__
 /*
  * libNTXM - XM Player Library for the Nintendo DS
  *
@@ -30,49 +31,15 @@
  *
  ***** END LICENSE BLOCK *****/
 
-#include "ntxm/ntxm9.h"
-#include "ntxm/demokit.h"
-#include "ntxm/fifocommand.h"
-
-NTXM9::NTXM9()
-	:xm_transport(0), song(0)
-{
-    CommandInit();
-	xm_transport = new XMTransport();
+// TODO
+bool NtxmPlayerLock(void) {
+    return false;
 }
 
-NTXM9::~NTXM9()
-{
-	delete xm_transport;
-
-	if(song != 0)
-		delete song;
+void NtxmPlayerUnlock(void) {
 }
 
-u16 NTXM9::load(const char *filename)
-{
-	u16 err = xm_transport->load(filename, &song);
-	CommandSetSong(song);
-	return err;
+bool CommandInit() {
+    return true;
 }
-
-const char *NTXM9::getError(u16 error_id)
-{
-	return xm_transport->getError(error_id);
-}
-
-void NTXM9::play(bool repeat)
-{
-	if(song == 0)
-		return;
-
-	CommandStartPlay(0, 0, repeat);
-}
-
-void NTXM9::stop(void)
-{
-	if(song == 0)
-		return;
-
-	CommandStopPlay();
-}
+#endif
