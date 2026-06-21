@@ -11,8 +11,8 @@ ARM_NONE_EABI_PATH	?= $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-arm-none-eabi/bin/
 # Source code paths
 # -----------------
 
-SOURCEDIRS	:= arm9 common transport
-INCLUDEDIRS	:= arm9 common include
+SOURCEDIRS	:= source/arm9 source/common source/transport
+INCLUDEDIRS	:= $(SOURCEDIRS) include
 GFXDIRS		:=
 BINDIRS		:=
 
