@@ -235,8 +235,13 @@ void CommandRecvHandler(int bytes, void *user_data) {
     }
 }
 
-void CommandInit(void)
+bool CommandInit(void)
 {
     fifoSetDatamsgHandler(FIFO_NTXM, CommandRecvHandler, 0);
     //fifoSetValue32Handler(FIFO_NTXM, CommandRecvHandler, 0);
+}
+
+void CommandExit(void)
+{
+
 }

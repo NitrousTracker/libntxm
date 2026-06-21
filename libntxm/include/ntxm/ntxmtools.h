@@ -35,7 +35,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <malloc.h>
 #include <stdio.h>
 #include "common.h"
 
@@ -78,7 +77,12 @@ static inline void *ntxm_ucalloc(size_t nelem, size_t size) {
 }
 
 static inline void *ntxm_umemalign(size_t align, size_t size) {
-	return memalign(align, size);
+#ifdef _WIN32
+	// FIXME: Windows needs a separate free for aligned allocations.
+	return NULL;
+#else
+	return aligned_alloc(align, size);
+#endif
 }
 
 static inline char *ntxm_ustrdup(const char *text) {

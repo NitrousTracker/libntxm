@@ -33,7 +33,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <malloc.h>
 #include <unistd.h>
 #include <sys/statvfs.h>
 #include "ntxm/common.h"
@@ -95,10 +94,16 @@ void *__ntxm_ccalloc(size_t nelem, size_t size, const char *file, int line) {
 }
 
 void *__ntxm_cmemalign(size_t align, size_t size, const char *file, int line) {
-	void *ptr = memalign(align, size);
+#ifdef _WIN32
+	// FIXME: Windows needs a separate free for aligned allocations.
+	out_of_memory_error("ntxm_cmemalign", file, line);
+	return NULL;
+#else
+	void *ptr = aligned_alloc(align, size);
 	if (ptr == NULL)
 		out_of_memory_error("ntxm_cmemalign", file, line);
 	return ptr;
+#endif
 }
 
 char *__ntxm_cstrdup(const char *text, const char *file, int line) {
@@ -116,7 +121,7 @@ void __ntxm_free(void *ptr, const char *file, int line) {
 	free(ptr);
 }
 
-#ifdef __3DS__
+#if defined(__3DS__)
 void *__ntxm_smpmalloc(size_t size, const char *file, int line) {
 	void *ptr = linearAlloc(size);
 	if (ptr == NULL)
@@ -149,15 +154,22 @@ void __ntxm_smpfree(void *ptr, const char *file, int line) {
 #endif
 	linearFree(ptr);
 }
-#else
+#elif defined(__NDS__)
+// Save memory by using aliases.
 void *__ntxm_smpmalloc(size_t size, const char *file, int line) __attribute__((alias("__ntxm_cmalloc")));
 void *__ntxm_smprealloc(void *ptr, size_t size, const char *file, int line) __attribute__((alias("__ntxm_crealloc")));
 void *__ntxm_smpcalloc(size_t nelem, size_t size, const char *file, int line) __attribute__((alias("__ntxm_ccalloc")));
 void __ntxm_smpfree(void *ptr, const char *file, int line) __attribute__((alias("__ntxm_free")));
+#else
+void *__ntxm_smpmalloc(size_t size, const char *file, int line) { return __ntxm_cmalloc(size, file, line); }
+void *__ntxm_smprealloc(void *ptr, size_t size, const char *file, int line) { return __ntxm_crealloc(ptr, size, file, line); }
+void *__ntxm_smpcalloc(size_t nelem, size_t size, const char *file, int line) { return __ntxm_ccalloc(nelem, size, file, line); }
+void __ntxm_smpfree(void *ptr, const char *file, int line) { return __ntxm_free(ptr, file, line); }
 #endif
 
 #if defined(__3DS__) || defined(__NDS__)
 /* https://devkitpro.org/viewtopic.php?f=6&t=3057 */
+#include <malloc.h>
 
 extern u8 *fake_heap_end;
 extern u8 *fake_heap_start;
