@@ -833,7 +833,7 @@ u16 Sample::findClosestFreq(u32 freq)
 				right = middle-1;
 			}
 
-			middle = (right-left)/2 + left;
+			middle = (left+right+1) / 2;
 
 			if ( (linear_freq_table_lookup(middle) <= freq) && (linear_freq_table_lookup(middle+1) > freq) ) {
 				found = true;
