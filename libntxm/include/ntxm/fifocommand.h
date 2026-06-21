@@ -149,6 +149,7 @@ typedef struct NTXMFifoMessage {
 } NTXMFifoMessage;
 
 bool CommandInit();
+void CommandExit();
 
 #if !defined(__NDS__) || defined(ARM9)
 void CommandPlayOneShotSample(int channel, int frequency, const void* data, int length, int volume, int format, bool loop);

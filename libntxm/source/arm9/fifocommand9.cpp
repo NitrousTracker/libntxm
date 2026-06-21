@@ -96,6 +96,10 @@ bool CommandInit() {
     return true;
 }
 
+void CommandExit() {
+
+}
+
 void CommandPlaySample(Sample *sample, u8 note, u8 volume, u8 channel)
 {
     NTXMFifoMessage command;

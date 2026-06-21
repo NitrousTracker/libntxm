@@ -1,4 +1,3 @@
-#include <SDL3/SDL_mutex.h>
 #ifdef SDL3
 /*
  * libNTXM - XM Player Library for the Nintendo DS
@@ -31,14 +30,17 @@
  * the GPL or the Noncommercial zLib License.
  *
  ***** END LICENSE BLOCK *****/
-#include <cstdio>
+
 #include <SDL3/SDL.h>
 #include "ntxm/player.h"
 
 extern Player *player;
+static SDL_TimerID playerTimer;
 static SDL_Mutex *playerMutex;
 
 bool NtxmPlayerLock(void) {
+    if (player == NULL)
+        return false;
     SDL_LockMutex(playerMutex);
     return true;
 }
@@ -51,14 +53,23 @@ static uint32_t NtxmTimerHandler(void *userdata, SDL_TimerID timerID, uint32_t i
     if (NtxmPlayerLock()) {
         player->playTimerHandler();
         NtxmPlayerUnlock();
+        return 1;
+    } else {
+        return 0;
     }
-    return 1;
 }
 
 bool CommandInit() {
     playerMutex = SDL_CreateMutex();
     player = new Player(NULL);
-    SDL_AddTimer(1, NtxmTimerHandler, NULL);
+    playerTimer = SDL_AddTimer(1, NtxmTimerHandler, NULL);
     return true;
+}
+
+void CommandExit() {
+    Player *player_local = player;
+    player = NULL;
+    delete player;
+    SDL_DestroyMutex(playerMutex);
 }
 #endif

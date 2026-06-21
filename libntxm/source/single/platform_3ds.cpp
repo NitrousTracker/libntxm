@@ -31,15 +31,44 @@
  *
  ***** END LICENSE BLOCK *****/
 
-// TODO
+#include <3ds.h>
+#include "ntxm/player.h"
+
+extern Player *player;
+static Handle playerTimer;
+static Thread playerThread;
+static LightLock playerMutex;
+
 bool NtxmPlayerLock(void) {
-    return false;
+    LightLock_Lock(&playerMutex);
+    return true;
 }
 
 void NtxmPlayerUnlock(void) {
+    LightLock_Unlock(&playerMutex);
+}
+
+static void NtxmTimerThread(void *userdata) {
+    while (player != NULL) {
+        player->playTimerHandler();
+        svcWaitSynchronization(playerTimer, 10000000LL);
+    }
 }
 
 bool CommandInit() {
+    LightLock_Init(&playerMutex);
+    player = new Player(NULL);
+    svcCreateTimer(&playerTimer, RESET_PULSE);
+    svcSetTimer(playerTimer, 1000000LL, 1000000LL);
+    playerThread = threadCreate(NtxmTimerThread, 0, (24 * 1024), 0x20, -2, true);
     return true;
+}
+
+void CommandExit() {
+    Player *player_local = player;
+    player = NULL;
+    delete player;
+    threadJoin(playerThread, U64_MAX);
+    svcCloseHandle(playerTimer);
 }
 #endif

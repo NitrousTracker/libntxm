@@ -43,6 +43,7 @@ NTXM9::NTXM9()
 
 NTXM9::~NTXM9()
 {
+    CommandExit();
 	delete xm_transport;
 
 	if(song != 0)
