@@ -239,6 +239,7 @@ bool CommandInit(void)
 {
     fifoSetDatamsgHandler(FIFO_NTXM, CommandRecvHandler, 0);
     //fifoSetValue32Handler(FIFO_NTXM, CommandRecvHandler, 0);
+    return true;
 }
 
 void CommandExit(void)
