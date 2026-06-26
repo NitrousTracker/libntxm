@@ -1,4 +1,4 @@
-#ifdef SDL3
+#ifdef NT_PLATFORM_SDL3
 /*
  * libNTXM - XM Player Library for the Nintendo DS
  *

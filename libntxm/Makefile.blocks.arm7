@@ -63,7 +63,7 @@ SOURCES_CPP	:= $(shell find -L $(SOURCEDIRS) -name "*.cpp")
 # Compiler and linker flags
 # -------------------------
 
-DEFINES		+= -D__NDS__ -DARM7 -DBLOCKSDS
+DEFINES		+= -D__NDS__ -DNT_PLATFORM_NDS -DARM7 -DBLOCKSDS
 ifeq ($(DEBUG),true)
 DEFINES		+= -DDEBUG
 endif

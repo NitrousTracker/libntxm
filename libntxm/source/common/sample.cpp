@@ -85,14 +85,14 @@ Sample::Sample(void *_sound_data, u32 _n_samples, u16 _sampling_frequency, bool 
 	:pingpong_data(0), n_samples(_n_samples), is_16_bit(_is_16_bit), loop(_loop),
 	loop_start(0), loop_length(0), volume(_volume), panning(128), base_panning(128)
 {
-#ifndef __3DS__
+#ifndef NT_PLATFORM_3DS
 	sound_data = _sound_data;
 #endif
 
 	memset(name, 0, SAMPLE_NAME_LENGTH);
 
 	calcSize();
-#ifdef __3DS__
+#ifdef NT_PLATFORM_3DS
 	sound_data = ntxm_smpmalloc(size);
 	memcpy(sound_data, _sound_data, size);
 #endif
@@ -121,7 +121,7 @@ Sample::Sample(const char *filename, u8 _loop, bool *_success)
 	name[SAMPLE_NAME_LENGTH] = 0;
 
 	if (sound_data) ntxm_smpfree(sound_data);
-#ifndef __3DS__
+#ifndef NT_PLATFORM_3DS
 	sound_data = wav.getAudioData();
 #endif
 
@@ -149,7 +149,7 @@ Sample::Sample(const char *filename, u8 _loop, bool *_success)
 	}*/
 
 	calcSize();
-#ifdef __3DS__
+#ifdef NT_PLATFORM_3DS
 	sound_data = ntxm_smpmalloc(size);
 	memcpy(sound_data, wav.getAudioData(), size);
 #endif
@@ -195,7 +195,7 @@ void Sample::saveAsWav(char *filename)
 
 #endif
 
-#if defined(ARM7) || !defined(__NDS__)
+#if defined(ARM7) || !defined(NT_PLATFORM_NDS)
 
 // volume_ ranges from 0-127. The value 255 means "no volume", i.e. the sample's own volume shall be used.
 void Sample::play(u8 note, u8 volume_, u8 channel, u8 offs)
@@ -443,7 +443,7 @@ u8 Sample::getBasePanning(void)
 	return base_panning;
 }
 
-#if defined(ARM7) || !defined(__NDS__)
+#if defined(ARM7) || !defined(NT_PLATFORM_NDS)
 
 void Sample::updatePanning(u8 channel)
 {
@@ -922,7 +922,7 @@ void Sample::fade(u32 startsample, u32 endsample, bool in)
 
 bool Sample::setupPingPongLoop(void)
 {
-#ifdef __3DS__
+#ifdef NT_PLATFORM_3DS
 	pingpong_data = linearAlloc(size + loop_length);
 #else
 	pingpong_data = ntxm_umalloc(size + loop_length);

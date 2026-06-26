@@ -43,7 +43,7 @@ extern "C" {
 
 __attribute__((noreturn))
 static inline void ntxm_crash(const char *text) {
-#if defined(__NDS__)
+#if defined(NT_PLATFORM_NDS)
 	libndsCrash(text);
 #else
 	exit(1);
@@ -121,7 +121,7 @@ void __ntxm_free(void *ptr, const char *file, int line) {
 	free(ptr);
 }
 
-#if defined(__3DS__)
+#if defined(NT_PLATFORM_3DS)
 void *__ntxm_smpmalloc(size_t size, const char *file, int line) {
 	void *ptr = linearAlloc(size);
 	if (ptr == NULL)
@@ -154,7 +154,7 @@ void __ntxm_smpfree(void *ptr, const char *file, int line) {
 #endif
 	linearFree(ptr);
 }
-#elif defined(__NDS__)
+#elif defined(NT_PLATFORM_NDS)
 // Save memory by using aliases.
 void *__ntxm_smpmalloc(size_t size, const char *file, int line) __attribute__((alias("__ntxm_cmalloc")));
 void *__ntxm_smprealloc(void *ptr, size_t size, const char *file, int line) __attribute__((alias("__ntxm_crealloc")));
@@ -167,7 +167,7 @@ void *__ntxm_smpcalloc(size_t nelem, size_t size, const char *file, int line) { 
 void __ntxm_smpfree(void *ptr, const char *file, int line) { return __ntxm_free(ptr, file, line); }
 #endif
 
-#if defined(__3DS__) || defined(__NDS__)
+#if defined(NT_PLATFORM_3DS) || defined(NT_PLATFORM_NDS)
 /* https://devkitpro.org/viewtopic.php?f=6&t=3057 */
 #include <malloc.h>
 

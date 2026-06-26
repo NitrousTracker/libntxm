@@ -43,7 +43,7 @@ extern "C" {
 #endif
 
 static inline void ntxm_flush_dcache(void) {
-#if defined(__NDS__)
+#if defined(NT_PLATFORM_NDS)
 #ifdef ARM9
 	DC_FlushAll();
 #endif

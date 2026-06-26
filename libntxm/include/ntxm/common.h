@@ -22,7 +22,7 @@
  * 
  ***** END LICENSE BLOCK *****/
 
-#if defined(__3DS__)
+#if defined(NT_PLATFORM_3DS)
 #include <3ds.h>
 
 // Disable float printf/scanf variants
@@ -37,7 +37,7 @@
 #define snprintf sniprintf
 #define fscanf fiscanf
 
-#elif defined(__NDS__)
+#elif defined(NT_PLATFORM_NDS)
 #include <nds.h>
 #else
 #include <stdint.h>

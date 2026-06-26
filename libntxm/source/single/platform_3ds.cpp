@@ -1,4 +1,4 @@
-#ifdef __3DS__
+#ifdef NT_PLATFORM_3DS
 /*
  * libNTXM - XM Player Library for the Nintendo DS
  *
