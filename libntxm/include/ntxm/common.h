@@ -1,8 +1,8 @@
 /***** BEGIN LICENSE BLOCK *****
- * 
+ *
  * Version: Noncommercial zLib License / GPL 3.0
- * 
- * The contents of this file are subject to the Noncommercial zLib License 
+ *
+ * The contents of this file are subject to the Noncommercial zLib License
  * (the "License"); you may not use this file except in compliance with
  * the License. You should have recieved a copy of the license with this package.
  *
@@ -19,7 +19,7 @@
  * provisions required by the GPL. If you do not delete the provisions above,
  * a recipient may use your version of this file under the terms of any one of
  * the GPL or the Noncommercial zLib License.
- * 
+ *
  ***** END LICENSE BLOCK *****/
 
 #if defined(NT_PLATFORM_3DS)
@@ -58,4 +58,10 @@ typedef volatile int16_t vs16;
 typedef volatile int32_t vs32;
 typedef volatile int64_t vs64;
 #define BIT(n) (1<<(n))
+#endif
+
+#if defined(NT_PLATFORM_NDS)
+#define MAX_CHANNELS			16
+#else
+#define MAX_CHANNELS			32
 #endif

@@ -38,6 +38,7 @@ extern "C" {
   #include "ntxm/demokit.h"
 }
 
+#include "ntxm/common.h"
 #include "ntxm/ntxmsound.h"
 #include "ntxm/ntxmtools.h"
 
@@ -109,8 +110,6 @@ private:
         len = newlen;
     }
 };
-
-#define MAX_CHANNELS 32
 
 #define BUS_CLOCK (33513982)
 #define TIMER_FREQ_SHIFT(n, divisor, shift) ((-((BUS_CLOCK >> (shift)) * (divisor)) - ((((n) + 1)) >> 1)) / (n))

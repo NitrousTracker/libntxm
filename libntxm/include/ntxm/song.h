@@ -7,10 +7,10 @@
  */
 
 /***** BEGIN LICENSE BLOCK *****
- * 
+ *
  * Version: Noncommercial zLib License / GPL 3.0
- * 
- * The contents of this file are subject to the Noncommercial zLib License 
+ *
+ * The contents of this file are subject to the Noncommercial zLib License
  * (the "License"); you may not use this file except in compliance with
  * the License. You should have recieved a copy of the license with this package.
  *
@@ -27,7 +27,7 @@
  * provisions required by the GPL. If you do not delete the provisions above,
  * a recipient may use your version of this file under the terms of any one of
  * the GPL or the Noncommercial zLib License.
- * 
+ *
  ***** END LICENSE BLOCK *****/
 
 #ifndef SONG_H
@@ -41,7 +41,6 @@
 #define MAX_INSTRUMENT_SAMPLES	16
 #define MAX_PATTERNS			256
 #define MAX_POT_LENGTH			256
-#define MAX_CHANNELS			16 // XM has 32, but 16 is DS hardware limited unless software mixing were implemented. Yeah, perhaps.
 #define MAX_PATTERN_LENGTH		256
 #define DEFAULT_PATTERN_LENGTH	64
 #define DEFAULT_BPM				125
@@ -163,34 +162,34 @@ pattern, get its pointer with getPattern().
 
 class Song {
 	friend class Player;
-	
+
 	public:
-		
+
 		Song(u8 _speed=DEFAULT_SPEED, u8 _bpm=DEFAULT_BPM, u8 _channels=DEFAULT_CHANNELS);
-		
+
 		~Song();
-		
+
 		void setExternalTimerHandler(void (*_externalTimerHandler)(void));
-		
+
 		Cell **getPattern(u8 idx);
 		u8 getChannels(void);
 		u16 getPatternLength(u8 idx);
-		
+
 		// Get milliseconds per row. Returns a 16.16 fixed point value
 		u32 getMsPerRow(void);
-		
+
 		// Get milliseconds per tick. Returns a 16.16 fixed point value
 		u32 getMsPerTick(void);
-		
+
 		Instrument *getInstrument(u8 instidx);
 		u8 getInstruments(void);
-		
+
 		void setInstrument(u8 idx, Instrument *instrument);
-		
+
 		//
 		// Playback control
 		//
-		
+
 		// POT functions
 		void potAdd(u8 ptn=0);
 		void potDel(u8 element);
@@ -198,69 +197,69 @@ class Song {
 		u16 getPotLength(void);
 		u8 getPotEntry(u8 idx);
 		void setPotEntry(u8 idx, u8 value);
-		
+
 		void addPattern(u16 length=DEFAULT_PATTERN_LENGTH);
-		
+
 		// More/less channels
 		void channelAdd(void);
 		void channelDel(void);
-		
+
 		u8 getNumPatterns(void);
-		
+
 		void resizePattern(u8 ptn, u16 newlength);
-		
+
 		// The most important functions
 		void setName(const char *_name);
 		const char *getName(void);
-		
+
 		void setRestartPosition(u8 _restart_position);
 		u8 getRestartPosition(void);
-		
+
 		u8 getTempo(void);
 		u8 getBPM(void);
-		
+
 		void setTempo(u8 _tempo);
 		void setBpm(u8 _bpm);
-		
+
 		// Zapping
 		void zapPatterns(void);
 		void zapInstruments(void);
 		void zapInstrument(u8 inst);
 		void zapUnusedInstruments(bool *used_insts);
-		
+
 		void clearCell(Cell *cell);
-		
+
 		// Muting
 		void setChannelMute(u8 chn, bool muted);
 		bool channelMuted(u8 chn);
-		
+
 	private:
-		
+
 		void killPatterns(void);
 		void killInstruments(void);
-		
+
 		u8 speed;
 		u8 bpm;
 		u8 n_channels;
 		u8 restart_position;
-		
+
 		u16 *patternlengths;
 		u16 *internal_patternlengths; // "real length of the pattern":
 		// patternlengths stores the lengths of the patterns that user actually sees.
 		// If the user shortens a pattern, then only the value in patternlengths is
 		// decreased, but the data is not deleted. This helps prevent accidental data
 		// loss. internal_patternlengths can therefore only grow.
-		
+
 		u8 *pattern_order_table;
 		Instrument **instruments;
-		
+
 		char *name;
-		
+
 		u16 n_patterns;
 		u16 potsize;
-		
+
 		Cell ***patterns;
-		
+
 		bool channels_muted[MAX_CHANNELS];
 };
 
