@@ -922,7 +922,7 @@ void Sample::fade(u32 startsample, u32 endsample, bool in)
 
 bool Sample::setupPingPongLoop(void)
 {
-#ifdef NT_PLATFORM_3DS
+#if defined(NT_PLATFORM_3DS) && 0
 	pingpong_data = linearAlloc(size + loop_length);
 #else
 	pingpong_data = ntxm_umalloc(size + loop_length);
@@ -941,7 +941,7 @@ bool Sample::setupPingPongLoop(void)
 		u32 pos = (loop_start + loop_length) / 2;
 
 		for(u32 i=0; i<loop_length/2; ++i)
-			pp[pos+i] = orig[pos-i];
+			pp[pos+i] = orig[pos-i-1];
 	}
 	else
 	{
@@ -950,7 +950,7 @@ bool Sample::setupPingPongLoop(void)
 		u32 pos = loop_start + loop_length;
 
 		for(u32 i=0; i<loop_length; ++i)
-			pp[pos+i] = orig[pos-i];
+			pp[pos+i] = orig[pos-i-1];
 	}
 
 	// Copy rest
