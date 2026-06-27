@@ -94,7 +94,7 @@ void CommandExit() {
 
     Player *player_local = player;
     player = NULL;
-    delete player;
+    delete player_local;
     SDL_DestroyMutex(playerMutex);
 }
 #endif
