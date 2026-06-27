@@ -31,12 +31,15 @@
  *
  ***** END LICENSE BLOCK *****/
 
+#include <cstdio>
 #include <SDL3/SDL.h>
+#include "ntxm/ntxmsound.h"
 #include "ntxm/player.h"
 
 extern Player *player;
 static SDL_TimerID playerTimer;
 static SDL_Mutex *playerMutex;
+static SDL_AudioStream *audioStream;
 
 bool NtxmPlayerLock(void) {
     if (player == NULL)
@@ -59,14 +62,36 @@ static uint32_t NtxmTimerHandler(void *userdata, SDL_TimerID timerID, uint32_t i
     }
 }
 
+void SDLCALL NtxmFetchAudio(void *userdata, SDL_AudioStream *stream, int additional_amount, int total_amount) {
+    if (additional_amount > 0) {
+        int16_t *data = SDL_stack_alloc(int16_t, additional_amount >> 1);
+        if (data) {
+            if (1) {
+                int16_t samples_fetched = ntxm_sound_fetch_samples(data, additional_amount >> 1);
+                printf("fetching %d/%d\n", samples_fetched, additional_amount >> 1);
+                SDL_PutAudioStreamData(stream, data, samples_fetched << 1);
+            }
+            SDL_stack_free(data);
+        }
+    }
+}
+
 bool CommandInit() {
     playerMutex = SDL_CreateMutex();
     player = new Player(NULL);
     playerTimer = SDL_AddTimer(1, NtxmTimerHandler, NULL);
+
+    ntxm_sound_set_playback_frequency(48000);
+    const SDL_AudioSpec spec = { SDL_AUDIO_S16, 2, 48000 };
+    audioStream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NtxmFetchAudio, NULL);
+    SDL_ResumeAudioDevice(SDL_GetAudioStreamDevice(audioStream));
+
     return true;
 }
 
 void CommandExit() {
+    SDL_DestroyAudioStream(audioStream);
+
     Player *player_local = player;
     player = NULL;
     delete player;

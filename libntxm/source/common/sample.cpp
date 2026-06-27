@@ -238,11 +238,11 @@ void Sample::play(u8 note, u8 volume_, u8 channel, u8 offs)
 	ntxm_sound_channel_set_frequency(channel, LOOKUP_FREQ(realnote,finetune));
 
 	u32 offs_samps = FT_OFFSET_SCALAR * offs * (sound_format == NTXMSOUND_FORMAT_8BIT ? 1 : 2);
-	
+
 	// todo: only semi working with looping samples (for now)
 	// if the offset is less than the loop start it works fine (ty to exelotl :-D)
-	
-	// a fully working version of this would probably have to allocate more memory at the 
+
+	// a fully working version of this would probably have to allocate more memory at the
 	// start of the sound data specifically for the initial offset playback, either that
 	// or treat it as two separate notes and play the second one from the loop start as
 	// soon as the offset one ends
@@ -475,7 +475,7 @@ void Sample::delAll(void)
 
 	loop = NO_LOOP;
 	loop_start = loop_length = 0;
-	
+
 	onSampleDataChanged();
 	return;
 }
@@ -977,7 +977,7 @@ bool Sample::onSampleDataChanged(void)
 		removePingPongLoop();
 
 	calcSize();
-		
+
 	if(loop == PING_PONG_LOOP)
 		if(!setupPingPongLoop())
 			return false;
@@ -985,4 +985,3 @@ bool Sample::onSampleDataChanged(void)
 }
 
 #endif
-

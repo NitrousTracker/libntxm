@@ -7,10 +7,10 @@
  */
 
 /***** BEGIN LICENSE BLOCK *****
- * 
+ *
  * Version: Noncommercial zLib License / GPL 3.0
- * 
- * The contents of this file are subject to the Noncommercial zLib License 
+ *
+ * The contents of this file are subject to the Noncommercial zLib License
  * (the "License"); you may not use this file except in compliance with
  * the License. You should have recieved a copy of the license with this package.
  *
@@ -27,7 +27,7 @@
  * provisions required by the GPL. If you do not delete the provisions above,
  * a recipient may use your version of this file under the terms of any one of
  * the GPL or the Noncommercial zLib License.
- * 
+ *
  ***** END LICENSE BLOCK *****/
 
 #include <stdio.h>
@@ -121,7 +121,7 @@ void __ntxm_free(void *ptr, const char *file, int line) {
 	free(ptr);
 }
 
-#if defined(NT_PLATFORM_3DS)
+#if defined(NT_PLATFORM_3DS) && 0
 void *__ntxm_smpmalloc(size_t size, const char *file, int line) {
 	void *ptr = linearAlloc(size);
 	if (ptr == NULL)
@@ -154,7 +154,7 @@ void __ntxm_smpfree(void *ptr, const char *file, int line) {
 #endif
 	linearFree(ptr);
 }
-#elif defined(NT_PLATFORM_NDS)
+#elif defined(NT_PLATFORM_NDS) || defined(NT_PLATFORM_3DS)
 // Save memory by using aliases.
 void *__ntxm_smpmalloc(size_t size, const char *file, int line) __attribute__((alias("__ntxm_cmalloc")));
 void *__ntxm_smprealloc(void *ptr, size_t size, const char *file, int line) __attribute__((alias("__ntxm_crealloc")));

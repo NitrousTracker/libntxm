@@ -25,13 +25,16 @@
 #ifndef _NTXMSOUND_H_
 #define _NTXMSOUND_H_
 
+#include <stdbool.h>
+#include <stddef.h>
 #include "common.h"
 
+
+#if defined(NT_PLATFORM_NDS)
 #define NTXMSOUND_FORMAT_ADPCM	    (2<<29)
 #define NTXMSOUND_FORMAT_16BIT 		(1<<29)
 #define NTXMSOUND_FORMAT_8BIT 		(0)
 
-#if defined(NT_PLATFORM_NDS)
 #define NTXMSOUND_REPEAT SOUND_REPEAT
 #define NTXMSOUND_ONE_SHOT SOUND_ONE_SHOT
 
@@ -71,12 +74,7 @@ static inline void ntxm_sound_channel_play(int channel, u32 loop, u32 format, u3
 		SOUND_PAN(panning >> 1) |
 		SOUND_VOL(volume);
 }
-#endif
 #else
-// TODO
-#define NTXMSOUND_REPEAT 1
-#define NTXMSOUND_ONE_SHOT 0
-
 static inline void ntxm_sound_channel_stop(int channel) {
 
 }
@@ -104,6 +102,26 @@ static inline void ntxm_sound_channel_set_source(int channel, const void *src, u
 static inline void ntxm_sound_channel_play(int channel, u32 loop, u32 format, u32 panning, u32 volume) {
 
 }
+#endif
+#else
+#define NTXMSOUND_FORMAT_ADPCM	    2
+#define NTXMSOUND_FORMAT_16BIT 		1
+#define NTXMSOUND_FORMAT_8BIT 		0
+
+#define NTXMSOUND_REPEAT 1
+#define NTXMSOUND_ONE_SHOT 0
+
+void ntxm_sound_channel_stop(int channel);
+bool ntxm_sound_channel_is_playing(int channel);
+void ntxm_sound_channel_set_volume(int channel, int volume);
+void ntxm_sound_channel_set_frequency(int channel, int freq);
+void ntxm_sound_channel_set_panning(int channel, u32 panning);
+void ntxm_sound_channel_set_source(int channel, const void *src, uint32_t repeat_point, uint32_t length);
+void ntxm_sound_channel_play(int channel, u32 loop, u32 format, u32 panning, u32 volume);
+
+void ntxm_sound_set_playback_frequency(int freq);
+size_t ntxm_sound_fetch_samples(int16_t* sample_data, size_t n);
+
 #endif
 
 #endif
