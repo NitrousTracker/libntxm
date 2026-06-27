@@ -239,11 +239,11 @@ void Sample::play(u8 note, u8 volume_, u8 channel, u8 offs)
 	SCHANNEL_TIMER(channel) = SOUND_FREQ((int)LOOKUP_FREQ(realnote,finetune));
 
 	u32 offs_samps = FT_OFFSET_SCALAR * offs * (sound_format == SOUNDXCNT_FORMAT_8BIT ? 1 : 2);
-	
+
 	// todo: only semi working with looping samples (for now)
 	// if the offset is less than the loop start it works fine (ty to exelotl :-D)
-	
-	// a fully working version of this would probably have to allocate more memory at the 
+
+	// a fully working version of this would probably have to allocate more memory at the
 	// start of the sound data specifically for the initial offset playback, either that
 	// or treat it as two separate notes and play the second one from the loop start as
 	// soon as the offset one ends
@@ -491,7 +491,7 @@ void Sample::delAll(void)
 
 	loop = NO_LOOP;
 	loop_start = loop_length = 0;
-	
+
 	onSampleDataChanged();
 	return;
 }
@@ -953,7 +953,7 @@ bool Sample::setupPingPongLoop(void)
 		u32 pos = (loop_start + loop_length) / 2;
 
 		for(u32 i=0; i<loop_length/2; ++i)
-			pp[pos+i] = orig[pos-i];
+			pp[pos+i] = orig[pos-i-1];
 	}
 	else
 	{
@@ -962,7 +962,7 @@ bool Sample::setupPingPongLoop(void)
 		u32 pos = loop_start + loop_length;
 
 		for(u32 i=0; i<loop_length; ++i)
-			pp[pos+i] = orig[pos-i];
+			pp[pos+i] = orig[pos-i-1];
 	}
 
 	// Copy rest
@@ -989,7 +989,7 @@ bool Sample::onSampleDataChanged(void)
 		removePingPongLoop();
 
 	calcSize();
-		
+
 	if(loop == PING_PONG_LOOP)
 		if(!setupPingPongLoop())
 			return false;
@@ -997,4 +997,3 @@ bool Sample::onSampleDataChanged(void)
 }
 
 #endif
-
