@@ -67,7 +67,8 @@ public:
             memcpy(data + wr, sample_data, sizeof(T) * to_copy);
             sample_data += to_copy;
             size -= to_copy;
-            wr = (wr + to_copy) % len;
+            wr += to_copy;
+            if (wr >= len) wr -= len;
         }
     }
 
@@ -80,7 +81,8 @@ public:
             sample_data += to_copy;
             size -= to_copy;
             read += to_copy;
-            rd = (rd + to_copy) % len;
+            rd += to_copy;
+            if (rd >= len) rd -= len;
         }
         return read;
     }
@@ -125,7 +127,7 @@ public:
     size_t pop(int16_t* sample_data, size_t n);
 
     RingBuffer<int16_t> buffer;
-    uint32_t render_frequency = 0;
+    uint32_t ticks_per_ms = 0;
     const void *data[MAX_CHANNELS];
     int position[MAX_CHANNELS];
     uint32_t length[MAX_CHANNELS];
@@ -172,7 +174,7 @@ void SoundEmulator::tick() {
     bool resample_linear = true;
 #endif
 
-    ticks_cnt += (((BUS_CLOCK >> 1) << TICKS_COUNTER_SHIFT) / render_frequency);
+    ticks_cnt += ticks_per_ms;
     uint32_t ticks_elapsed = (ticks_cnt >> TICKS_COUNTER_SHIFT);
     ticks_cnt &= (1 << TICKS_COUNTER_SHIFT) - 1;
 
@@ -242,7 +244,7 @@ size_t SoundEmulator::pop(int16_t* sample_data, size_t n) {
 SoundEmulator emu;
 
 void ntxm_sound_set_playback_frequency(int freq) {
-    emu.render_frequency = freq;
+    emu.ticks_per_ms = (((BUS_CLOCK >> 1) << TICKS_COUNTER_SHIFT) / freq);
 }
 
 size_t ntxm_sound_fetch_samples(int16_t* sample_data, size_t n) {
