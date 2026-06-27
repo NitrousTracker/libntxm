@@ -66,9 +66,9 @@ void SDLCALL NtxmFetchAudio(void *userdata, SDL_AudioStream *stream, int additio
     if (additional_amount > 0) {
         int16_t *data = SDL_stack_alloc(int16_t, additional_amount >> 1);
         if (data) {
-            if (1) {
+            if (NtxmPlayerLock()) {
                 int16_t samples_fetched = ntxm_sound_fetch_samples(data, additional_amount >> 1);
-                printf("fetching %d/%d\n", samples_fetched, additional_amount >> 1);
+                NtxmPlayerUnlock();
                 SDL_PutAudioStreamData(stream, data, samples_fetched << 1);
             }
             SDL_stack_free(data);

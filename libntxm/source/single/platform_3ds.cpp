@@ -60,14 +60,17 @@ void NtxmPlayerUnlock(void) {
 
 static void NtxmTimerThread(void *userdata) {
     while (player != NULL) {
-        if (ndspAudioBuffer[ndspNextBlock].status == NDSP_WBUF_DONE) {
-            ntxm_sound_fetch_samples(ndspAudioBuffer[ndspNextBlock].data_pcm16, AUDIO_BUFFER_SAMPLES * 2);
-            DSP_FlushDataCache(ndspAudioBuffer[ndspNextBlock].data_pcm16, AUDIO_BUFFER_SIZE);
-            ndspChnWaveBufAdd(0, &ndspAudioBuffer[ndspNextBlock]);
-            ndspNextBlock = 1 - ndspNextBlock;
-        }
+        if (NtxmPlayerLock()) {
+            if (ndspAudioBuffer[ndspNextBlock].status == NDSP_WBUF_DONE) {
+                ntxm_sound_fetch_samples(ndspAudioBuffer[ndspNextBlock].data_pcm16, AUDIO_BUFFER_SAMPLES * 2);
+                DSP_FlushDataCache(ndspAudioBuffer[ndspNextBlock].data_pcm16, AUDIO_BUFFER_SIZE);
+                ndspChnWaveBufAdd(0, &ndspAudioBuffer[ndspNextBlock]);
+                ndspNextBlock = 1 - ndspNextBlock;
+            }
 
-        player->playTimerHandler();
+            player->playTimerHandler();
+            NtxmPlayerUnlock();
+        }
         svcWaitSynchronization(playerTimer, 10000000LL);
     }
 }
