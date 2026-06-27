@@ -116,6 +116,8 @@ private:
 #define SOUND_FREQ(n) TIMER_FREQ_SHIFT(n, 1, 1)
 #define TICKS_COUNTER_SHIFT 7
 
+#define clamp(v, vmin, vmax) (((v) < (vmin)) ? (vmin) : ((v > (vmax)) ? (vmax) : (v)))
+
 class SoundEmulator {
 public:
     SoundEmulator();
@@ -125,7 +127,7 @@ public:
     RingBuffer<int16_t> buffer;
     uint32_t render_frequency = 0;
     const void *data[MAX_CHANNELS];
-    uint32_t position[MAX_CHANNELS];
+    int position[MAX_CHANNELS];
     uint32_t length[MAX_CHANNELS];
     int frequency[MAX_CHANNELS];
     int timer_tick[MAX_CHANNELS];
@@ -141,14 +143,34 @@ private:
     uint32_t last_ms = 0;
     uint32_t ticks_cnt = 0;
     void tick();
+    int nextPosition(int ch);
 };
 
 SoundEmulator::SoundEmulator() {
     last_ms = getTicks();
 }
 
+int SoundEmulator::nextPosition(int ch) {
+    uint32_t samplen = format[ch] == NTXMSOUND_FORMAT_16BIT ? 2 : 1;
+    int result = position[ch] + samplen;
+    if (result >= length[ch]) {
+        if (loop[ch] == NTXMSOUND_REPEAT) {
+            return repeat_point[ch];
+        } else {
+            return -1;
+        }
+    } else {
+        return result;
+    }
+}
+
 void SoundEmulator::tick() {
-    int16_t samples[2] = {0};
+    int32_t samples[2] = {0};
+#ifdef NT_PLATFORM_3DS
+    bool resample_linear = false;
+#else
+    bool resample_linear = true;
+#endif
 
     ticks_cnt += (((BUS_CLOCK >> 1) << TICKS_COUNTER_SHIFT) / render_frequency);
     uint32_t ticks_elapsed = (ticks_cnt >> TICKS_COUNTER_SHIFT);
@@ -158,12 +180,28 @@ void SoundEmulator::tick() {
         if (!playing[i] || !volume[i]) continue;
 
         int16_t sample = 0;
-        uint32_t samplen = 1;
-        if (format[i] == NTXMSOUND_FORMAT_8BIT) {
-            sample = ((const int8_t*) data[i])[position[i]] << 8;
+        if (resample_linear) {
+            int16_t sample1, sample2;
+
+            int sample1pos = position[i];
+            int sample2pos = nextPosition(i);
+            if (sample2pos < 0) sample2pos = sample1pos;
+
+            if (format[i] == NTXMSOUND_FORMAT_8BIT) {
+                sample1 = ((const int8_t*) data[i])[sample1pos] << 8;
+                sample2 = ((const int8_t*) data[i])[sample2pos] << 8;
+            } else {
+                sample1 = ((const int16_t*) data[i])[sample1pos >> 1];
+                sample2 = ((const int16_t*) data[i])[sample2pos >> 1];
+            }
+
+            sample = ((sample1 * timer_tick[i]) + (sample2 * (frequency[i] - timer_tick[i]))) / frequency[i];
         } else {
-            samplen = 2;
-            sample = ((const int16_t*) data[i])[position[i] >> 1];
+            if (format[i] == NTXMSOUND_FORMAT_8BIT) {
+                sample = ((const int8_t*) data[i])[position[i]] << 8;
+            } else {
+                sample = ((const int16_t*) data[i])[position[i] >> 1];
+            }
         }
         sample = ((int)sample * volume[i]) / 128;
         samples[0] += ((int)sample * (256 - panning[i])) / 256;
@@ -171,21 +209,20 @@ void SoundEmulator::tick() {
 
         timer_tick[i] -= ticks_elapsed;
         while (timer_tick[i] <= 0) {
-            position[i] += samplen;
+            position[i] = nextPosition(i);
             timer_tick[i] += frequency[i];
-
-            if (position[i] >= length[i]) {
-                if (loop[i] == NTXMSOUND_REPEAT) {
-                    position[i] = repeat_point[i];
-                } else {
-                    playing[i] = false;
-                    break;
-                }
+            if (position[i] < 0) {
+                playing[i] = false;
+                break;
             }
         }
     }
 
-    buffer.push(samples, 2);
+    int16_t clamped_samples[2] = {
+        (int16_t) clamp(samples[0], -32768, 32767),
+        (int16_t) clamp(samples[1], -32768, 32767)
+    };
+    buffer.push(clamped_samples, 2);
 }
 
 void SoundEmulator::update() {
