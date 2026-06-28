@@ -90,6 +90,8 @@ FormatTransportError ModTransport::load(const char *filename, Song **_song)
 		fread(&sampleinfo[i].volume, 1, 1, modfile);
 		fread(&sampleinfo[i].repeat_offset, 2, 1, modfile); wordToHost(sampleinfo[i].repeat_offset);
 		fread(&sampleinfo[i].repeat_length, 2, 1, modfile); wordToHost(sampleinfo[i].repeat_length);
+
+		ntxm_dprintf("%s %d (%d/%d)\n", sampleinfo[i].name, sampleinfo[i].length, sampleinfo[i].repeat_offset, sampleinfo[i].repeat_length);
 	}
 
 	// Read header
@@ -221,9 +223,8 @@ FormatTransportError ModTransport::load(const char *filename, Song **_song)
 
 		sample->setVolume(sampleinfo[i].volume * 255 / 64);
 		sample->setFinetune(sampleinfo[i].finetune);
-		// TODO: set panning
 
-		if(sampleinfo[i].repeat_length > 1 && sampleinfo[i].repeat_offset <= (sampleinfo[i].length - sampleinfo[i].repeat_length))
+		if(sampleinfo[i].repeat_length > 1)
        	{
             sample->setLoop(FORWARD_LOOP);
     		sample->setLoopStartAndLength(sampleinfo[i].repeat_offset << 1, sampleinfo[i].repeat_length << 1);
