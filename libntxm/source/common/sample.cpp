@@ -85,17 +85,11 @@ Sample::Sample(void *_sound_data, u32 _n_samples, u16 _sampling_frequency, bool 
 	:pingpong_data(0), n_samples(_n_samples), is_16_bit(_is_16_bit), loop(_loop),
 	loop_start(0), loop_length(0), volume(_volume), panning(128), base_panning(128)
 {
-#ifndef NT_PLATFORM_3DS
 	sound_data = _sound_data;
-#endif
 
 	memset(name, 0, SAMPLE_NAME_LENGTH);
 
 	calcSize();
-#ifdef NT_PLATFORM_3DS
-	sound_data = ntxm_smpmalloc(size);
-	memcpy(sound_data, _sound_data, size);
-#endif
 
 	setFormat();
 	calcRelnoteAndFinetune(_sampling_frequency);
@@ -107,7 +101,7 @@ Sample::Sample(const char *filename, u8 _loop, bool *_success)
 	:pingpong_data(0), loop(_loop), loop_start(0), loop_length(0), volume(255),
 	panning(128), base_panning(128)
 {
-	sound_data = (void**)ntxm_smpcalloc(20*sizeof(void*), 1);
+	sound_data = (void**)ntxm_ccalloc(20*sizeof(void*), 1);
 
 	if(!wav.load(filename))
 	{
@@ -120,10 +114,8 @@ Sample::Sample(const char *filename, u8 _loop, bool *_success)
 	strncpy(name, smpname, SAMPLE_NAME_LENGTH);
 	name[SAMPLE_NAME_LENGTH] = 0;
 
-	if (sound_data) ntxm_smpfree(sound_data);
-#ifndef NT_PLATFORM_3DS
+	if (sound_data) ntxm_free(sound_data);
 	sound_data = wav.getAudioData();
-#endif
 
 	calcRelnoteAndFinetune( wav.getSamplingRate() );
 
@@ -149,10 +141,6 @@ Sample::Sample(const char *filename, u8 _loop, bool *_success)
 	}*/
 
 	calcSize();
-#ifdef NT_PLATFORM_3DS
-	sound_data = ntxm_smpmalloc(size);
-	memcpy(sound_data, wav.getAudioData(), size);
-#endif
 
 	if(wav.isStereo() == true)
 	{
@@ -176,7 +164,7 @@ Sample::~Sample()
 		removePingPongLoop();
 
 	if(sound_data)
-		ntxm_smpfree(sound_data);
+		ntxm_free(sound_data);
 }
 
 void Sample::saveAsWav(char *filename)
@@ -468,7 +456,7 @@ const char *Sample::getName(void)
 void Sample::delAll(void)
 {
 	if(sound_data)
-		ntxm_smpfree(sound_data);
+		ntxm_free(sound_data);
 	sound_data = NULL;
 
 	n_samples = 0;
@@ -503,7 +491,7 @@ void Sample::delPart(u32 startsample, u32 endsample)
 	{
 		memmove((u8*)sound_data + startsample * bps, (u8*)sound_data + (endsample + 1) * bps, ((n_samples - 1) - endsample) * bps);
 	}
-	sound_data = ntxm_smprealloc(sound_data, new_n_samples * bps);
+	sound_data = ntxm_crealloc(sound_data, new_n_samples * bps);
 
 	n_samples = new_n_samples;
 
@@ -596,7 +584,7 @@ bool Sample::reverse(u32 startsample, u32 endsample)
 		// Then copy it into the sample
 		memcpy(sounddata + offset, new_sounddata, 2 * length);
 
-		ntxm_smpfree(new_sounddata);
+		ntxm_free(new_sounddata);
 
 	} else {
 
@@ -613,7 +601,7 @@ bool Sample::reverse(u32 startsample, u32 endsample)
 		// Then copy it into the sample
 		memcpy(sounddata + offset, new_sounddata, length);
 
-		ntxm_smpfree(new_sounddata);
+		ntxm_free(new_sounddata);
 	}
 
 	onSampleDataChanged();
@@ -853,7 +841,7 @@ bool Sample::convertStereoToMono(void)
 		memcpy(sound_data, tmpbuf, size);
 
 		// Delete the temporary buffer
-		ntxm_smpfree(tmpbuf);
+		ntxm_free(tmpbuf);
 	}
 	else
 	{
@@ -872,7 +860,7 @@ bool Sample::convertStereoToMono(void)
 		memcpy(sound_data, tmpbuf, size);
 
 		// Delete the temporary buffer
-		ntxm_smpfree(tmpbuf);
+		ntxm_free(tmpbuf);
 	}
 	return true;
 }
@@ -922,11 +910,7 @@ void Sample::fade(u32 startsample, u32 endsample, bool in)
 
 bool Sample::setupPingPongLoop(void)
 {
-#if defined(NT_PLATFORM_3DS) && 0
-	pingpong_data = linearAlloc(size + loop_length);
-#else
 	pingpong_data = ntxm_umalloc(size + loop_length);
-#endif
 	if (!pingpong_data)
 		return false;
 
@@ -966,7 +950,7 @@ void Sample::removePingPongLoop(void)
 {
 	if (pingpong_data)
 	{
-		ntxm_smpfree(pingpong_data);
+		ntxm_free(pingpong_data);
 		pingpong_data = NULL;
 	}
 }
