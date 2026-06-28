@@ -95,7 +95,7 @@ void CommandSetSong(void *song)
 void CommandStartPlay(u8 potpos, u16 row, bool loop)
 {
     if (!player || !NtxmPlayerLock()) return;
-    player->play(loop, potpos, row);
+    player->play(potpos, row, loop);
     NtxmPlayerUnlock();
 }
 
@@ -109,7 +109,7 @@ void CommandStopPlay(void)
 void CommandPlayInst(u8 inst, u8 note, u8 volume, u8 channel)
 {
     if (!player || !NtxmPlayerLock()) return;
-    player->playNote(inst, note, volume, channel);
+    player->playNote(note, volume, channel, inst);
     NtxmPlayerUnlock();
 }
 
