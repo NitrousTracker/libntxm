@@ -289,7 +289,7 @@ void ntxm_sound_channel_set_source(int channel, const void *src, uint32_t repeat
     emu.update();
     emu.data[channel] = src;
     emu.repeat_point[channel] = repeat_point;
-    emu.length[channel] = length;
+    emu.length[channel] = repeat_point + length;
 }
 
 void ntxm_sound_channel_play(int channel, u32 loop, u32 format, u32 panning, u32 volume) {
