@@ -56,6 +56,8 @@ static void wordToHost(u16& v)
 #endif
 }
 
+#define MIN(x,y)	((x)<(y)?(x):(y))
+
 // Loads a song from a file and puts it in the song argument
 // returns 0 on success, an error code else
 FormatTransportError ModTransport::load(const char *filename, Song **_song)
@@ -175,8 +177,13 @@ FormatTransportError ModTransport::load(const char *filename, Song **_song)
 
 				ptn[chn][row].instrument = period ? (sample - 1) : NO_INSTRUMENT;
 				ptn[chn][row].note = period ? (roundf(log2f(13696.0f / period) * 12) - 12) : EMPTY_NOTE;
-				ptn[chn][row].effect = effect >> 8;
-				ptn[chn][row].effect_param = effect & 0xFF;
+				if ((effect >> 8) == 0xC) {
+				    // Convert "Set note volume" to the volume column
+					ptn[chn][row].volume = MIN(MAX_VOLUME, (effect & 0xFF) * 2);
+				} else if (effect) {
+    				ptn[chn][row].effect = effect >> 8;
+    				ptn[chn][row].effect_param = effect & 0xFF;
+				}
 			}
 		}
 	}
