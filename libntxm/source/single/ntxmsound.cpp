@@ -117,6 +117,7 @@ private:
 #define TIMER_FREQ_SHIFT(n, divisor, shift) ((-((BUS_CLOCK >> (shift)) * (divisor)) - ((((n) + 1)) >> 1)) / (n))
 #define SOUND_FREQ(n) TIMER_FREQ_SHIFT(n, 1, 1)
 #define TICKS_COUNTER_SHIFT 7
+#define DEST_TICKS_COUNTER_SHIFT 12
 
 #define clamp(v, vmin, vmax) (((v) < (vmin)) ? (vmin) : ((v > (vmax)) ? (vmax) : (v)))
 
@@ -128,6 +129,7 @@ public:
 
     RingBuffer<int16_t> buffer;
     uint32_t ticks_per_ms = 0;
+    uint32_t dest_ticks_per_ms = 0;
     const void *data[MAX_CHANNELS];
     int position[MAX_CHANNELS];
     uint32_t length[MAX_CHANNELS];
@@ -143,6 +145,7 @@ public:
 private:
     bool can_pop = false;
     uint32_t last_ms = 0;
+    uint32_t samples_cnt = 0;
     uint32_t ticks_cnt = 0;
     void tick();
     int nextPosition(int ch);
@@ -229,7 +232,10 @@ void SoundEmulator::tick() {
 
 void SoundEmulator::update() {
     uint32_t ticks = getTicks();
-    uint32_t samples = (ticks - last_ms) * 48; // TODO
+    uint32_t sub_samples = ((ticks - last_ms) * dest_ticks_per_ms);
+    samples_cnt += sub_samples;
+    uint32_t samples = sub_samples >> DEST_TICKS_COUNTER_SHIFT;
+    samples_cnt &= (1 << DEST_TICKS_COUNTER_SHIFT) - 1;
     while(samples--) tick();
     last_ms = ticks;
 }
@@ -245,6 +251,7 @@ SoundEmulator emu;
 
 void ntxm_sound_set_playback_frequency(int freq) {
     emu.ticks_per_ms = (((BUS_CLOCK >> 1) << TICKS_COUNTER_SHIFT) / freq);
+    emu.dest_ticks_per_ms = (freq << DEST_TICKS_COUNTER_SHIFT) / 1000;
 }
 
 size_t ntxm_sound_fetch_samples(int16_t* sample_data, size_t n) {
