@@ -200,7 +200,7 @@ void Sample::saveAsWav(char *filename)
 // volume_ ranges from 0-127. The value 255 means "no volume", i.e. the sample's own volume shall be used.
 void Sample::play(u8 note, u8 volume_, u8 channel, u8 offs)
 {
-	if(channel>15) return; // DS has only 16 channels!
+	if(channel>MAX_CHANNELS) return;
 
 	/*
 	if(note+rel_note > N_LINEAR_FREQ_TABLE_NOTES) {
