@@ -7,10 +7,10 @@
  */
 
 /***** BEGIN LICENSE BLOCK *****
- * 
+ *
  * Version: Noncommercial zLib License / GPL 3.0
- * 
- * The contents of this file are subject to the Noncommercial zLib License 
+ *
+ * The contents of this file are subject to the Noncommercial zLib License
  * (the "License"); you may not use this file except in compliance with
  * the License. You should have recieved a copy of the license with this package.
  *
@@ -27,46 +27,24 @@
  * provisions required by the GPL. If you do not delete the provisions above,
  * a recipient may use your version of this file under the terms of any one of
  * the GPL or the Noncommercial zLib License.
- * 
+ *
  ***** END LICENSE BLOCK *****/
 
-#ifndef MOD_TRANSPORT
-#define MOD_TRANSPORT
+#ifndef _MOD_TRANSPORT_H_
+#define _MOD_TRANSPORT_H_
 
 #include "format_transport.h"
 
-#define MOD_TRANSPORT_ERROR_INITFAIL				1
-#define MOD_TRANSPORT_ERROR_FOPENFAIL				2
-#define MOD_TRANSPORT_ERROR_MAGICNUMBERINVALID			3
-#define MOD_TRANSPORT_ERROR_MEMFULL				4
-#define MOD_TRANSPORT_ERROR_PATTERN_READ				5
-#define MOD_TRANSPORT_FILE_TOO_BIG_FOR_RAM			6
-#define MOD_TRANSPORT_NULL_INSTRUMENT				7 // Deprecated
-#define MOD_TRANSPORT_PATTERN_TOO_LONG				8
-#define MOD_TRANSPORT_FILE_ZERO_BYTE				9
-
-typedef struct SampleInfo
-{
-	char name[22];
-	u16 length;
-	u8 finetune;
-	u8 volume;
-	u16 repeat_offset;
-	u16 repeat_length;
-};
-
 class ModTransport: public FormatTransport {
 	public:
-		
+
 		// Loads a song from a file and puts it in the song argument
 		// returns 0 on success, an error code else
-		u16 load(const char *filename, Song **_song);
-		
+		FormatTransportError load(const char *filename, Song **_song) override;
+
 		// Saves a song to a file
-		u16 save(const char *filename, Song *song);
-		
-		const char *getError(u16 error_id);
-		
+		FormatTransportError save(const char *filename, Song *song) override;
+
 	private:
 };
 

@@ -7,10 +7,10 @@
  */
 
 /***** BEGIN LICENSE BLOCK *****
- * 
+ *
  * Version: Noncommercial zLib License / GPL 3.0
- * 
- * The contents of this file are subject to the Noncommercial zLib License 
+ *
+ * The contents of this file are subject to the Noncommercial zLib License
  * (the "License"); you may not use this file except in compliance with
  * the License. You should have recieved a copy of the license with this package.
  *
@@ -27,26 +27,13 @@
  * provisions required by the GPL. If you do not delete the provisions above,
  * a recipient may use your version of this file under the terms of any one of
  * the GPL or the Noncommercial zLib License.
- * 
+ *
  ***** END LICENSE BLOCK *****/
 
 #ifndef XM_TRANSPORT
 #define XM_TRANSPORT
 
 #include "format_transport.h"
-
-#define XM_TRANSPORT_ERROR_INITFAIL				1
-#define XM_TRANSPORT_ERROR_FOPENFAIL			2
-#define XM_TRANSPORT_ERROR_MAGICNUMBERINVALID	3
-#define XM_TRANSPORT_ERROR_MEMFULL				4
-#define XM_TRANSPORT_ERROR_PATTERN_READ			5
-#define XM_TRANSPORT_FILE_TOO_BIG_FOR_RAM		6
-#define XM_TRANSPORT_NULL_INSTRUMENT			7 // Deprecated
-#define XM_TRANSPORT_PATTERN_TOO_LONG			8
-#define XM_TRANSPORT_FILE_ZERO_BYTE				9
-#define XM_TRANSPORT_DISK_FULL					10
-#define XM_TRANSPORT_MPT_HACKS_UNSUPPORTED		11
-#define XM_TRANSPORT_TOO_MANY_CHANNELS          12
 
 // This class implements loading from and saving to the XM file format
 // introduced by Fasttracker II. Man, those were the days!
@@ -80,16 +67,14 @@ struct InstInfo {
 
 class XMTransport: public FormatTransport {
 	public:
-		
+
 		// Loads a song from a file and puts it in the song argument
 		// returns 0 on success, an error code else
-		u16 load(const char *filename, Song **_song);
-		
+		FormatTransportError load(const char *filename, Song **_song) override;
+
 		// Saves a song to a file, returns 0 on success, an error code otherwise
-		u16 save(const char *filename, Song *song);
-		
-		const char *getError(u16 error_id);
-		
+		FormatTransportError save(const char *filename, Song *song) override;
+
 	private:
 };
 

@@ -7,10 +7,10 @@
  */
 
 /***** BEGIN LICENSE BLOCK *****
- * 
+ *
  * Version: Noncommercial zLib License / GPL 3.0
- * 
- * The contents of this file are subject to the Noncommercial zLib License 
+ *
+ * The contents of this file are subject to the Noncommercial zLib License
  * (the "License"); you may not use this file except in compliance with
  * the License. You should have recieved a copy of the license with this package.
  *
@@ -27,199 +27,218 @@
  * provisions required by the GPL. If you do not delete the provisions above,
  * a recipient may use your version of this file under the terms of any one of
  * the GPL or the Noncommercial zLib License.
- * 
+ *
  ***** END LICENSE BLOCK *****/
 
-/*
- * This is the beginning of a mod importer.
- * 
-#include "mod_transport.h"
+#include "ntxm/mod_transport.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cctype>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include "ntxm/ntxmtools.h"
 
-const char *modtransporterrors[] =
-	{"fat init failed",
-	"could not open file",
-	"not a valid xm file",
-	"memory full",
-	"pattern read error",
-	"file too big for ram",
-	"",
-	"pattern too long",
-	"file is zero byte"};
+struct ModSampleInfo
+{
+	char name[23];
+	u16 length;
+	u8 finetune;
+	u8 volume;
+	u16 repeat_offset;
+	u16 repeat_length;
+};
 
-// ===================== PUBLIC ===================== 
+static void wordToHost(u16& v)
+{
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    v = __builtin_bswap16(v);
+#endif
+}
 
 // Loads a song from a file and puts it in the song argument
 // returns 0 on success, an error code else
-u16 ModTransport::load(const char *filename, Song **_song)
+FormatTransportError ModTransport::load(const char *filename, Song **_song)
 {
-	//
-	// Init
-	//
-	
+    u32 filesize = ntxm_getFileSize(filename);
+	if(filesize == 0)
+		return FormatTransportError::FILE_ZERO_BYTE;
+
 	FILE *modfile = fopen(filename, "rb");
-	
-	if((s32)modfile == -1)
-		return MOD_TRANSPORT_ERROR_FOPENFAIL;
+	if(!modfile)
+		return FormatTransportError::FOPEN_FAIL;
 
 	setvbuf(modfile, NULL, _IOFBF, 4096);
-	
-	// Check if the song fits into RAM
-	struct stat fstats;
-	stat(filename, &fstats);
-	u32 filesize = fstats.st_size;
-	
-	if(filesize > MAX_MOD_FILESIZE)
-	{
-		fclose(modfile);
-		ntxm_dprintf("file too big for ram\n");
-		return MOD_TRANSPORT_FILE_TOO_BIG_FOR_RAM;
-	}
-	
-	if(filesize == 0)
-	{
-		fclose(modfile);
-		ntxm_dprintf("0-byte file!\n");
-		return MOD_TRANSPORT_FILE_ZERO_BYTE;
-	}
-	
-	Song *song = new Song();
-	
-	//
+
 	// Read name
-	//
-	char song_name[20];
-	calloc(song_name, 20, 1);
-	fread(song_name, 1, 20, modfile);
+
+	char song_name[21];
+	fread(song_name, 1, 20, modfile); song_name[20] = 0;
 	ntxm_dprintf("It's called %s\n", song_name);
-	
-	song->setName(song_name);
-	
-	//
-	// Read Samples
-	//
-	
-	Samplenfo *sample[31];
-		
-	for(u8 smp=0; smp<31; ++smp)
+
+	// Read samples
+
+	ModSampleInfo sampleinfo[31];
+
+	for(int i=0; i<31; ++i)
 	{
-		SampleInfo *sample[smp] = (*SampleInfo)calloc(sizeof(SampleInfo), 1);
-		
-		fread(&sample->name, 1, 22, modfile);
-		fread(&sample->length, 2, 1, modfile);
-		fread(&sample->finetune, 1, 1, modfile);
-		fread(&sample->volume, 1, 1, modfile);
-		fread(&sample->repeat_offset, 2, 1, modfile);
-		fread(&sample->repeat_length, 2, 1, modfile);
-		
-		//Instrument *inst = new Instrument(sample->name);
-		//Sample *smp = new Sample(void *_sound_data, u32 _n_samples, u16 _sampling_frequency=44100,
-		//	bool _is_16_bit=true, u8 _loop=NO_LOOP, u8 _volume=255);
+		fread(&sampleinfo[i].name, 1, 22, modfile); sampleinfo[i].name[22] = 0;
+		fread(&sampleinfo[i].length, 2, 1, modfile); wordToHost(sampleinfo[i].length);
+		fread(&sampleinfo[i].finetune, 1, 1, modfile);
+		fread(&sampleinfo[i].volume, 1, 1, modfile);
+		fread(&sampleinfo[i].repeat_offset, 2, 1, modfile); wordToHost(sampleinfo[i].repeat_offset);
+		fread(&sampleinfo[i].repeat_length, 2, 1, modfile); wordToHost(sampleinfo[i].repeat_length);
 	}
-	
-	
-	
-	//
+
 	// Read header
-	//
-	
+
 	u8 potlen;
 	fread(&potlen, 1, 1, modfile);
-	
-	u8 restartpos;
-	fread(&restartpos, 1, 1, modfile);
-	
+
+	u8 restart_pos;
+	fread(&restart_pos, 1, 1, modfile);
+
 	u8 pot[128];
 	fread(pot, 1, 128, modfile);
-	
-	char fmt[4];
-	fread(fmt, 1, 4, modfile);
-	
-	u8 n_patterns = 0;
-	for(i=0; i<128; ++i)
-		if(pot[i] > n_patterns)
-			n_patterns = pot[i];
-	
+
+	u32 fmt;
+	fread(&fmt, 1, 4, modfile);
+
 	// Parse the format tag
-	u8 n_channels;
-	
-	if	( 	   ( strcmp(fmt, "M.K.") == 0 ) || ( strcmp(fmt, "FLT4") == 0 )
-			|| ( strcmp(fmt, "M!K!") == 0 ) || ( strcmp(fmt, "4CHN") == 0 ) )
-		
-		n_channels = 4;
-	
-	else if ( strcmp(fmt, "6CHN") == 0 )
-		
-		n_channels = 6;
-	
-	else if ( ( strcmp(fmt, "8CHN") == 0) || ( strcmp(fmt, "OCTA") == 0 ) )
-		
-		n_channels = 8;
-	
-	else
-		
-		ntxm_dprintf("Unsupported format!\n");
-	
+	int n_channels = 0;
+
+	if(fmt == 0x2E4B2E4D || fmt == 0x214B214D) { // M.K., M!K!
+	    n_channels = 4;
+	} else if(fmt == 0x4154434F) { // OCTA
+	    n_channels = 8;
+	} else if((fmt >> 8) == 0x4E4843 && isdigit(fmt & 0xFF)) { // *CHN
+	    n_channels = (fmt & 0xFF) - '0';
+	} else if((fmt & 0xFFFFFF) == 0x544C46 && isdigit(fmt >> 24)) { // FLT*
+	    n_channels = (fmt >> 24) - '0';
+	} else if((fmt >> 16) == 0x4843 && isdigit(fmt & 0xFF) && isdigit((fmt >> 8) & 0xFF)) { // **CH
+	    n_channels = (((fmt & 0xFF) - '0') * 10) + (((fmt >> 8) & 0xFF) - '0');
+	}
+	if(n_channels < 1 || n_channels > 32) {
+	    fclose(modfile);
+	    return FormatTransportError::MAGIC_NUMBER_INVALID;
+	} else if(MAX_CHANNELS < 32 && n_channels > MAX_CHANNELS) {
+        fclose(modfile);
+        return FormatTransportError::TOO_MANY_CHANNELS;
+	}
+
+	Song *song = new Song(6, 125, n_channels);
+	song->setName(song_name);
+	song->setRestartPosition(restart_pos);
+
+	int n_patterns = 0;
+	song->setPotEntry(0, pot[0]);
+	for(int i=0; i<128; ++i) {
+	    if (i > 0 && i < potlen)
+			song->potAdd(pot[i]);
+		if(pot[i] >= n_patterns)
+			n_patterns = pot[i]+1;
+	}
+
 	//
 	// Read Patterns
 	//
 	u16 patterndata_size = 4 * n_channels * 64;
-	
-	for(u8 ptn=0; ptn<n_patterns; ++ptn)
+
+	u8 *ptn_data = (u8*)ntxm_ucalloc(patterndata_size, 1);
+	if(!ptn_data)
 	{
-		u8 *ptn_data = (u8*)calloc(patterndata_size, 1);
+    	fclose(modfile);
+    	delete song;
+    	return FormatTransportError::MEM_FULL;
+	}
+
+	for(int i=0; i<n_patterns; ++i)
+	{
 		fread(ptn_data, patterndata_size, 1, modfile);
-		
+
+		if(i > 0)
+		    song->addPattern();
+		song->resizePattern(i, 64);
+		Cell **ptn = song->getPattern(i);
+
+		u8 *notedata = ptn_data;
+
 		for(u8 row=0; row<64; ++row)
 		{
-			for(u8 chn=0; chn<n_channels; ++chn)
+			for(u8 chn=0; chn<n_channels; ++chn, notedata += 4)
 			{
-				u8 notedata[4];
-				fread(notedata, 1, 4, modfile);
-				
 				u8 sample;
 				u16 period, effect;
 				sample = ( (notedata[0] >> 4) << 4 ) | ( notedata[2] >> 4 );
 				period = ( ( notedata[0] & 0x0F ) << 8 ) | notedata[1];
 				effect = ( ( notedata[2] & 0x0F ) << 8 ) | notedata[3];
-				
-				u16 frequency = 70937892 / period / 20; // PAL Amiga conversion
+
+				ptn[chn][row].instrument = period ? (sample - 1) : NO_INSTRUMENT;
+				ptn[chn][row].note = period ? (roundf(log2f(13696.0f / period) * 12) - 12) : EMPTY_NOTE;
+				ptn[chn][row].effect = effect >> 8;
+				ptn[chn][row].effect_param = effect & 0xFF;
 			}
 		}
-		
-		ntxm_free(ptn_data);
 	}
-	
+
+	ntxm_free(ptn_data);
+
+	for(int i=0; i<31; ++i)
+	{
+		Instrument *inst = new Instrument(sampleinfo[i].name);
+		if(!inst)
+		{
+			fclose(modfile);
+			delete song;
+			return FormatTransportError::MEM_FULL;
+		}
+		song->setInstrument(i, inst);
+
+		void *sound_data = ntxm_umemalign(2, sampleinfo[i].length << 1);
+		if(!sound_data)
+		{
+    		fclose(modfile);
+    		delete song;
+    		return FormatTransportError::MEM_FULL;
+		}
+		fread(sound_data, sampleinfo[i].length << 1, 1, modfile);
+
+		Sample *sample = new Sample(sound_data, sampleinfo[i].length << 1, 8363, false);
+		if(!sample)
+		{
+		    ntxm_free(sound_data);
+			fclose(modfile);
+    		delete song;
+    		return FormatTransportError::MEM_FULL;
+		}
+
+		sample->setVolume(sampleinfo[i].volume * 255 / 64);
+		sample->setFinetune(sampleinfo[i].finetune);
+		// TODO: set panning
+
+		bool has_loop = sampleinfo[i].repeat_offset > 1 && sampleinfo[i].repeat_offset <= (sampleinfo[i].length - sampleinfo[i].repeat_length);
+		sample->setLoop(has_loop ? FORWARD_LOOP : NO_LOOP);
+		sample->setLoopStartAndLength(sampleinfo[i].repeat_offset << 1, sampleinfo[i].repeat_length << 1);
+		inst->addSample(sample);
+	}
+
 	// ......................
-	
-	
-	for(u8 smp=0; smp<31; ++smp)
-		ntxm_free(sample[smp]);
-	
+
 	ntxm_dprintf("MOD Loaded.\n");
-	
+
 	//
 	// Finish up
 	//
-	
+
 	fclose(modfile);
-	
+
 	*_song = song;
-	
-	return 0;
+
+	return FormatTransportError::SUCCESS;
 }
 
 // Saves a song to a file
-u16 ModTransport::save(const char *filename, Song *song)
+FormatTransportError ModTransport::save(const char *filename, Song *song)
 {
-	return 42;
+	return FormatTransportError::INIT_FAIL;
 }
-
-const char *ModTransport::getError(u16 error_id)
-{
-	return modtransporterrors[error_id-1];
-}
-*/

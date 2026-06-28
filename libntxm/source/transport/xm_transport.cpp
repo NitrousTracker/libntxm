@@ -32,7 +32,6 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <sys/stat.h>
 #include <algorithm>
 #include <iterator>
 #include <stdio.h>
@@ -40,37 +39,17 @@
 #include "ntxm/xm_transport.h"
 #include "ntxm/ntxmtools.h"
 
-const char *xmtransporterrors[] =
-	{"fat init failed",
-	"could not open file",
-	"not a valid xm file",
-	"memory full",
-	"pattern read error",
-	"file too big for ram",
-	"",
-	"pattern too long",
-	"file is zero byte",
-	"disk is full",
-	"xm format hacks not supported",
-	"too many channels"};
-
-/* ===================== PUBLIC ===================== */
-
 // Loads a song from a file and puts it in the song argument
 // returns 0 on success, an error code else
-u16 XMTransport::load(const char *filename, Song **_song)
+FormatTransportError XMTransport::load(const char *filename, Song **_song)
 {
 	u32 filesize = ntxm_getFileSize(filename);
 	if(filesize == 0)
-	{
-		ntxm_dprintf("0-byte file!\n");
-		return XM_TRANSPORT_FILE_ZERO_BYTE;
-	}
+		return FormatTransportError::FILE_ZERO_BYTE;
 
 	FILE *xmfile = fopen(filename, "rb");
 	if(!xmfile)
-		return XM_TRANSPORT_ERROR_FOPENFAIL;
-
+		return FormatTransportError::FOPEN_FAIL;
 
 	// check if the module uses mpt hacks
 	char footer[256] = { 0 };
@@ -90,10 +69,10 @@ u16 XMTransport::load(const char *filename, Song **_song)
 		if (it != std::end(footer))
 		{
 			fclose(xmfile);
-			return XM_TRANSPORT_MPT_HACKS_UNSUPPORTED;
+			return FormatTransportError::MPT_HACKS_UNSUPPORTED;
 		}
 	}
-	
+
 	fseek(xmfile, 0, SEEK_SET);
 	setvbuf(xmfile, NULL, _IOFBF, 4096);
 	//
@@ -107,7 +86,7 @@ u16 XMTransport::load(const char *filename, Song **_song)
 	if( strcmp(magicnumber, "Extended Module: ") != 0 ) {
 		ntxm_dprintf("Not an XM file!\n");
 		fclose(xmfile);
-		return XM_TRANSPORT_ERROR_MAGICNUMBERINVALID;
+		return FormatTransportError::MAGIC_NUMBER_INVALID;
 	}
 
 	// Song name
@@ -142,7 +121,7 @@ u16 XMTransport::load(const char *filename, Song **_song)
 
 	if(n_channels > MAX_CHANNELS) {
 		ntxm_dprintf("I only support XMs with 16 or fewer channels!\n");
-		return XM_TRANSPORT_TOO_MANY_CHANNELS;
+		return FormatTransportError::TOO_MANY_CHANNELS;
 	}
 
 	// Number of patterns
@@ -180,7 +159,7 @@ u16 XMTransport::load(const char *filename, Song **_song)
 		fclose(xmfile);
 		ntxm_dprintf("memfull on line %d\n", __LINE__);
 		delete song;
-		return XM_TRANSPORT_ERROR_MEMFULL;
+		return FormatTransportError::MEM_FULL;
 	}
 
 	song->setName(songname);
@@ -232,7 +211,7 @@ u16 XMTransport::load(const char *filename, Song **_song)
 			ntxm_dprintf("Pattern too long: %u rows\n", n_rows);
 			fclose(xmfile);
 			delete song;
-			return XM_TRANSPORT_PATTERN_TOO_LONG;
+			return FormatTransportError::PATTERN_TOO_LONG;
 		}
 
 		//ntxm_dprintf("n_rows: %u\n",n_rows);
@@ -250,7 +229,7 @@ u16 XMTransport::load(const char *filename, Song **_song)
 				fclose(xmfile);
 				ntxm_dprintf("memfull on line %d\n", __LINE__);
 				delete song;
-				return XM_TRANSPORT_ERROR_MEMFULL;
+				return FormatTransportError::MEM_FULL;
 			}
 
 			u32 bytes_read;
@@ -262,7 +241,7 @@ u16 XMTransport::load(const char *filename, Song **_song)
 				fclose(xmfile);
 				ntxm_dprintf("pattern read error.\nread:%lu (should be %u)\n", bytes_read, patterndata_size);
 				delete song;
-				return XM_TRANSPORT_ERROR_PATTERN_READ;
+				return FormatTransportError::PATTERN_READ;
 			}
 
 			u32 ptn_data_offset = 0;
@@ -444,7 +423,7 @@ u16 XMTransport::load(const char *filename, Song **_song)
 			fclose(xmfile);
 			ntxm_dprintf("memfull on line %d\n", __LINE__);
 			delete song;
-			return XM_TRANSPORT_ERROR_MEMFULL;
+			return FormatTransportError::MEM_FULL;
 		}
 
 		// Read fields up to number of samples
@@ -461,7 +440,7 @@ u16 XMTransport::load(const char *filename, Song **_song)
 			fclose(xmfile);
 			ntxm_dprintf("memfull on line %d\n", __LINE__);
 			delete song;
-			return XM_TRANSPORT_ERROR_MEMFULL;
+			return FormatTransportError::MEM_FULL;
 		}
 		song->setInstrument(inst, instrument);
 
@@ -490,7 +469,7 @@ u16 XMTransport::load(const char *filename, Song **_song)
 			fread( &instinfo->reserved_bytes, 11, 1, xmfile);
 
 			bool vol_env_on, vol_env_sustain, vol_env_loop, pan_env_on, pan_env_sustain, pan_env_loop;
-			
+
 			vol_env_on      = instinfo->vol_type & BIT(0);
 			vol_env_sustain = instinfo->vol_type & BIT(1);
 			vol_env_loop    = instinfo->vol_type & BIT(2);
@@ -498,9 +477,9 @@ u16 XMTransport::load(const char *filename, Song **_song)
 			pan_env_sustain = instinfo->pan_type & BIT(1);
 			pan_env_loop    = instinfo->pan_type & BIT(2);
 
-			instrument->setVolumeEnvelope(instinfo->vol_points, instinfo->n_vol_points, instinfo->vol_sustain_point, 
+			instrument->setVolumeEnvelope(instinfo->vol_points, instinfo->n_vol_points, instinfo->vol_sustain_point,
 					vol_env_on, vol_env_sustain, vol_env_loop);
-			instrument->setPanningEnvelope(instinfo->pan_points, instinfo->n_pan_points, instinfo->pan_sustain_point, 
+			instrument->setPanningEnvelope(instinfo->pan_points, instinfo->n_pan_points, instinfo->pan_sustain_point,
 					pan_env_on, pan_env_sustain, pan_env_loop);
 
 			// Skip the rest of the header if is longer than the current position
@@ -523,7 +502,7 @@ u16 XMTransport::load(const char *filename, Song **_song)
 				fclose(xmfile);
 				ntxm_dprintf("memfull on line %d\n", __LINE__);
 				delete song;
-				return XM_TRANSPORT_ERROR_MEMFULL;
+				return FormatTransportError::MEM_FULL;
 			}
 			fread(sample_headers, 40, instinfo->n_samples, xmfile);
 
@@ -612,7 +591,7 @@ u16 XMTransport::load(const char *filename, Song **_song)
 						fclose(xmfile);
 						ntxm_dprintf("memfull on line %d\n", __LINE__);
 						delete song;
-						return XM_TRANSPORT_ERROR_MEMFULL;
+						return FormatTransportError::MEM_FULL;
 					}
 
 					fread(sample_data, sample_length, 1, xmfile);
@@ -655,7 +634,7 @@ u16 XMTransport::load(const char *filename, Song **_song)
 					fclose(xmfile);
 					ntxm_dprintf("memfull on line %d\n", __LINE__);
 					delete song;
-					return XM_TRANSPORT_ERROR_MEMFULL;
+					return FormatTransportError::MEM_FULL;
 				}
 
 				sample->setVolume(sample_volume);
@@ -695,13 +674,13 @@ u16 XMTransport::load(const char *filename, Song **_song)
 
 	*_song = song;
 
-	return 0;
+	return FormatTransportError::SUCCESS;
 }
 
 
 
 // Saves a song to a file
-u16 XMTransport::save(const char *filename, Song *song)
+FormatTransportError XMTransport::save(const char *filename, Song *song)
 {
 	//
 	// Init
@@ -713,7 +692,7 @@ u16 XMTransport::save(const char *filename, Song *song)
 	FILE *xmfile = fopen(filename, "wb");
 
 	if(!xmfile)
-		return XM_TRANSPORT_ERROR_FOPENFAIL;
+		return FormatTransportError::FOPEN_FAIL;
 
 	//
 	// Write header
@@ -815,7 +794,7 @@ u16 XMTransport::save(const char *filename, Song *song)
 
 		if(patterndata==0) {
 			fclose(xmfile);
-			return XM_TRANSPORT_ERROR_MEMFULL;
+			return FormatTransportError::MEM_FULL;
 		}
 
 		memset(patterndata, 0, 5*32*256);
@@ -970,7 +949,7 @@ u16 XMTransport::save(const char *filename, Song *song)
 			if (instrument == NULL) {
 				fclose(xmfile);
 				ntxm_dprintf("memfull on line %d\n", __LINE__);
-				return XM_TRANSPORT_ERROR_MEMFULL;
+				return FormatTransportError::MEM_FULL;
 			}
 			empty_inst = true;
 		}
@@ -1003,7 +982,7 @@ u16 XMTransport::save(const char *filename, Song *song)
 				if (empty_inst) delete instrument;
 				fclose(xmfile);
 				ntxm_dprintf("memfull on line %d\n", __LINE__);
-				return XM_TRANSPORT_ERROR_MEMFULL;
+				return FormatTransportError::MEM_FULL;
 			}
 
 			// Sample header size (always 0x28)
@@ -1101,7 +1080,7 @@ u16 XMTransport::save(const char *filename, Song *song)
 						if (empty_inst) delete instrument;
 						fclose(xmfile);
 						ntxm_dprintf("memfull on line %d\n", __LINE__);
-						return XM_TRANSPORT_ERROR_MEMFULL;
+						return FormatTransportError::MEM_FULL;
 					}
 					empty_sample = true;
 				}
@@ -1174,7 +1153,7 @@ u16 XMTransport::save(const char *filename, Song *song)
 						if (empty_inst) delete instrument;
 						fclose(xmfile);
 						ntxm_dprintf("memfull on line %d\n", __LINE__);
-						return XM_TRANSPORT_ERROR_MEMFULL;
+						return FormatTransportError::MEM_FULL;
 					}
 					empty_sample = true;
 				}
@@ -1275,12 +1254,5 @@ u16 XMTransport::save(const char *filename, Song *song)
 
 	ntxm_dprintf("song saved as :\"%s\"\n", filename);
 
-	return 0;
+	return FormatTransportError::SUCCESS;
 }
-
-const char *XMTransport::getError(u16 error_id)
-{
-	return xmtransporterrors[error_id-1];
-}
-
-/* ===================== PRIVATE ===================== */

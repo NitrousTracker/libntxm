@@ -52,14 +52,14 @@ NTXM9::~NTXM9()
 
 u16 NTXM9::load(const char *filename)
 {
-	u16 err = xm_transport->load(filename, &song);
+	FormatTransportError err = xm_transport->load(filename, &song);
 	CommandSetSong(song);
-	return err;
+	return (u16) err;
 }
 
 const char *NTXM9::getError(u16 error_id)
 {
-	return xm_transport->getError(error_id);
+	return xm_transport->getError((FormatTransportError) error_id);
 }
 
 void NTXM9::play(bool repeat)

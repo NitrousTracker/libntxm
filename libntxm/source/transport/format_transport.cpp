@@ -30,43 +30,31 @@
  *
  ***** END LICENSE BLOCK *****/
 
-#ifndef FORMAT_TRANSPORT_H
-#define FORMAT_TRANSPORT_H
+#include <string.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <algorithm>
+#include <iterator>
+#include <stdio.h>
 
-#include "song.h"
+#include "ntxm/xm_transport.h"
+#include "ntxm/ntxmtools.h"
 
-enum class FormatTransportError {
-    SUCCESS = 0,
-    INIT_FAIL = 1,
-    FOPEN_FAIL,
-    MAGIC_NUMBER_INVALID,
-    MEM_FULL,
-    PATTERN_READ,
-    FILE_TOO_BIG_FOR_RAM,
-    PATTERN_TOO_LONG,
-    FILE_ZERO_BYTE,
-    DISK_FULL,
-    MPT_HACKS_UNSUPPORTED,
-    TOO_MANY_CHANNELS
-};
+static const char *transporterrors[] =
+	{NULL,
+	"fat init failed",
+	"could not open file",
+	"not a valid xm file",
+	"memory full",
+	"pattern read error",
+	"file too big for ram",
+	"pattern too long",
+	"file is zero byte",
+	"disk is full",
+	"xm format hacks not supported",
+	"too many channels"};
 
-// This is the abstract base class of transports.
-// Transports are classes that handle import and export of songs.
-class FormatTransport {
-	public:
-
-		// Loads a song from a file pots it into _song
-		// Returns 0 on success, an error code else
-		virtual FormatTransportError load(const char *filename, Song **_song) = 0;
-
-		// Saves a song to a file
-		virtual FormatTransportError save(const char *filename, Song *song) = 0;
-
-		virtual ~FormatTransport() {};
-
-		const char *getError(FormatTransportError error);
-
-	private:
-};
-
-#endif
+const char *FormatTransport::getError(FormatTransportError error_id)
+{
+	return transporterrors[(int) error_id];
+}
