@@ -216,7 +216,8 @@ FormatTransportError ModTransport::load(const char *filename, Song **_song)
 		sample->setFinetune(sampleinfo[i].finetune);
 		// TODO: set panning
 
-		bool has_loop = sampleinfo[i].repeat_offset > 1 && sampleinfo[i].repeat_offset <= (sampleinfo[i].length - sampleinfo[i].repeat_length);
+		bool has_loop = sampleinfo[i].repeat_length > 1 && sampleinfo[i].repeat_offset <= (sampleinfo[i].length - sampleinfo[i].repeat_length);
+		ntxm_dprintf("%d %d %d\n", sampleinfo[i].length, sampleinfo[i].repeat_offset, sampleinfo[i].repeat_length);
 		sample->setLoop(has_loop ? FORWARD_LOOP : NO_LOOP);
 		sample->setLoopStartAndLength(sampleinfo[i].repeat_offset << 1, sampleinfo[i].repeat_length << 1);
 		inst->addSample(sample);
