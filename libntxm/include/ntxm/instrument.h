@@ -64,13 +64,19 @@ class Instrument
 		Sample *getSample(u8 idx); // If not present, 0 is returned
 		void setSample(u8 idx, Sample *sample);
 		Sample *getSampleForNote(u8 _note);
-		void play(u8 _note, u8 _volume, u8 _channel, u8 offs = 0);
-		void bendNote(u8 _note, u8 _basenote, s16 _finetune, u8 _channel);
-		void bendNoteDirect(u8 _note, s16 _fine_step, u8 _channel);
 		void setNoteSample(u16 note, u8 sample_id);
 		u8 getNoteSample(u16 note);
 		void setVolEnvEnabled(bool is_enabled);
-		bool getVolEnvEnabled(void);
+		inline bool getVolEnvEnabled(void) { return vol_env_on; }
+		void setPanEnvEnabled(bool is_enabled);
+		inline bool getPanEnvEnabled(void) { return pan_env_on; }
+
+		inline u8 getVibratoType(void) { return vibrato_type; }
+		inline u8 getVibratoSweep(void) { return vibrato_sweep; }
+		inline u8 getVibratoDepth(void) { return vibrato_depth; }
+		inline u8 getVibratoRate(void) { return vibrato_rate; }
+		inline u16 getFadeOutVolume(void) { return fadeout_vol; }
+		inline bool getMute(void) { return mute; }
 
 		// Calculate how long in ms the instrument will play note given note
 		u32 calcPlayLength(u8 note);
@@ -82,6 +88,9 @@ class Instrument
 
 		void setVolumeEnvelope(u16 *envelope, u8 n_points, u8 v_sustain_point, bool vol_env_on_, bool vol_env_sustain_, bool vol_env_loop_);
 		void setPanningEnvelope(u16 *envelope, u8 n_points, u8 p_sustain_point, bool pan_env_on_, bool pan_env_sustain_, bool pan_env_loop_);
+		void setVibrato(u8 type, u8 sweep, u8 depth, u8 rate);
+		void setFadeOutVolume(u16 value);
+		void setMute(bool value);
 
 		void setVolumeEnvelopePoints(u16 *xs, u16 *ys, u16 n_points);
 		void toggleVolumeEnvelopeSustain(bool is_enabled);
@@ -131,8 +140,22 @@ class Instrument
 		bool pan_env_loop;
 		u8 pan_sustain_point;
 
+		u8 vol_loop_start_point;
+		u8 vol_loop_end_point;
+		u8 pan_loop_start_point;
+		u8 pan_loop_end_point;
+		u8 vibrato_type;
+		u8 vibrato_sweep;
+		u8 vibrato_depth;
+		u8 vibrato_rate;
+		u16 fadeout_vol;
+
+		bool mute;
+
 		u16 envelope_ms[MAX_CHANNELS];
 		u16 envelope_pixels[MAX_CHANNELS]; // Pixel of the FT2 envelope editor :-)
+
+		friend class Player;
 };
 
 #endif

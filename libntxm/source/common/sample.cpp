@@ -186,16 +186,9 @@ void Sample::saveAsWav(char *filename)
 #if defined(ARM7) || !defined(NT_PLATFORM_NDS)
 
 // volume_ ranges from 0-127. The value 255 means "no volume", i.e. the sample's own volume shall be used.
-void Sample::play(u8 note, u8 volume_, u8 channel, u8 offs)
+void Sample::play(u8 channel, u8 panning, u8 volume, u8 offs)
 {
 	if(channel>MAX_CHANNELS) return;
-
-	/*
-	if(note+rel_note > N_LINEAR_FREQ_TABLE_NOTES) {
-		CommandDbgOut("Freq out of range!\n");
-		return;
-	}
-	*/
 
 	u32 loop_bit;
 	if( ( ( loop == FORWARD_LOOP ) || (loop == PING_PONG_LOOP) ) && (loop_length > 0) )
@@ -203,27 +196,7 @@ void Sample::play(u8 note, u8 volume_, u8 channel, u8 offs)
 	else
 		loop_bit = NTXMSOUND_ONE_SHOT;
 
-	// Add 48 to the note, because otherwise absolute_note can get negative.
-	// (The minimum value of relative note is -48)
-	u8 absolute_note = note + 48;
-
-	// Choose the subsampled version. The first 12 octaves will be fine,
-	// if the note is higher, choose a subsampled version.
-	// Octave 12 is more of a good guess, so there could be better, more
-	// reasonable values.
-	u8 realnote;
-
-	realnote = absolute_note+rel_note;
-
-	// If a volume is given, it overrides the sample's own volume
-	u8 smpvolume;
-	if(volume_ == NO_VOLUME)
-		smpvolume = volume / 2; // Smp volume is 0..255
-	else
-		smpvolume = volume_; // Channel volume is 0..127
-
 	ntxm_sound_channel_stop(channel);
-	ntxm_sound_channel_set_frequency(channel, LOOKUP_FREQ(realnote,finetune));
 
 	u32 offs_samps = FT_OFFSET_SCALAR * offs * (sound_format == NTXMSOUND_FORMAT_8BIT ? 1 : 2);
 
@@ -254,23 +227,7 @@ void Sample::play(u8 note, u8 volume_, u8 channel, u8 offs)
 		ntxm_sound_channel_set_source(channel, (uint8_t*)pingpong_data + loop_offs_samps, loop_start - loop_offs_samps, loop_length << 1);
 	}
 
-	ntxm_sound_channel_play(channel, loop_bit, sound_format, ntxm_stereo_output ? panning : 128, smpvolume);
-}
-
-void Sample::bendNote(u8 note, u8 basenote, s16 _finetune, u8 channel)
-{
-	// Add 48 to the note, because otherwise absolute_note can get negative.
-	// (The minimum value of relative note is -48)
-	u8 absolute_note = note + 48;
-	u8 realnote = (absolute_note+rel_note);
-	_finetune += finetune; //Need to offset by sample's finetune
-	ntxm_sound_channel_set_frequency(channel, LOOKUP_FREQ(realnote,_finetune));
-}
-
-void Sample::bendNoteDirect(s16 fine_step, u8 channel)
-{
-	ntxm_dprintf("finestep: 0x%x channel: 0x%x\n", fine_step, channel);
-	ntxm_sound_channel_set_frequency(channel, GET_FREQ_DIRECT(fine_step));
+    ntxm_sound_channel_play(channel, loop_bit, sound_format, ntxm_stereo_output ? panning : 128, volume);
 }
 
 #endif

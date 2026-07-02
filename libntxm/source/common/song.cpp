@@ -7,10 +7,10 @@
  */
 
 /***** BEGIN LICENSE BLOCK *****
- * 
+ *
  * Version: Noncommercial zLib License / GPL 3.0
- * 
- * The contents of this file are subject to the Noncommercial zLib License 
+ *
+ * The contents of this file are subject to the Noncommercial zLib License
  * (the "License"); you may not use this file except in compliance with
  * the License. You should have recieved a copy of the license with this package.
  *
@@ -27,7 +27,7 @@
  * provisions required by the GPL. If you do not delete the provisions above,
  * a recipient may use your version of this file under the terms of any one of
  * the GPL or the Noncommercial zLib License.
- * 
+ *
  ***** END LICENSE BLOCK *****/
 
 #include <stdlib.h>
@@ -55,7 +55,7 @@ allocated as far as needed.
 #ifndef ARM7
 
 Song::Song(u8 _speed, u8 _bpm, u8 _channels)
-	:speed(_speed), bpm(_bpm), n_channels(_channels), restart_position(0), n_patterns(0)
+	:speed(_speed), bpm(_bpm), n_channels(_channels), restart_position(0), linear(false), n_patterns(0)
 {
 	// Init arrays
 	patternlengths = (u16*)ntxm_cmalloc(sizeof(u16)*MAX_PATTERNS);
@@ -65,25 +65,25 @@ Song::Song(u8 _speed, u8 _bpm, u8 _channels)
 	name = (char*)ntxm_cmalloc(MAX_SONG_NAME_LENGTH+1);
 	name[MAX_SONG_NAME_LENGTH] = 0;
 	strncpy(name, "unnamed", MAX_SONG_NAME_LENGTH);
-	
+
 	for(u16 i=0; i<MAX_PATTERNS; ++i) {
 		patternlengths[i] = 0;
 		internal_patternlengths[i] = 0;
 	}
-	
+
 	for(u16 i=0; i<MAX_POT_LENGTH; ++i) {
 		pattern_order_table[i] = 0;
 	}
-	
+
 	for(u16 i=0; i<MAX_INSTRUMENTS; ++i) {
 		instruments[i] = NULL;
 	}
-	
+
 	n_patterns = 0;
 	potsize = 0;
 
 	memset(channels_muted, false, MAX_CHANNELS * sizeof(bool));
-	
+
 	// Init pattern array
 	patterns = (Cell***)ntxm_cmalloc(sizeof(Cell**)*MAX_PATTERNS);
 
@@ -96,11 +96,11 @@ Song::Song(u8 _speed, u8 _bpm, u8 _channels)
 
 Song::~Song()
 {
-	
+
 	killInstruments();
-	
+
 	killPatterns();
-	
+
 	// Delete arrays
 	ntxm_free(patternlengths);
 	ntxm_free(internal_patternlengths);
@@ -255,14 +255,14 @@ void Song::addPattern(u16 length)
 	internal_patternlengths[n_patterns] = length;
 
 	n_patterns++;
-	
+
 	patterns[n_patterns-1] = (Cell**)ntxm_cmalloc(sizeof(Cell*)*n_channels);
-	
+
 	u16 i,j;
 	for(i=0;i<n_channels;++i)
 	{
 		patterns[n_patterns-1][i] = (Cell*)ntxm_cmalloc(sizeof(Cell)*patternlengths[n_patterns-1]);
-		
+
 		Cell *cell;
 		for(j=0;j<patternlengths[n_patterns-1];++j)
 		{
@@ -274,9 +274,9 @@ void Song::addPattern(u16 length)
 }
 
 void Song::channelAdd(void) {
-	
+
 	if(n_channels==MAX_CHANNELS) return;
-	
+
 	// Go through all patterns and add a channel
 	for(u8 pattern=0;pattern<n_patterns;++pattern) {
 		patterns[pattern] = (Cell**)ntxm_crealloc(patterns[pattern], sizeof(Cell*)*(n_channels+1));
@@ -291,22 +291,22 @@ void Song::channelAdd(void) {
 	}
 
 	n_channels++;
-	
+
 	ntxm_flush_dcache();
 }
 
 void Song::channelDel(void) {
-	
+
 	if(n_channels==1) return;
-	
+
 	// Go through all patterns and delete the last channel
 	for(u8 pattern=0;pattern<n_patterns;++pattern) {
 		ntxm_free(patterns[pattern][n_channels-1]);
 		patterns[pattern] = (Cell**)ntxm_crealloc(patterns[pattern], sizeof(Cell*)*(n_channels-1));
 	}
-	
+
 	n_channels--;
-	
+
 	ntxm_flush_dcache();
 }
 
@@ -318,21 +318,21 @@ u8 Song::getNumPatterns(void) {
 
 #ifndef ARM7
 
-void Song::resizePattern(u8 ptn, u16 newlength)
+void Song::resizePattern(u8 ptn, u16 newlength, bool force_reallocation)
 {
 	// If the pattern is shortened or if the pattern is enlarged,
 	// but stays below or equal to the internal length
-	if( ( newlength < patternlengths[ptn] ) ||
-	    ( (newlength > patternlengths[ptn]) && (newlength <= internal_patternlengths[ptn]) ) )
-	{
-		patternlengths[ptn] = newlength; // Only set the length value
-	
-	} else { // If the pattern is enlarged beyond the internal length
-	
+	if(!force_reallocation && newlength <= internal_patternlengths[ptn]) {
+	    // Only set the length values
+		patternlengths[ptn] = newlength;
+	} else {
+	    // If the pattern is enlarged beyond the internal length
+		// (or if reallocation is forced)
+
 		// Go through all channels of this pattern and resize them
 		for(u8 channel=0; channel<n_channels; ++channel) {
 			patterns[ptn][channel] = (Cell*)ntxm_crealloc(patterns[ptn][channel], sizeof(Cell)*newlength);
-			
+
 			// The new cells must be cleared
 			Cell *cell;
 			for(u16 i=internal_patternlengths[ptn]; i<newlength;++i) {
@@ -340,11 +340,11 @@ void Song::resizePattern(u8 ptn, u16 newlength)
 				clearCell(cell);
 			}
 		}
-		
+
 		patternlengths[ptn] = newlength;
 		internal_patternlengths[ptn] = newlength;
 	}
-	
+
 	ntxm_flush_dcache();
 }
 
@@ -368,18 +368,6 @@ void Song::setRestartPosition(u8 _restart_position) {
 
 #endif
 
-u8 Song::getRestartPosition(void) {
-	return restart_position;
-}
-
-u8 Song::getTempo(void) {
-	return speed;
-}
-
-u8 Song::getBPM(void) {
-	return bpm;
-}
-
 void Song::setTempo(u8 _tempo) {
 	speed = _tempo;
 #ifndef ARM7
@@ -398,20 +386,20 @@ void Song::setBpm(u8 _bpm) {
 
 // Zapping
 void Song::zapPatterns(void) {
-	
+
 	while(potsize > 1) {
 		potDel(potsize-1);
 	}
 	setPotEntry(0, 0);
-	
+
 	killPatterns();
 	n_channels = DEFAULT_CHANNELS;
 	n_patterns = 0;
-	
+
 	patterns = (Cell***)ntxm_cmalloc(sizeof(Cell**)*MAX_PATTERNS);
-	
+
 	addPattern();
-	
+
 	restart_position = 0;
 	ntxm_flush_dcache();
 }
@@ -419,12 +407,12 @@ void Song::zapPatterns(void) {
 void Song::zapInstruments(void)
 {
 	killInstruments();
-	
+
 	instruments = (Instrument**)ntxm_cmalloc(sizeof(Instrument*)*MAX_INSTRUMENTS);
 	for(u16 i=0; i<MAX_INSTRUMENTS; ++i) {
 		instruments[i] = NULL;
 	}
-	
+
 	ntxm_flush_dcache();
 }
 
@@ -435,15 +423,13 @@ void Song::clearCell(Cell *cell)
 	cell->instrument = NO_INSTRUMENT;
 	cell->effect = NO_EFFECT;
 	cell->effect_param = NO_EFFECT_PARAM;
-	cell->effect2 = NO_EFFECT;
-	cell->effect2_param = NO_EFFECT_PARAM;
 }
 
 void Song::setChannelMute(u8 chn, bool muted)
 {
 	if(chn >= n_channels)
 		return;
-	
+
 	channels_muted[chn] = muted;
 	ntxm_flush_dcache();
 }
@@ -454,7 +440,7 @@ bool Song::channelMuted(u8 chn)
 {
 	if(chn >= n_channels)
 		return false;
-	
+
 	return channels_muted[chn];
 }
 
@@ -463,13 +449,13 @@ bool Song::channelMuted(u8 chn)
 #ifndef ARM7
 
 void Song::killPatterns(void) {
-	
+
 	for(u8 ptn=0; ptn<n_patterns; ++ptn) {
-		
+
 		for(u8 chn=0; chn<n_channels; ++chn) {
 			ntxm_free(patterns[ptn][chn]);
 		}
-		
+
 		ntxm_free(patterns[ptn]);
 	}
 	ntxm_free(patterns);
@@ -477,7 +463,7 @@ void Song::killPatterns(void) {
 }
 
 void Song::killInstruments(void) {
-	
+
 	for(u8 i=0;i<MAX_INSTRUMENTS;++i)
 	{
 		if(instruments[i] != NULL)
@@ -486,7 +472,7 @@ void Song::killInstruments(void) {
 			instruments[i] = NULL;
 		}
 	}
-	
+
 	ntxm_free(instruments);
 	instruments = NULL;
 }
