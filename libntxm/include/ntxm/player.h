@@ -1,216 +1,148 @@
 /*
  * libNTXM - XM Player Library for the Nintendo DS
- *
- *    Copyright (C) 2005-2008 Tobias Weyand (0xtob)
- *                         me@nitrotracker.tobw.net
- *
  */
-
-/***** BEGIN LICENSE BLOCK *****
- *
- * Version: Noncommercial zLib License / GPL 3.0
- *
- * The contents of this file are subject to the Noncommercial zLib License
- * (the "License"); you may not use this file except in compliance with
- * the License. You should have recieved a copy of the license with this package.
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied.
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 3 or later (the "GPL"),
- * in which case the provisions of the GPL are applicable instead of those above.
- * If you wish to allow use of your version of this file only under the terms of
- * either the GPL, and not to allow others to use your version of this file under
- * the terms of the Noncommercial zLib License, indicate your decision by
- * deleting the provisions above and replace them with the notice and other
- * provisions required by the GPL. If you do not delete the provisions above,
- * a recipient may use your version of this file under the terms of any one of
- * the GPL or the Noncommercial zLib License.
- *
- ***** END LICENSE BLOCK *****/
 
 #ifndef _PLAYER_H_
 #define _PLAYER_H_
 
+#include "instrument.h"
 #include "song.h"
-#include "vibrato_sine_table.h"
-#include "linear_freq_table.h"
-
-#include <new>
-#include <stdlib.h>
-
-#define FADE_OUT_MS	10 // Milliseconds that a click-preventing fadeout takes
-
-#define CHANNEL_TO_BE_DISABLED	2
-
-#define DELAY_CMD 0x0ed0
-
-#define UNTAGGED 0xffff  // Indicates that this channel is not playing a note issued via MIDI or Piano Pak, etc.
-
-// NT's `linear_freq_table` works in finesteps but this is _not_ the unit FT2 uses for portamento, vibrato etc.
-// To get decent accuracy for these effects, we use 24.8 fixed point and a hand-picked multiplier.
-#define PORTA_PRECISION 8             // Number of fractional bits for portamento state.
-#define PORTA_FIX(n) ((s32)n * 1704)  // Found through trial and error.
-
-typedef struct
-{
-	u16 row;							// Current row
-	u8 pattern;							// Current pattern
-	u8 potpos;							// Current position in pattern order table
-	bool songloop;						// Whether the song is played in a loop
-	bool playing;						// D'uh!
-	bool juststarted;					// If we just started playing
-	u32 tick_ms;						// ms spent in the current tick (16.16 fixed point)
-	u8 row_ticks;						// Ticks that passed in the current row
-	u8 channel_active[MAX_CHANNELS];			// 0 for inactive, 1 for active, 2 for deactivation scheduled
-	u16 channel_ms_left[MAX_CHANNELS];			// how many milliseconds still to play?
-	bool channel_loop[MAX_CHANNELS]; 			// Is the sample that is played looped?
-	u8 channel_fade_active[MAX_CHANNELS];		// Is fadeout for channel i active?
-	u8 channel_fade_ms[MAX_CHANNELS];			// How long (ms) till channel i is faded out?
-	u8 channel_fade_target_volume[MAX_CHANNELS];	// Target volume after fading
-	u8 channel_volume[MAX_CHANNELS];			// Current channel volume
-	u8 channel_note[MAX_CHANNELS];			// Current note playing
-	u8 channel_prev_note[MAX_CHANNELS];  // Previous note played
-	u8 channel_instrument[MAX_CHANNELS];		// Current instrument playing
-	u8 channel_effect[MAX_CHANNELS];			// Currently active effect
-	u8 channel_effect_param[MAX_CHANNELS];		// Param of active effect
-	u8 channel_env_vol[MAX_CHANNELS];			// Current envelope height (0..63)
-	u8 channel_fade_vol[MAX_CHANNELS];			// Current fading volume (0..127)
-	u8 channel_prev_sample_vol[MAX_CHANNELS];      // Last sample volume
-	s32 channel_porta_accumulator[MAX_CHANNELS];  // Absolute pitch, measured in 256ths of a fine-step.
-	s32 channel_porta_tone_target[MAX_CHANNELS];  // Target value for portamento to note effect
-	u8 channel_porta_tone_increment[MAX_CHANNELS];
-	u8 channel_porta_increment[MAX_CHANNELS];
-	u8 channel_porta_decrement[MAX_CHANNELS];
-	u8 channel_fine_porta_increment[MAX_CHANNELS];
-	u8 channel_fine_porta_decrement[MAX_CHANNELS];
-	u8 channel_exfine_porta_increment[MAX_CHANNELS];
-	u8 channel_exfine_porta_decrement[MAX_CHANNELS];
-	bool channel_porta_up[MAX_CHANNELS];
-	bool channel_porta_enabled[MAX_CHANNELS];
-	u8 channel_vib_accumulator[MAX_CHANNELS];
-	u8 channel_vib_phase_increment[MAX_CHANNELS];
-	u16 channel_vib_depth[MAX_CHANNELS];
-	u16 channel_tags[MAX_CHANNELS];  // For MIDI and Piano Pak, need to remember which channel holds which
-	                                 // user-played note so we can turn them off when the key is released.
-	
-	bool waitrow;							// Wait until the end of the last tick before muting instruments
-	bool patternloop;						// Loop the current pattern
-
-	bool playing_single_sample;
-	u32 single_sample_ms_remaining;
-	u8 single_sample_channel;
-} PlayerState;
 
 typedef struct {
-	u16 pattern_loop_begin;
-	u8 pattern_loop_count;
-	bool pattern_loop_jump_now;
-	bool channel_setvol_requested[MAX_CHANNELS];
-	s16 channel_last_slidespeed[MAX_CHANNELS];
-	bool pattern_break_requested;
-	bool position_jump_requested;  // implies pattern_break_requested
-	u8 pattern_break_row;
-	u8 position_jump_pos;
-	u8 pattern_delay_store;
-	u8 pattern_delay;         // 0: inactive, 1..16: (N-1) repetitions remaining
-} EffectState;
+    int16_t songPos, pattNr, pattPos, pattLen;
+    uint16_t speed, globVol, timer;
+    uint8_t pattDelTime, pattDelTime2, pBreakPos;
+    bool pBreakFlag, posJumpFlag;
+} PlayerState;
+
+typedef struct stmTyp_t
+{
+    int32_t smpStartPos;
+	Instrument *instrSeg;
+
+	int16_t envVIPValue, envPIPValue;
+	uint16_t outPeriod, realPeriod, finalPeriod, finalVol, tonTyp, wantPeriod, portaSpeed;
+	uint16_t envVCnt, envVAmp, envPCnt, envPAmp, eVibAmp, eVibSweep;
+	uint16_t fadeOutAmp, fadeOutSpeed;
+
+	volatile uint8_t status;
+	int8_t relTonNr, fineTune;
+	uint8_t sampleNr, instrNr, effTyp, eff, smpOffset, tremorSave, tremorPos;
+	uint8_t globVolSlideSpeed, panningSlideSpeed, mute, waveCtrl, portaDir;
+	uint8_t glissFunk, vibPos, tremPos, vibSpeed, vibDepth, tremSpeed, tremDepth;
+	uint8_t pattPos, loopCnt, volSlideSpeed, fVolSlideUpSpeed, fVolSlideDownSpeed;
+	uint8_t fPortaUpSpeed, fPortaDownSpeed, ePortaUpSpeed, ePortaDownSpeed;
+	uint8_t portaUpSpeed, portaDownSpeed, retrigSpeed, retrigCnt, retrigVol;
+	uint8_t volKolVol, tonNr, envPPos, eVibPos, envVPos, realVol, oldVol, outVol;
+	uint8_t oldPan, outPan, finalPan;
+	bool envSustainActive;
+} stmTyp;
 
 class Player {
-	public:
+public:
+    Player(void (*_playTimerListener)(void) = nullptr);
 
-		// Constructor. The first arument is a function pointer to a function that calls the
-		// playTimerHandler() funtion of the player. This is a complicated solution, but
-		// the timer callback must be a static function.
-		Player(void (*_externalTimerHandler)(void)=0);
+    void play(int potpos, int row, bool repeat);
+    void stop();
+    void playNote(int note, int volume, int channel, int instidx);
+    void stopAllNotes(int note, int instidx);
+    void playSample(Sample *sample, int note, int volume, int channel);
+    void stopChannel(int channel);
+    void playNoteAuto(int instidx, int note, int volume, int tag);
+    void stopNoteAuto(int tag);
 
-		// override new and delete to avoid linking cruft. (by WinterMute)
-		static void* operator new (size_t size);
-		static void operator delete (void *p);
+    u32 getMsPerTick() const;
+    inline int getPlayTimerFrequency() const { return 1000; }
 
-		//
-		// Play Control
-		//
+    void setPatternLoop(bool repeat);
+    void setSong(Song* _song);
 
-		void setSong(Song *_song);
+    void playTimerHandler();
 
-		// Set a pattern to looping
-		void setPatternLoop(bool loopstate);
+private:
+    PlayerState state;
+    u32 last_ms;
+    bool playing;
+    bool patternLoop;
 
-		// Plays the song till the end starting at the given pattern order table position and row
-		void play(u8 potpos, u16 row, bool loop);
+    Song* song;
+    void (*playTimerListener)(void);
 
-		// Plays on the specified pattern
-		void playPtn(u8 ptn);
+    // ft2play routines
+    stmTyp stm[MAX_CHANNELS];
+    uint8_t PMPTmpActiveChannel;
 
-		void stop(void);
+    void setPos(int32_t pos, int32_t row);
+    void resetVoice(stmTyp *ch);
+    void stopVoices(void);
 
-		// Play the note with the given settings. channel == 255 -> search for free channel
-		void playNote(u8 note, u8 volume, u8 channel, u8 instidx);
-
-		// Play the given sample (and send a notification when done)
-		void playSample(Sample *sample, u8 note, u8 volume, u8 channel);
-
-		// Find all matching notes currently being played by an instument, and stop it.
-		void stopAllNotes(u8 note, u8 instidx);
-
-		// Stop playback on a channel
-		void stopChannel(u8 channel);
-
-		// Play a user-input note, finding a freely available channel.
-		// tag usually equals note, but lacks octave for Piano Pak inputs, and includes instrument for MIDI inputs.
-		void playNoteAuto(u8 instidx, u8 note, u8 volume, u16 tag);
-		
-		// Stop a user-input note on whichever channel it's playing.
-		void stopNoteAuto(u16 tag);
-
-		//
-		// Callbacks
-		//
-
-		void registerRowCallback(void (*onRow_)(u16));
-		void registerPatternChangeCallback(void (*onPatternChange_)(u8));
-		void registerSampleFinishCallback(void (*onSampleFinish_)());
-
-		//
-		// Misc
-		//
-
-		int getPlayTimerFrequency(void) const { return 1000; }
-		void playTimerHandler(void);
-		void stopSampleFadeoutTimerHandler(void);
-
-	private:
-
-		void playRow(void);
-		void updateChannelVol(u8 volume, u8 channel); //Pattern volume updates per channel
-		void handleEffects(void); // Row Effect handler
-		void handleTickEffects(void); // Tick Effect handler
-		void finishEffects(void); // Clean up after the effects
-
-		int getChannelForTag(u16 tag);
-
-		void initState(void);
-		void initEffState(void);
-		void initDefaultPanning(void);
-		void resetPanning(void);
-		void resetVibrato(u8 channel);
-
-		void handleFade(u32 passed_time);
-
-		bool calcNextPos(u16 *nextrow, u8 *nextpotpos); // Calculate next row and pot position
-
-		Song *song;
-		PlayerState state;
-		EffectState effstate;
-
-		void (*externalTimerHandler)(void);
-		void (*onRow)(u16);
-		void (*onPatternChange)(u8);
-		void (*onSampleFinish)();
-
-		u32 lastms; // For timer
+    uint16_t note2Period(uint16_t note);
+    void retrigVolume(stmTyp *ch);
+    void retrigEnvelopeVibrato(stmTyp *ch);
+    void keyOff(stmTyp *ch);
+    void startTone(uint8_t ton, uint8_t effTyp, uint8_t eff, stmTyp *ch);
+    void finePortaUp(stmTyp *ch, uint8_t param);
+    void finePortaDown(stmTyp *ch, uint8_t param);
+    void setGlissCtrl(stmTyp *ch, uint8_t param);
+    void setVibratoCtrl(stmTyp *ch, uint8_t param);
+    void jumpLoop(stmTyp *ch, uint8_t param);
+    void setTremoloCtrl(stmTyp *ch, uint8_t param);
+    void volFineUp(stmTyp *ch, uint8_t param);
+    void volFineDown(stmTyp *ch, uint8_t param);
+    void noteCut0(stmTyp *ch, uint8_t param);
+    void pattDelay(stmTyp *ch, uint8_t param);
+    void E_Effects_TickZero(stmTyp *ch, uint8_t param);
+    void posJump(stmTyp *ch, uint8_t param);
+    void pattBreak(stmTyp *ch, uint8_t param);
+    void setSpeed(stmTyp *ch, uint8_t param);
+    void setGlobaVol(stmTyp *ch, uint8_t param);
+    void setEnvelopePos(stmTyp *ch, uint8_t param);
+    void v_SetVibSpeed(stmTyp *ch, uint8_t *volKol);
+    void v_Volume(stmTyp *ch, uint8_t *volKol);
+    void v_FineSlideDown(stmTyp *ch, uint8_t *volKol);
+    void v_FineSlideUp(stmTyp *ch, uint8_t *volKol);
+    void v_SetPan(stmTyp *ch, uint8_t *volKol);
+    void v_SlideDown(stmTyp *ch);
+    void v_SlideUp(stmTyp *ch);
+    void v_Vibrato(stmTyp *ch);
+    void v_PanSlideLeft(stmTyp *ch);
+    void v_PanSlideRight(stmTyp *ch);
+    void v_TonePorta(stmTyp *ch);
+    void VJumpTab_TickNonZero(uint8_t efx, stmTyp *ch);
+    void VJumpTab_TickZero(uint8_t efx, stmTyp *ch, uint8_t *volKol);
+    void setPan(stmTyp *ch, uint8_t param);
+    void setVol(stmTyp *ch, uint8_t param);
+    void xFinePorta(stmTyp *ch, uint8_t param);
+    void doMultiRetrig(stmTyp *ch, uint8_t param);
+    void multiRetrig(stmTyp *ch, uint8_t param, uint8_t volumeColumnData);
+    void JumpTab_TickZero(stmTyp *ch, uint8_t effTyp, uint8_t eff);
+    void checkEffects(stmTyp *ch);
+    void fixTonePorta(stmTyp *ch, const Cell *p, uint8_t inst);
+    void getNewNote(stmTyp *ch, const Cell *p);
+    void fixaEnvelopeVibrato(stmTyp *ch);
+    uint16_t relocateTon(uint16_t period, uint8_t arpNote, stmTyp *ch);
+    void tonePorta(stmTyp *ch, uint8_t param);
+    void vibrato2(stmTyp *ch);
+    void arp(stmTyp *ch, uint8_t param);
+    void portaUp(stmTyp *ch, uint8_t param);
+    void portaDown(stmTyp *ch, uint8_t param);
+    void vibrato(stmTyp *ch, uint8_t param);
+    void tonePlusVol(stmTyp *ch, uint8_t param);
+    void vibratoPlusVol(stmTyp *ch, uint8_t param);
+    void tremolo(stmTyp *ch, uint8_t param);
+    void volume(stmTyp *ch, uint8_t param);
+    void globalVolSlide(stmTyp *ch, uint8_t param);
+    void keyOffCmd(stmTyp *ch, uint8_t param);
+    void panningSlide(stmTyp *ch, uint8_t param);
+    void tremor(stmTyp *ch, uint8_t param);
+    void retrigNote(stmTyp *ch, uint8_t param);
+    void noteCut(stmTyp *ch, uint8_t param);
+    void noteDelay(stmTyp *ch, uint8_t param);
+    void E_Effects_TickNonZero(stmTyp *ch, uint8_t param);
+    void JumpTab_TickNonZero(stmTyp *ch, uint8_t effTyp, uint8_t eff);
+    void doEffects(stmTyp *ch);
+    void getNextPos(void);
+    void mainPlayer(void);
 };
 
 #endif

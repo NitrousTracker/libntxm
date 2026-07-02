@@ -253,7 +253,7 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 				song->addPattern();
 			}
 
-			song->resizePattern(pattern, n_rows);
+			song->resizePattern(pattern, n_rows, true);
 
 			Cell **ptn = song->getPattern(pattern);
 
@@ -267,7 +267,6 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 
 					magicbyte = ptn_data[ptn_data_offset];
 					ptn_data_offset++;
-					//fread(&magicbyte, 1, 1, xmfile);
 
 					bool read_note=true, read_inst=true, read_vol=true,
 						read_eff_type=true, read_eff_param=true;
@@ -340,10 +339,14 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 						ptn[chn][row].instrument = NO_INSTRUMENT;
 					}
 
+					ptn[chn][row].volume = vol;
+					ptn[chn][row].effect = eff_type;
+					ptn[chn][row].effect_param = eff_param;
+
 					// Separate volume column effects from the volume column
 					// and put them into the effcts column instead
 
-					if((vol >= 0x10) && (vol <= 0x50))
+					/* if((vol >= 0x10) && (vol <= 0x50))
 					{
 						u16 volume = (vol-16)*2;
 						if(volume>=MAX_VOLUME) volume = MAX_VOLUME;
@@ -394,7 +397,7 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 					ptn[chn][row].effect = eff_type;
 					ptn[chn][row].effect_param = eff_param;
 					ptn[chn][row].effect2 = eff2_type;
-					ptn[chn][row].effect2_param = eff2_param;
+					ptn[chn][row].effect2_param = eff2_param; */
 				}
 
 			}
@@ -481,6 +484,9 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 					vol_env_on, vol_env_sustain, vol_env_loop);
 			instrument->setPanningEnvelope(instinfo->pan_points, instinfo->n_pan_points, instinfo->pan_sustain_point,
 					pan_env_on, pan_env_sustain, pan_env_loop);
+			instrument->setVibrato(instinfo->vibrato_type, instinfo->vibrato_sweep, instinfo->vibrato_depth,
+			        instinfo->vibrato_rate);
+			instrument->setFadeOutVolume(instinfo->vol_fadeout);
 
 			// Skip the rest of the header if is longer than the current position
 			// This was really strange and took some time (and debugging with Tim)
@@ -528,11 +534,11 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 				sample_volume = *(u8*)(sample_headers+40*sample_id + 12);
 				//ntxm_dprintf("sample volume: %u\n",sample_volume);
 
-				if(sample_volume == 64) { // Convert scale to 0-255
+				/*if(sample_volume == 64) { // Convert scale to 0-255
 					sample_volume = 255;
 				} else {
 					sample_volume *= 4;
-				}
+				}*/
 
 				// Finetune
 				s8 sample_finetune;
@@ -712,7 +718,7 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 	fwrite(&versionbyte, 1, 1, xmfile);
 
 	// Tracker Name
-	char trackername[21] = "NitroTracker";
+	char trackername[21] = "NitroTracker 0.7+";
 	fwrite(trackername, 1, 20, xmfile);
 
 	// Version number
@@ -784,20 +790,20 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 		u16 n_rows = song->getPatternLength(ptn);
 		fwrite(&n_rows, 2, 1, xmfile);
 
-		if(n_rows > 256) {
+		if(n_rows > MAX_PATTERN_LENGTH) {
 			ntxm_dprintf("%u rows!\n",n_rows);
 			while(1);
 		}
 
 		// Pack the pattern in memory, then save it
-		u8 *patterndata = (u8*)ntxm_umalloc(5*32*256);
+		u8 *patterndata = (u8*)ntxm_umalloc(5*MAX_CHANNELS*MAX_PATTERN_LENGTH);
 
 		if(patterndata==0) {
 			fclose(xmfile);
 			return FormatTransportError::MEM_FULL;
 		}
 
-		memset(patterndata, 0, 5*32*256);
+		memset(patterndata, 0, 5*MAX_CHANNELS*MAX_PATTERN_LENGTH);
 		Cell **pattern = song->getPattern(ptn);
 
 		u16 datapos = 0;
@@ -847,7 +853,7 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 				}
 				if(write_volume) {
 					// Volume or volume effect?
-					if(cell.volume == NO_VOLUME) // Volume is not set, so it's a volume effect
+					/* if(cell.volume == NO_VOLUME) // Volume is not set, so it's a volume effect
 					{
 						// Convert "real" effect to volume effect
 						u8 eff2_type = cell.effect2;
@@ -902,7 +908,8 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 
 					} else {
 						patterndata[datapos] = (cell.volume+1)/2+16;
-					}
+					} */
+					patterndata[datapos] = cell.volume;
 					datapos++;
 				}
 				if(write_effect) {
@@ -1033,7 +1040,11 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 			if(instrument->pan_env_loop)
 				instinfo->pan_type |= BIT(2);
 
-			// Vibrato stuff and fadeout are skipped for now
+			instinfo->vibrato_type = instrument->getVibratoType();
+			instinfo->vibrato_sweep = instrument->getVibratoSweep();
+			instinfo->vibrato_depth = instrument->getVibratoDepth();
+			instinfo->vibrato_rate = instrument->getVibratoRate();
+			instinfo->vol_fadeout = instrument->getFadeOutVolume();
 
 			fwrite( &instinfo->sample_header_size, 4, 1, xmfile);
 			fwrite( &instinfo->note_samples, 96, 1, xmfile);
@@ -1103,7 +1114,7 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 				fwrite(&smp_loop_length, 4, 1, xmfile);
 
 				// Sample Volume
-				u8 smp_vol = (sample->getVolume() + 1) / 4; // Convert scale to 0-64
+				u8 smp_vol = /* (sample->getVolume() + 1) / 4 */ sample->getVolume(); // Convert scale to 0-64
 				fwrite(&smp_vol, 1, 1, xmfile);
 
 				// Finetune

@@ -53,8 +53,8 @@
 #define NO_INSTRUMENT			255
 #define MAX_SONG_NAME_LENGTH	20
 
-#define NO_VOLUME				255
-#define MAX_VOLUME				127
+#define NO_VOLUME				0
+#define MAX_VOLUME              64
 
 #define NO_EFFECT				255
 #define NO_EFFECT_PARAM			0
@@ -206,17 +206,18 @@ class Song {
 
 		u8 getNumPatterns(void);
 
-		void resizePattern(u8 ptn, u16 newlength);
+		void resizePattern(u8 ptn, u16 newlength, bool force_reallocation=false);
 
 		// The most important functions
 		void setName(const char *_name);
 		const char *getName(void);
 
 		void setRestartPosition(u8 _restart_position);
-		u8 getRestartPosition(void);
+		inline u8 getRestartPosition(void) { return restart_position; }
 
-		u8 getTempo(void);
-		u8 getBPM(void);
+		inline u8 getTempo(void) { return speed; }
+		inline u8 getBPM(void) { return bpm; }
+		inline bool isLinear(void) { return linear; }
 
 		void setTempo(u8 _tempo);
 		void setBpm(u8 _bpm);
@@ -242,6 +243,7 @@ class Song {
 		u8 bpm;
 		u8 n_channels;
 		u8 restart_position;
+		bool linear; // Linear (vs Amiga) frequences
 
 		u16 *patternlengths;
 		u16 *internal_patternlengths; // "real length of the pattern":

@@ -41,8 +41,6 @@
 #define SILENCE_THRESHOLD_16	2000
 #define CROP_IGNORE_START		200
 
-#define NO_VOLUME				255
-
 enum LoopType
 {
 	NO_LOOP = 0,
@@ -65,9 +63,7 @@ class Sample
 
 		void saveAsWav(char *filename);
 
-		void play(u8 note, u8 volume_, u8 channel  /* effects here */, u8 offs = 0);
-		void bendNote(u8 note, u8 basenote, s16 _finetune, u8 channel);
-		void bendNoteDirect(s16 fine_step, u8 channel);
+		void play(u8 channel, u8 panning, u8 volume, u8 offs = 0);
 		u32 calcPlayLength(u8 note);
 
 		void setRelNote(s8 _rel_note);
@@ -82,7 +78,7 @@ class Sample
 		void *getData(void);
 		u32 getMaxAmplitude(u32 startsample, u32 endsample);
 		u32 getDynamicRange(void);
-		
+
 		u8 getLoop(void); // 0: no loop, 1: loop, 2: ping pong loop
 		bool setLoop(u8 loop_); // Set loop type. Can fail due to memory constraints
 		bool is16bit(void);
@@ -112,7 +108,7 @@ class Sample
 		void fadeOut(u32 startsample, u32 endsample);
 		bool reverse(u32 startsample, u32 endsample);
 		void normalize(u16 percent, u32 startsample, u32 endsample);
-		
+
 
 		// Draws a line into the sample
 		void drawLine(int x1, int y1, int x2, int y2);
@@ -151,6 +147,8 @@ class Sample
 
 		Wav wav;
 		// Other formats may follow
+
+		friend class Player;
 };
 
 #endif

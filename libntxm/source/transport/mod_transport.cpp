@@ -179,10 +179,10 @@ FormatTransportError ModTransport::load(const char *filename, Song **_song)
 
 				ptn[chn][row].instrument = period ? (sample - 1) : NO_INSTRUMENT;
 				ptn[chn][row].note = period ? (roundf(log2f(13696.0f / period) * 12) - 12) : EMPTY_NOTE;
-				if ((effect >> 8) == 0xC) {
+				/* if ((effect >> 8) == 0xC) {
 				    // Convert "Set note volume" to the volume column
 					ptn[chn][row].volume = MIN(MAX_VOLUME, (effect & 0xFF) * 2);
-				} else if (effect) {
+					} else*/ if (effect) {
     				ptn[chn][row].effect = effect >> 8;
     				ptn[chn][row].effect_param = effect & 0xFF;
 				}
@@ -203,14 +203,18 @@ FormatTransportError ModTransport::load(const char *filename, Song **_song)
 		}
 		song->setInstrument(i, inst);
 
-		void *sound_data = ntxm_umemalign(2, sampleinfo[i].length << 1);
-		if(!sound_data)
+		void *sound_data = nullptr;
+		if(sampleinfo[i].length)
 		{
-    		fclose(modfile);
-    		delete song;
-    		return FormatTransportError::MEM_FULL;
+    		sound_data = ntxm_umemalign(2, sampleinfo[i].length << 1);
+    		if(!sound_data)
+    		{
+          		fclose(modfile);
+          		delete song;
+          		return FormatTransportError::MEM_FULL;
+    		}
+    		fread(sound_data, sampleinfo[i].length << 1, 1, modfile);
 		}
-		fread(sound_data, sampleinfo[i].length << 1, 1, modfile);
 
 		Sample *sample = new Sample(sound_data, sampleinfo[i].length << 1, 8363, false);
 		if(!sample)
@@ -221,7 +225,7 @@ FormatTransportError ModTransport::load(const char *filename, Song **_song)
     		return FormatTransportError::MEM_FULL;
 		}
 
-		sample->setVolume(sampleinfo[i].volume * 255 / 64);
+		sample->setVolume(sampleinfo[i].volume);
 		sample->setFinetune(sampleinfo[i].finetune);
 
 		if(sampleinfo[i].repeat_length > 1)
