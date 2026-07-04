@@ -58,12 +58,12 @@ enum // voice flags
 Player::Player(void (*_playTimerListener)(void))
     : playing(false), patternLoop(false), playTimerListener(_playTimerListener)
 {
+    // FIXME: Move out of Player
+    demoInit();
+
     last_ms = getTicks();
     PMPSampleOverride = nullptr;
     setSong(nullptr);
-
-    // FIXME: Move out of Player
-    demoInit();
 }
 
 static inline uint32_t getFrequencyValue(uint16_t period) {
