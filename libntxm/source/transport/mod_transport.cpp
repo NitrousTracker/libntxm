@@ -189,7 +189,6 @@ FormatTransportError ModTransport::load(const char *filename, Song **_song)
 						break;
 					}
 				}
-				ptn[chn][row].note = period ? (roundf(log2f(13696.0f / period) * 12) - 12) : EMPTY_NOTE;
 
 				u8 volume = NO_VOLUME;
 				u8 effect_type = effect >> 8;
