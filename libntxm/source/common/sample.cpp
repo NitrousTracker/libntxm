@@ -48,8 +48,6 @@ extern "C" {
 #define LOOKUP_FREQ(note,finetune)		(linear_freq_table_lookup(MAX(0,N_FINETUNE_STEPS*(note)+(finetune))))
 #define GET_FREQ_DIRECT(fine_step)		(linear_freq_table_lookup(MAX(0,fine_step)))
 
-extern bool ntxm_stereo_output;
-
 /* ===================== PUBLIC ===================== */
 
 uint32_t ntxmGetFrequencyValue(uint16_t period, bool linear) {
@@ -233,7 +231,7 @@ void Sample::play(u8 channel, u8 panning, u8 volume, u8 offs)
 		ntxm_sound_channel_set_source(channel, (uint8_t*)pingpong_data + loop_offs_samps, loop_start - loop_offs_samps, loop_length << 1);
 	}
 
-    ntxm_sound_channel_play(channel, loop_bit, sound_format, ntxm_stereo_output ? panning : 128, volume);
+    ntxm_sound_channel_play(channel, loop_bit, sound_format, panning, volume);
 }
 
 #endif
@@ -398,7 +396,7 @@ u8 Sample::getBasePanning(void)
 
 void Sample::updatePanning(u8 channel)
 {
-	ntxm_sound_channel_set_panning(channel, ntxm_stereo_output ? panning : 128);
+	ntxm_sound_channel_set_panning(channel, panning);
 }
 
 #endif

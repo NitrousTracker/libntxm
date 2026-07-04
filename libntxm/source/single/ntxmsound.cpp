@@ -282,6 +282,7 @@ void ntxm_sound_channel_set_frequency(int channel, int freq) {
 
 void ntxm_sound_channel_set_panning(int channel, u32 panning) {
     emu.update();
+    if (!ntxm_stereo_output) panning = 128;
     emu.panning[channel] = panning;
 }
 

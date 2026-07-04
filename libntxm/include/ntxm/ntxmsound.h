@@ -39,6 +39,8 @@
 #define NTXMSOUND_ONE_SHOT SOUND_ONE_SHOT
 
 #if defined(ARM7)
+extern bool ntxm_stereo_output;
+
 static inline void ntxm_sound_channel_stop(int channel) {
 	SCHANNEL_CR(channel) = 0;
 }
@@ -56,6 +58,7 @@ static inline void ntxm_sound_channel_set_frequency(int channel, int freq) {
 }
 
 static inline void ntxm_sound_channel_set_panning(int channel, u32 panning) {
+    if (!ntxm_stereo_output) panning = 128;
 	u32 control_reg_val = SCHANNEL_CR(channel) & 0xff80ffff;
 	SCHANNEL_CR(channel) = control_reg_val | SOUND_PAN(panning >> 1);
 }
@@ -104,6 +107,8 @@ static inline void ntxm_sound_channel_play(int channel, u32 loop, u32 format, u3
 }
 #endif
 #else
+extern bool ntxm_stereo_output;
+
 #define NTXMSOUND_FORMAT_ADPCM	    2
 #define NTXMSOUND_FORMAT_16BIT 		1
 #define NTXMSOUND_FORMAT_8BIT 		0
