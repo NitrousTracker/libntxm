@@ -32,6 +32,10 @@
 
 #include "ntxm/mod_transport.h"
 
+extern "C" {
+    #include "../common/tables.h"
+}
+
 #include <cctype>
 #include <cmath>
 #include <cstdio>
@@ -130,7 +134,7 @@ FormatTransportError ModTransport::load(const char *filename, Song **_song)
         return FormatTransportError::TOO_MANY_CHANNELS;
 	}
 
-	Song *song = new Song(6, 125, n_channels);
+	Song *song = new Song(6, 125, n_channels, false);
 	song->setName(song_name);
 	song->setRestartPosition(restart_pos);
 
@@ -178,14 +182,40 @@ FormatTransportError ModTransport::load(const char *filename, Song **_song)
 				effect = ( ( notedata[2] & 0x0F ) << 8 ) | notedata[3];
 
 				ptn[chn][row].instrument = period ? (sample - 1) : NO_INSTRUMENT;
-				ptn[chn][row].note = period ? (roundf(log2f(13696.0f / period) * 12) - 12) : EMPTY_NOTE;
-				/* if ((effect >> 8) == 0xC) {
-				    // Convert "Set note volume" to the volume column
-					ptn[chn][row].volume = MIN(MAX_VOLUME, (effect & 0xFF) * 2);
-					} else*/ if (effect) {
-    				ptn[chn][row].effect = effect >> 8;
-    				ptn[chn][row].effect_param = effect & 0xFF;
+				ptn[chn][row].note = EMPTY_NOTE;
+				for (int n = 0; n < 96; n++) {
+				    if (period >= amigaPeriod[n]) {
+					    ptn[chn][row].note = n;
+						break;
+					}
 				}
+				ptn[chn][row].note = period ? (roundf(log2f(13696.0f / period) * 12) - 12) : EMPTY_NOTE;
+
+				u8 volume = NO_VOLUME;
+				u8 effect_type = effect >> 8;
+				u8 effect_param = effect & 0xFF;
+
+				// Most effect conversion login from pmplay
+				if (effect_type == 0xC) {
+				    // Convert "Set note volume" to the volume column
+					volume = (effect_param >= MAX_VOLUME ? MAX_VOLUME : effect_param) + 0x10;
+					effect_type = NO_EFFECT;
+				} else if (effect_type == 0x1 || effect_type == 0x2 || effect_type == 0xA) {
+				    if (effect_param == 0)
+						effect_type = NO_EFFECT;
+				} else if (effect_type == 0x5 || effect_type == 0x6) {
+				    if (effect_param == 0)
+						effect_type -= 2;
+				} else if (effect_type == 0xE) {
+				    u8 effect_e = effect_param >> 4;
+					if (effect_e == 1 || effect_e == 2 || effect_e == 0xA || effect_e == 0xB)
+					    if (!(effect_param & 0xF))
+							effect_type = NO_EFFECT;
+				}
+
+				ptn[chn][row].volume = volume;
+				ptn[chn][row].effect = effect_type;
+				ptn[chn][row].effect_param = effect_param;
 			}
 		}
 	}
@@ -226,7 +256,7 @@ FormatTransportError ModTransport::load(const char *filename, Song **_song)
 		}
 
 		sample->setVolume(sampleinfo[i].volume);
-		sample->setFinetune(sampleinfo[i].finetune);
+		sample->setFinetune(8 * ((2 * ((sampleinfo[i].finetune & 0xF) ^ 0x8)) - 16));
 
 		if(sampleinfo[i].repeat_length > 1)
        	{
