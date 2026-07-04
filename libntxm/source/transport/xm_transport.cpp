@@ -94,7 +94,12 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 	fread(songname, 1, 20, xmfile);
 
 	// Skip uninteresting stuff like tracker name
-	fseek(xmfile, 21, SEEK_CUR);
+	fseek(xmfile, 1, SEEK_CUR);
+
+	// Song name
+	char trackername[21] = {0};
+	fread(trackername, 1, 20, xmfile);
+	bool nitrotracker_compat = !strcmp(trackername, "NitroTracker");
 
 	u16 header_version;
 	fread(&header_version, 2, 1, xmfile);
@@ -261,8 +266,7 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 				for(chn=0;chn<n_channels;++chn)
 				{
 					u8 magicbyte = 0, note = EMPTY_NOTE, inst = NO_INSTRUMENT, vol = NO_VOLUME,
-						eff_type = NO_EFFECT, eff_param = NO_EFFECT_PARAM, eff2_type = NO_EFFECT,
-						eff2_param = NO_EFFECT_PARAM;
+						eff_type = NO_EFFECT, eff_param = NO_EFFECT_PARAM;
 
 					magicbyte = ptn_data[ptn_data_offset];
 					ptn_data_offset++;
@@ -323,6 +327,15 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 
 					//ntxm_dprintf("note: %u\ninst: %u\nvol: %u\neff_type: %u\neff_param: %u\n",note,inst,vol,eff_type,eff_param);
 
+					if(nitrotracker_compat) {
+					    // Cover for some pre-0.7.0 quirks
+						if ((note == 0 || note == EMPTY_NOTE || note == 97) && inst != 0) {
+						    // Old: ntxm ignores instruments on empty and stop notes
+							// New: ft2play does not ignore instruments on stop notes
+						    inst = NO_INSTRUMENT;
+						}
+					}
+
 					// Insert note into song
 					if(note > 0 && note < 97) {
 						ptn[chn][row].note = note - 1;
@@ -341,62 +354,6 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 					ptn[chn][row].volume = vol;
 					ptn[chn][row].effect = eff_type;
 					ptn[chn][row].effect_param = eff_param;
-
-					// Separate volume column effects from the volume column
-					// and put them into the effcts column instead
-
-					/* if((vol >= 0x10) && (vol <= 0x50))
-					{
-						u16 volume = (vol-16)*2;
-						if(volume>=MAX_VOLUME) volume = MAX_VOLUME;
-						ptn[chn][row].volume = volume;
-					}
-					else if(vol==0)
-					{
-						ptn[chn][row].volume = NO_VOLUME;
-					}
-					else if(vol>=0x60)
-					{
-						// It's an effect!
-						u8 volfx_param = vol & 0x0F;
-
-						if( (vol>=0x60)&&(vol<=0x6F) ) { // Volume slide down
-							eff2_type = 0x0A;
-							eff2_param = volfx_param;
-						} else if( (vol>=0x70)&&(vol<=0x7F) ) { // Volume slide up
-							eff2_type = 0x0A;
-							eff2_param = volfx_param << 4;
-						} else if( (vol>=0x80)&&(vol<=0x8F) ) { // Fine volume slide down
-							eff2_type = 0x0E;
-							eff2_param = 0xB0 | volfx_param;
-						} else if( (vol>=0x90)&&(vol<=0x9F) ) { // Fine volume slide up
-							eff2_type = 0x0E;
-							eff2_param = 0xA0 | volfx_param;
-						} else if( (vol>=0xA0)&&(vol<=0xAF) ) { // Set vibrato speed (calls vibrato)
-							eff2_type = 0x04;
-							eff2_param = volfx_param << 4;
-						} else if( (vol>=0xB0)&&(vol<=0xBF) ) { // Vibrato
-							eff2_type = 0x04;
-							eff2_param = volfx_param; // Vibrato depth
-						} else if( (vol>=0xC0)&&(vol<=0xCF) ) { // Set panning
-							eff2_type = 0x08;
-							eff2_param = volfx_param << 4;
-						} else if( (vol>=0xD0)&&(vol<=0xDF) ) { // Panning slide left
-							eff2_type = 0x19;
-							eff2_param = volfx_param;
-						} else if( (vol>=0xD0)&&(vol<=0xDF) ) { // Panning slide right
-							eff2_type = 0x19;
-							eff2_param = volfx_param << 4;
-						} else if( vol>=0xF0 ) { // Tone porta
-							eff2_type = 0x03;
-							eff2_param = volfx_param << 4;
-						}
-					}
-
-					ptn[chn][row].effect = eff_type;
-					ptn[chn][row].effect_param = eff_param;
-					ptn[chn][row].effect2 = eff2_type;
-					ptn[chn][row].effect2_param = eff2_param; */
 				}
 
 			}
@@ -848,63 +805,6 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 					datapos++;
 				}
 				if(write_volume) {
-					// Volume or volume effect?
-					/* if(cell.volume == NO_VOLUME) // Volume is not set, so it's a volume effect
-					{
-						// Convert "real" effect to volume effect
-						u8 eff2_type = cell.effect2;
-						u8 eff2_param = cell.effect2_param;
-
-						u8 volbyte = 0;
-
-						switch(eff2_type) {
-							case(0x0A): { // Volume slide
-								if(eff2_param > 0x0F) { // Up
-									volbyte = 0x70 | (eff2_param >> 4);
-								} else { // Down
-									volbyte = 0x60 | (eff2_param & 0x0F);
-								}
-								break;
-							}
-							case(0x0E): { // Fine volume slide
-								if((eff2_param & 0xF0) == 0xA0) { // Up
-									volbyte = 0x90 | (eff2_param & 0x0F);
-								} else if((eff2_param & 0xF0) == 0xB0) { // Down
-									volbyte = 0x80 | (eff2_param & 0x0F);
-								}
-								break;
-							}
-							case(0x04): { // Vibrato
-								if(eff2_param > 0x0F) { // Speed
-									volbyte = 0xA0 | (eff2_param >> 4);
-								} else { // Depth
-									volbyte = 0xB0 | (eff2_param & 0x0F);
-								}
-								break;
-							}
-							case(0x08): { // Set panning
-								volbyte = 0xC0 | (eff2_param >> 4);
-								break;
-							}
-							case(0x19): { // Panning slide
-								if(eff2_param > 0x0F) { // Right
-									volbyte = 0xE0 | (eff2_param >> 4);
-								} else { // Left
-									volbyte = 0xD0 | (eff2_param & 0x0F);
-								}
-								break;
-							}
-							case(0x03): { // Tone porta
-								volbyte = 0xF0 | (eff2_param >> 4);
-								break;
-							}
-						}
-
-						patterndata[datapos] = volbyte;
-
-					} else {
-						patterndata[datapos] = (cell.volume+1)/2+16;
-					} */
 					patterndata[datapos] = cell.volume;
 					datapos++;
 				}
