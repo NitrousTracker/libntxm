@@ -65,6 +65,7 @@ private:
     PlayerState state;
     u32 last_ms;
     bool playing;
+    bool songLoop;
     bool patternLoop;
 
     Song* song;

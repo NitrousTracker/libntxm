@@ -133,6 +133,7 @@ void Player::play(int potpos, int row, bool repeat) {
 
     setPos(potpos, row);
     playing = true;
+    songLoop = repeat;
     last_ms = getTicks();
 }
 
@@ -2037,8 +2038,16 @@ void Player::getNextPos(void)
 		if (!patternLoop)
 		{
     		state.songPos++;
-    		if (state.songPos >= song->getPotLength())
+    		if (state.songPos >= song->getPotLength()) {
+                // ntxm: handle songLoop flag
+                if (!songLoop)
+                {
+                    stop();
+                    CommandNotifyStop();
+                    return;
+                }
     			state.songPos = song->getRestartPosition();
+            }
 
     		state.pattNr = song->getPotEntry((uint8_t)state.songPos);
     		state.pattLen = song->getPatternLength((uint8_t)state.pattNr);
