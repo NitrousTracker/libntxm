@@ -333,7 +333,7 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 					//ntxm_dprintf("note: %u\ninst: %u\nvol: %u\neff_type: %u\neff_param: %u\n",note,inst,vol,eff_type,eff_param);
 
 					if(nitrotracker_compat) {
-					    // Cover for some pre-0.7.0 quirks
+					    // Cover for pre-0.7.0 quirks
 						if ((note == 0 || note == EMPTY_NOTE || note == 97) && inst != 0) {
 						    // Old: ntxm ignores instruments on empty and stop notes
 							// New: ft2play does not ignore instruments on stop notes
@@ -433,6 +433,14 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 			fread( &instinfo->reserved_bytes, 11, 1, xmfile);
 
 			bool vol_env_on, vol_env_sustain, vol_env_loop, pan_env_on, pan_env_sustain, pan_env_loop;
+
+			if(nitrotracker_compat) {
+			    // Cover for pre-0.7.0 quirks
+				if (instinfo->n_pan_points == 0) {
+				    // NitroTracker saved panning envelope flags based on uninitialized memory
+					instinfo->pan_type = 0;
+				}
+			}
 
 			vol_env_on      = instinfo->vol_type & BIT(0);
 			vol_env_sustain = instinfo->vol_type & BIT(1);
