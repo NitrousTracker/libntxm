@@ -104,6 +104,11 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 	u16 header_version;
 	fread(&header_version, 2, 1, xmfile);
 	ntxm_dprintf("XM version %x\n", header_version);
+	if(header_version < 0x104) {
+	    // TODO: Support XM 1.02/1.03
+    	fclose(xmfile);
+    	return FormatTransportError::VERSION_UNSUPPORTED;
+	}
 
 	// Header size
 	u32 header_size;

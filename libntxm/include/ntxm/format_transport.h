@@ -47,7 +47,8 @@ enum class FormatTransportError {
     FILE_ZERO_BYTE,
     DISK_FULL,
     MPT_HACKS_UNSUPPORTED,
-    TOO_MANY_CHANNELS
+    TOO_MANY_CHANNELS,
+    VERSION_UNSUPPORTED
 };
 
 // This is the abstract base class of transports.

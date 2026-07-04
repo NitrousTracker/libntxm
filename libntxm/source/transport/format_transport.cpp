@@ -44,15 +44,16 @@ static const char *transporterrors[] =
 	{NULL,
 	"fat init failed",
 	"could not open file",
-	"not a valid xm file",
+	"not a valid file",
 	"memory full",
 	"pattern read error",
 	"file too big for ram",
 	"pattern too long",
 	"file is zero byte",
 	"disk is full",
-	"xm format hacks not supported",
-	"too many channels"};
+	"format hacks not supported",
+	"too many channels",
+	"version not supported"};
 
 const char *FormatTransport::getError(FormatTransportError error_id)
 {
