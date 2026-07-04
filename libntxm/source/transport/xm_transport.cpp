@@ -233,7 +233,7 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 
 		if(patterndata_size > 0) { // Read the pattern
 
-			u8 *ptn_data = (u8*)ntxm_umemalign(2, patterndata_size);
+			u8 *ptn_data = (u8*)ntxm_umalloc(patterndata_size);
 			if (ptn_data == NULL) {
 				fclose(xmfile);
 				ntxm_dprintf("memfull on line %d\n", __LINE__);
@@ -471,7 +471,7 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 			// Load the sample(s)
 
 			// Headers
-			u8 *sample_headers = (u8*)ntxm_umemalign(2, instinfo->n_samples*40);
+			u8 *sample_headers = (u8*)ntxm_umalloc(instinfo->n_samples*40);
 			if (sample_headers == NULL) {
 				ntxm_free(instinfo);
 				fclose(xmfile);
@@ -557,8 +557,11 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 				void *sample_data = 0;
 				if(sample_length > 0)
 				{
-					sample_data = ntxm_umemalign(2, sample_length);
-
+#if defined(NT_PLATFORM_NDS) || defined(NT_PLATFORM_3DS)
+					sample_data = ntxm_umemalign(4, (sample_length + 3) & ~3);
+#else
+                    sample_data = ntxm_umalloc(sample_length);
+#endif
 					if(sample_data==NULL)
 					{
 						ntxm_free(sample_headers);
@@ -1148,16 +1151,14 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 		else
 		{
 			// fill up the instrument header with 0es
-			u8 *zeroes = (u8*)ntxm_umemalign(2, inst_size - 29);
+			u8 *zeroes = (u8*)ntxm_umalloc(inst_size - 29);
 			if (zeroes != NULL) {
 				memset(zeroes, 0, inst_size - 29);
 				fwrite(zeroes, inst_size - 29, 1, xmfile);
 				ntxm_free(zeroes);
 			} else {
-				ntxm_dprintf("saving with slow uncached fallback\n");
 				for (u32 i=0; i<inst_size - 29; ++i)
 					fputc(0, xmfile);
-				ntxm_dprintf("done\n");
 			}
 		}
 

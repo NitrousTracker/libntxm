@@ -235,7 +235,11 @@ FormatTransportError ModTransport::load(const char *filename, Song **_song)
 		void *sound_data = nullptr;
 		if(sampleinfo[i].length)
 		{
-    		sound_data = ntxm_umemalign(2, sampleinfo[i].length << 1);
+#if defined(NT_PLATFORM_NDS) || defined(NT_PLATFORM_3DS)
+    		sound_data = ntxm_umemalign(4, ((sampleinfo[i].length << 1) + 3) & ~3);
+#else
+            sound_data = ntxm_umalloc(sampleinfo[i].length << 1);
+#endif
     		if(!sound_data)
     		{
           		fclose(modfile);
