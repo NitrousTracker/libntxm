@@ -87,7 +87,7 @@ inline u32 linear_freq_table_lookup(u32 freqpos)
 Sample::Sample(void *_sound_data, u32 _n_samples, u16 _sampling_frequency, bool _is_16_bit,
 	u8 _loop, u8 _volume)
 	:pingpong_data(0), n_samples(_n_samples), is_16_bit(_is_16_bit), loop(_loop),
-	loop_start(0), loop_length(0), volume(_volume), panning(128), base_panning(128)
+	loop_start(0), loop_length(0), volume(_volume), panning(128)
 {
 	sound_data = _sound_data;
 
@@ -103,7 +103,7 @@ Sample::Sample(void *_sound_data, u32 _n_samples, u16 _sampling_frequency, bool 
 
 Sample::Sample(const char *filename, u8 _loop, bool *_success)
 	:pingpong_data(0), loop(_loop), loop_start(0), loop_length(0), volume(255),
-	panning(128), base_panning(128)
+	panning(128)
 {
 	sound_data = (void**)ntxm_ccalloc(20*sizeof(void*), 1);
 
@@ -381,25 +381,6 @@ u8 Sample::getPanning(void)
 {
 	return panning;
 }
-
-void Sample::setBasePanning(void)
-{
-	base_panning = panning;
-}
-
-u8 Sample::getBasePanning(void)
-{
-	return base_panning;
-}
-
-#if defined(ARM7) || !defined(NT_PLATFORM_NDS)
-
-void Sample::updatePanning(u8 channel)
-{
-	ntxm_sound_channel_set_panning(channel, panning);
-}
-
-#endif
 
 void Sample::setName(const char *name_)
 {

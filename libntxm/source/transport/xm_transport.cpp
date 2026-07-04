@@ -1026,7 +1026,7 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 				fwrite(&smp_type, 1, 1, xmfile);
 
 				// Panning
-				u8 smp_panning = sample->getBasePanning();
+				u8 smp_panning = sample->getPanning();
 				fwrite(&smp_panning, 1, 1, xmfile);
 
 				// Relative note
