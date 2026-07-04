@@ -124,11 +124,7 @@ Sample::Sample(const char *filename, u8 _loop, bool *_success)
 	calcRelnoteAndFinetune( wav.getSamplingRate() );
 
 	u8 bit_per_sample = wav.getBitPerSample();
-
-	if(bit_per_sample == 16)
-		is_16_bit = true;
-	else
-		is_16_bit = false;
+	is_16_bit = (bit_per_sample == 16);
 
 	if(wav.getCompression() == CMP_ADPCM)
 		sound_format = NTXMSOUND_FORMAT_ADPCM;

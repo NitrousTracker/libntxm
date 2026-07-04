@@ -73,13 +73,11 @@ Instrument::Instrument(const char *_name, Sample *_sample, u8 _volume)
 	name[MAX_INST_NAME_LENGTH] = 0;
 	strncpy(name, _name, MAX_INST_NAME_LENGTH);
 
-	samples = (Sample**)ntxm_ccalloc(1, sizeof(Sample*)*1);
+	samples = (Sample**)ntxm_cmalloc(sizeof(Sample*)*1);
 	samples[0] = _sample;
 	n_samples = 1;
 
-	note_samples = (u8*)ntxm_cmalloc(sizeof(u8)*MAX_OCTAVE*12);
-	for(u16 i=0;i<MAX_OCTAVE*12; ++i)
-		note_samples[i] = 0;
+	note_samples = (u8*)ntxm_ccalloc(sizeof(u8)*MAX_OCTAVE*12, 1);
 }
 
 Instrument::~Instrument()
@@ -105,7 +103,6 @@ void Instrument::addSample(Sample *sample)
 
 void Instrument::setSample(u8 idx, Sample *sample)
 {
-
 	// Delete the sample if it already exists
 	if( (idx < n_samples) && (samples[idx] != 0) )
 		delete samples[idx];
@@ -285,43 +282,3 @@ u8 Instrument::getVolumeEnvelopeSustainPoint(void)
   return vol_sustain_point;
 }
 #endif
-
-void Instrument::updateEnvelopePos(u8 bpm, u8 ms_passed, u8 channel, u8 note)
-{
-
-	if ((note != STOP_NOTE) && ((vol_env_sustain == true) && (envelope_pixels[channel] >= vol_envelope_x[vol_sustain_point]) && (envelope_pixels[channel] < vol_envelope_x[vol_sustain_point + 1])))
-	{
-	  envelope_pixels[channel] = vol_envelope_x[vol_sustain_point];
-	  return;
-	}
-	envelope_ms[channel] += ms_passed;
-	envelope_pixels[channel] = envelope_ms[channel] * bpm * 50 / 120 / 1000; // 50 pixels per second at 120 BPM
-}
-
-u16 Instrument::getEnvelopeAmp(u8 channel, u8 note)
-{
-	if( (n_vol_points == 0) || (vol_env_on == false) )
-		return 64;
-
-	u8 envpoint = 0;
-	while( (envpoint < n_vol_points - 1) && (envelope_pixels[channel] >= vol_envelope_x[envpoint+1]) )
-	{
-	    envpoint++;
-	}
-
-	if(envpoint >= n_vol_points - 1) // Last env point?
-		return vol_envelope_y[envpoint];
-
-	u16 x1 = vol_envelope_x[envpoint];
-	u16 y1 = vol_envelope_y[envpoint];
-	u16 x2 = vol_envelope_x[envpoint+1];
-	u16 y2 = vol_envelope_y[envpoint+1];
-
-	u16 rel_x = envelope_pixels[channel] - x1;
-
-	u16 y = y1 + rel_x * (y2 - y1) / (x2 - x1);
-	if(y > 64)
-		y = 64;
-
-	return y;
-}
