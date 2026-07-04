@@ -9,7 +9,6 @@
 #include <stdarg.h>
 
 #include "ntxm/fifocommand.h"
-#include "ntxm/linear_freq_table.h"
 
 #include "ntxm/player.h"
 #include "ntxm/ntxm7.h"

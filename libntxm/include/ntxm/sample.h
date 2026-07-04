@@ -35,11 +35,6 @@
 
 #include "common.h"
 #include "wav.h"
-#include "linear_freq_table.h"
-
-#define BASE_NOTE				96	// Index if C-4 (FT2 base note)
-#define SILENCE_THRESHOLD_16	2000
-#define CROP_IGNORE_START		200
 
 enum LoopType
 {
@@ -49,9 +44,11 @@ enum LoopType
 	LOOP_TYPE_COUNT = 3
 };
 
-#define SAMPLE_NAME_LENGTH		24
+#define SAMPLE_NAME_LENGTH 24
 
 #define FT_OFFSET_SCALAR 256
+
+uint32_t ntxmGetFrequencyValue(uint16_t period, bool linear);
 
 class Sample
 {

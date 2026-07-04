@@ -54,8 +54,8 @@ allocated as far as needed.
 
 #ifndef ARM7
 
-Song::Song(u8 _speed, u8 _bpm, u8 _channels)
-	:speed(_speed), bpm(_bpm), n_channels(_channels), restart_position(0), linear(false), n_patterns(0)
+Song::Song(u8 _speed, u8 _bpm, u8 _channels, bool _linear)
+	:speed(_speed), bpm(_bpm), n_channels(_channels), restart_position(0), linear(_linear), n_patterns(0)
 {
 	// Init arrays
 	patternlengths = (u16*)ntxm_cmalloc(sizeof(u16)*MAX_PATTERNS);
@@ -359,14 +359,12 @@ const char *Song::getName(void) {
 	return name;
 }
 
-#ifndef ARM7
-
 void Song::setRestartPosition(u8 _restart_position) {
 	restart_position = _restart_position;
+#ifndef ARM7
 	ntxm_flush_dcache();
-}
-
 #endif
+}
 
 void Song::setTempo(u8 _tempo) {
 	speed = _tempo;
@@ -377,6 +375,13 @@ void Song::setTempo(u8 _tempo) {
 
 void Song::setBpm(u8 _bpm) {
 	bpm = _bpm;
+#ifndef ARM7
+	ntxm_flush_dcache();
+#endif
+}
+
+void Song::setLinear(bool value) {
+	linear = value;
 #ifndef ARM7
 	ntxm_flush_dcache();
 #endif

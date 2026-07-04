@@ -35,6 +35,10 @@
 #include <cstring>
 #include <cmath>
 
+extern "C" {
+  #include "tables.h"
+}
+
 #include "ntxm/sample.h"
 #include "ntxm/fifocommand.h"
 #include "ntxm/ntxmtools.h"
@@ -48,34 +52,36 @@ extern bool ntxm_stereo_output;
 
 /* ===================== PUBLIC ===================== */
 
-inline u32 linear_freq_table_lookup(u32 note)
-{
-	/*
-	// readable version
-	if(note<=LINEAR_FREQ_TABLE_MAX_NOTE*N_FINETUNE_STEPS) {
-		if(note>=LINEAR_FREQ_TABLE_MIN_NOTE*N_FINETUNE_STEPS) {
-			return linear_freq_table[note-LINEAR_FREQ_TABLE_MIN_NOTE*N_FINETUNE_STEPS];
-		} else {
-			u32 octaveoffset = ((LINEAR_FREQ_TABLE_MIN_NOTE*N_FINETUNE_STEPS-1)-note) / (12*N_FINETUNE_STEPS) + 1;
-			u32 relnote = note % (12*N_FINETUNE_STEPS);
-			ntxm_dprintf("%u %u\n",octaveoffset,relnote);
-			return linear_freq_table[relnote] >> octaveoffset;
-		}
-	}
-	return 0;
-	*/
+uint32_t ntxmGetFrequencyValue(uint16_t period, bool linear) {
+    if (!period) {
+            return 1;
+    }
+    if (linear) {
+        const uint16_t invPeriod = (12 * 192 * 4) - period; // 8bb: this intentionally underflows uint16_t to be accurate to FT2
 
-	// fast version
-	if(note<=LINEAR_FREQ_TABLE_MAX_NOTE*N_FINETUNE_STEPS)
-	{
-		if(note>=LINEAR_FREQ_TABLE_MIN_NOTE*N_FINETUNE_STEPS) {
-			return linear_freq_table[note-LINEAR_FREQ_TABLE_MIN_NOTE*N_FINETUNE_STEPS];
-		} else {
-			return linear_freq_table[note % (12*N_FINETUNE_STEPS)] >>
-				(((LINEAR_FREQ_TABLE_MIN_NOTE*N_FINETUNE_STEPS-1)-note) / (12*N_FINETUNE_STEPS)  + 1);
-		}
-	}
-	return 0;
+		const uint32_t quotient = invPeriod / 768;
+		const uint32_t remainder = invPeriod % 768;
+
+		const int32_t octShift = (14 - quotient) & 31; // 8bb: added needed 32-bit bitshift mask
+
+		return (uint32_t)(((int64_t)logTab[remainder] * 2140928) >> 24) >> octShift;
+    } else {
+        return 14317456 / period;
+    }
+}
+
+#define N_FINETUNE_STEPS 128
+#define BASE_NOTE 48
+#define N_RELNOTES (BASE_NOTE + 48)
+#define LINEAR_FREQ_TABLE_MAX (N_RELNOTES*N_FINETUNE_STEPS)
+
+inline u32 linear_freq_table_lookup(u32 freqpos)
+{
+    bool linear = true;
+	u32 finetune = freqpos%N_FINETUNE_STEPS;
+	u32 note = freqpos/N_FINETUNE_STEPS;
+
+    return ntxmGetFrequencyValue(10*12*16*4 - note*16*4 - finetune/2, linear);
 }
 
 #ifndef ARM7
@@ -741,35 +747,38 @@ void Sample::calcRelnoteAndFinetune(u32 freq)
 
 	finetune = freqpos%N_FINETUNE_STEPS;
 	rel_note = freqpos/N_FINETUNE_STEPS - BASE_NOTE;
+
+	ntxm_dprintf("freq=%d -> relnote=%d finetune=%d\n", freq, rel_note, finetune);
 }
 
 // finds the freq in the freq table that is closest to freq ^^
 u16 Sample::findClosestFreq(u32 freq)
 {
-	// Binary search!
-	bool found = false;
+    size_t left = 0;
+    size_t right = LINEAR_FREQ_TABLE_MAX;
 
-	u16 left = 0, right = LINEAR_FREQ_TABLE_SIZE-1, middle = (right-left)/2 + left;
-	if ( (linear_freq_table_lookup(middle) <= freq) && (linear_freq_table_lookup(middle+1) >= freq) ) {
-		found = true;
-	} else
+    if (freq <= linear_freq_table_lookup(0))
+        return 0;
+    if (freq >= linear_freq_table_lookup(right - 1))
+        return right - 1;
 
-		while(!found) {
+    while (left <= right)
+    {
+        size_t middle = (left + right) / 2;
+        u32 middle_freq = linear_freq_table_lookup(middle);
 
-			if(linear_freq_table_lookup(middle) < freq) {
-				left = middle+1;
-			} else {
-				right = middle-1;
-			}
+        if (freq == middle_freq)
+            return middle;
+        else if (freq < middle_freq)
+            right = middle - 1;
+        else
+            left = middle + 1;
+    }
 
-			middle = (left+right+1) / 2;
-
-			if ( (linear_freq_table_lookup(middle) <= freq) && (linear_freq_table_lookup(middle+1) > freq) ) {
-				found = true;
-			}
-		}
-
-	return middle;
+    // left > right
+    int diff_left = linear_freq_table_lookup(left) - freq;
+    int diff_right = freq - linear_freq_table_lookup(right);
+    return diff_left <= diff_right ? left : right;
 }
 
 bool Sample::convertStereoToMono(void)

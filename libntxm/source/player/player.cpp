@@ -34,7 +34,7 @@
 
 extern "C" {
   #include "ntxm/demokit.h"
-  #include "tables.h"
+  #include "../common/tables.h"
 }
 
 #include "ntxm/ntxmtools.h"
@@ -66,23 +66,16 @@ Player::Player(void (*_playTimerListener)(void))
     setSong(nullptr);
 }
 
-static inline uint32_t getFrequencyValue(uint16_t period) {
-    if (!period) {
-            return 1;
-    }
-    return 14317456 / period;
-}
-
 static inline uint8_t soundGetVolume(uint16_t vol) {
     if(vol > 0) vol--; // 8bb: 0..256 -> 0..255 ( FT2 does this to prevent mul overflow in updateVolume() )
     return vol >> 1;
 }
 
-static inline void soundStartChannel(int c, stmTyp *ch, Sample *s, int smpOffset) {
+static inline void soundStartChannel(int c, stmTyp *ch, Sample *s, int smpOffset, bool linear) {
     if (!s) {
         return;
     }
-    ntxm_sound_channel_set_frequency(c, getFrequencyValue(ch->outPeriod));
+    ntxm_sound_channel_set_frequency(c, ntxmGetFrequencyValue(ch->outPeriod, linear));
     s->play(c, 128, 0, smpOffset);
 }
 
@@ -118,7 +111,7 @@ void Player::playTimerHandler() {
         }
 
         if(status & IS_Period) {
-            ntxm_sound_channel_set_frequency(c, getFrequencyValue(ch->finalPeriod));
+            ntxm_sound_channel_set_frequency(c, ntxmGetFrequencyValue(ch->finalPeriod, !song || song->getLinear()));
         }
 
         if(status & IS_Pan) {
@@ -329,7 +322,7 @@ typedef void (*efxRoutine)(stmTyp *ch, uint8_t param);
 
 uint16_t Player::note2Period(uint16_t note)
 {
-    return song->isLinear() ? linearPeriods[note] : amigaPeriods[note];
+    return (!song || song->getLinear()) ? linearPeriods[note] : amigaPeriods[note];
 }
 
 void Player::retrigVolume(stmTyp *ch)
@@ -496,7 +489,7 @@ void Player::startTone(uint8_t ton, uint8_t effTyp, uint8_t eff, stmTyp *ch)
 	}
 
 	if (song->channelMuted(PMPTmpActiveChannel)) return;
-	soundStartChannel(PMPTmpActiveChannel, ch, s, smpOffset);
+	soundStartChannel(PMPTmpActiveChannel, ch, s, smpOffset, (!song || song->getLinear()));
 }
 
 void Player::finePortaUp(stmTyp *ch, uint8_t param)

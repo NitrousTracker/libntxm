@@ -163,7 +163,7 @@ class Song {
 
 	public:
 
-		Song(u8 _speed=DEFAULT_SPEED, u8 _bpm=DEFAULT_BPM, u8 _channels=DEFAULT_CHANNELS);
+		Song(u8 _speed=DEFAULT_SPEED, u8 _bpm=DEFAULT_BPM, u8 _channels=DEFAULT_CHANNELS, bool _linear=true);
 
 		~Song();
 
@@ -215,10 +215,11 @@ class Song {
 
 		inline u8 getTempo(void) { return speed; }
 		inline u8 getBPM(void) { return bpm; }
-		inline bool isLinear(void) { return linear; }
+		inline bool getLinear(void) { return linear; }
 
 		void setTempo(u8 _tempo);
 		void setBpm(u8 _bpm);
+		void setLinear(bool value);
 
 		// Zapping
 		void zapPatterns(void);

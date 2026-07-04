@@ -135,10 +135,9 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 	ntxm_dprintf("n inst: %u\n", n_inst);
 
 	// Flags, currently only used for the frequency table (0: amiga, 1: linear)
-	// TODO: Amiga freq table
 	u16 flags;
 	fread(&flags, 2, 1, xmfile);
-	//ntxm_dprintf("flags: %u\n", flags);
+	bool linear = (flags & 1) != 0;
 
 	// Tempo
 	u16 tempo;
@@ -151,9 +150,9 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 	u16 bpm;
 	fread(&bpm, 2, 1, xmfile);
 	//ntxm_dprintf("bpm: %u\n", bpm);
-	ntxm_dprintf("new song %u %u %u\n",tempo, bpm, n_channels );
+	ntxm_dprintf("new song %u %u %u %d\n", tempo, bpm, n_channels, linear);
 	// Construct the song with the current info
-	Song *song = new Song(tempo, bpm, n_channels);
+	Song *song = new Song(tempo, bpm, n_channels, linear);
 	if(song==NULL)
 	{
 		fclose(xmfile);
@@ -692,9 +691,6 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 	// Init
 	//
 
-	// TODO: Let the Arm7 update the RTC first
-	// TODO: Check if there's enough space on the card
-
 	FILE *xmfile = fopen(filename, "wb");
 
 	if(!xmfile)
@@ -718,7 +714,7 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 	fwrite(&versionbyte, 1, 1, xmfile);
 
 	// Tracker Name
-	char trackername[21] = "NitroTracker 0.7+";
+	char trackername[21] = "NitrousTracker 0.7";
 	fwrite(trackername, 1, 20, xmfile);
 
 	// Version number
@@ -750,7 +746,7 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 	fwrite(&n_inst, 2, 1, xmfile);
 
 	// Flags
-	u16 flags = 1; // Means linear freq table (amiga table support maybe soon)
+	u16 flags = song->getLinear() ? 1 : 0;
 	fwrite(&flags, 2, 1, xmfile);
 
 	// Tempo
