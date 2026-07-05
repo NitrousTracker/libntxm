@@ -57,7 +57,7 @@ enum // voice flags
 #define TAG_NONE 255
 
 #define USE_VOLUME_RAMPING
-#define QUICK_VOL_FADE_TICKS 10
+#define QUICK_VOL_FADE_MS 10
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
@@ -68,7 +68,7 @@ Player::Player(void (*_playTimerListener)(void))
     // FIXME: Move out of Player
     demoInit();
 #endif
-    currMs = nextPlayerMs = nextFadeMs = 0;
+    currMs = nextPlayerMs = 0;
     PMPIgnoreMute = false;
     PMPSampleOverride = nullptr;
     setSong(nullptr);
@@ -83,16 +83,12 @@ void Player::startSongChannel(int c, stmTyp *ch, Sample *s, int smpOffset) {
     if (!s || (!PMPIgnoreMute && song && song->channelMuted(c))) {
         ntxm_sound_channel_stop(c);
         ch->ntxmTag = TAG_NONE;
-        ch->ntxmVolLast = 0;
         return;
     }
 
     ntxm_sound_channel_set_frequency(c, ntxmGetFrequencyValue(ch->outPeriod, !song || song->linear));
     s->play(c, ch->finalPan, 0, smpOffset);
     ch->ntxmTag = TAG_SONG;
-
-    // Skip the sample fade for newly played samples
-    ch->ntxmVolLast = ch->finalVol;
 }
 
 u64 Player::getMsPerTick() const {
@@ -108,6 +104,30 @@ void Player::playTimerHandler() {
 }
 #endif
 
+void Player::tryEarlyVolumeRamps(void) {
+#ifdef USE_VOLUME_RAMPING
+	
+	// Is this the last tick before the next row?
+	if (state.timer == 1 && state.pattDelTime2 == 0) {
+		
+		// Check if, for any of the active channels, a new note starts in the next row.
+		for (int c = 0; c < song->n_channels; c++) {
+			stmTyp *ch = &stm[c];
+			const Cell* p = &song->getPattern(state.pattNr)[c][state.pattPos];
+			
+			if (p->note != EMPTY_NOTE && p->note != STOP_NOTE && p->instrument != NO_INSTRUMENT) {
+				// If so, fade out to avoid a click.
+				ch->ntxmStartVol = ch->ntxmCurVol;
+				ch->ntxmEndVol = 0;
+				ch->ntxmRampTimer = getMsPerTick() / MS_UNIT;
+				ch->ntxmRampDuration = QUICK_VOL_FADE_MS;
+				ch->ntxmEarlyRamp = true;
+			}
+		}
+	}
+#endif
+}
+
 void Player::update(s64 msDelta) {
     if(msDelta <= 0) return;
     u64 msPerTick = getMsPerTick();
@@ -117,6 +137,7 @@ void Player::update(s64 msDelta) {
     if(playing) {
         while((currMs - nextPlayerMs) <= INT64_MAX) {
             mainPlayer();
+            tryEarlyVolumeRamps();
             nextPlayerMs += msPerTick;
         }
     }
@@ -135,11 +156,23 @@ void Player::update(s64 msDelta) {
         if (!status) continue;
         ch->status = 0;
 
-        if(status & IS_Vol) {
+        if((status & IS_Vol) && !ch->ntxmEarlyRamp) {
 #ifdef USE_VOLUME_RAMPING
-            ch->ntxmVolFadeLast = ch->ntxmVolLast;
-            ch->ntxmVolFadeTicks = (status & IS_QuickVol) ? MIN(QUICK_VOL_FADE_TICKS, msPerTick) : msPerTick;
-            ch->ntxmVolFadeTicksLeft = ch->ntxmVolFadeTicks;
+            ch->ntxmStartVol = ch->ntxmCurVol;
+            ch->ntxmEndVol = ch->finalVol;
+            
+            if (!(status & IS_QuickVol)) {
+                ch->ntxmRampDuration = getMsPerTick() / MS_UNIT;  // integer part only.
+                ch->ntxmRampTimer = ch->ntxmRampDuration;
+            } else if (ch->finalVol == 0 && !ch->envSustainActive) {
+                // allow volume ramping
+                ch->ntxmRampTimer = QUICK_VOL_FADE_MS;
+                ch->ntxmRampDuration = QUICK_VOL_FADE_MS;
+            } else {
+                // no ramping, snap straight to target volume
+                ch->ntxmRampTimer = 0;
+                ch->ntxmRampDuration = 10;
+            }
 #else
             ntxm_sound_channel_set_volume(c, soundGetVolume(ch->finalVol));
 #endif
@@ -156,33 +189,32 @@ void Player::update(s64 msDelta) {
 
     // Calculate fades
 #ifdef USE_VOLUME_RAMPING
-    if ((currMs - nextFadeMs) <= INT32_MAX) {
-        u32 fadeTicks = currMs - nextFadeMs;
-
-        for(int c = 0; c < MAX_CHANNELS; c++) {
-            stmTyp *ch = &stm[c];
-            if (ch->ntxmVolFadeTicksLeft) {
-                int targetVol;
-                if (ch->ntxmVolFadeTicksLeft <= fadeTicks || ch->ntxmVolLast == ch->finalVol) {
-                    targetVol = ch->finalVol;
-                } else {
-                    ch->ntxmVolFadeTicksLeft -= fadeTicks;
-                    targetVol = ((ch->finalVol * (ch->ntxmVolFadeTicks - ch->ntxmVolFadeTicksLeft)) + (ch->ntxmVolFadeLast * ch->ntxmVolFadeTicksLeft)) / ch->ntxmVolFadeTicks;
-                }
-                if (targetVol == ch->finalVol) {
-                    ch->ntxmVolFadeLast = targetVol;
-                    ch->ntxmVolFadeTicksLeft = 0;
-                    if (targetVol == 0 && !ch->envSustainActive) {
-                        ntxm_sound_channel_stop(c);
-                    }
-                }
-                ch->ntxmVolLast = targetVol;
-                ntxm_sound_channel_set_volume(c, soundGetVolume(targetVol));
-            }
+    
+    for(int c = 0; c < MAX_CHANNELS; c++) {
+        stmTyp *ch = &stm[c];
+        
+        int curVol;
+        int timer = ch->ntxmRampTimer;
+        int duration = ch->ntxmRampDuration;
+        int start = ch->ntxmStartVol;
+        int end = ch->ntxmEndVol;
+        
+        if (timer > duration) {
+            curVol = start;
+            timer -= 1;
+        } else if (timer > 0) {
+            int mix = duration - timer;
+            curVol = start + ((end-start) * mix) / duration;
+            timer -= 1;
+        } else {
+            curVol = end;
         }
-
-        nextFadeMs = currMs;
+        
+        ch->ntxmRampTimer = timer;
+        ch->ntxmCurVol = curVol;
+        ntxm_sound_channel_set_volume(c, soundGetVolume(curVol));
     }
+
 #endif
 
     /* if(playTimerListener) {
@@ -200,7 +232,7 @@ void Player::play(int potpos, int row, bool repeat) {
     setPos(potpos, row);
     playing = true;
     songLoop = repeat;
-    nextPlayerMs = nextFadeMs = currMs;
+    nextPlayerMs = currMs;
 }
 
 void Player::stop(void) {
@@ -370,9 +402,6 @@ void Player::resetVoice(stmTyp *ch) {
 	ch->vibDepth = 0;
 
 	ch->ntxmTag = TAG_NONE;
-	ch->ntxmVolLast = ch->ntxmVolFadeLast;
-	ch->ntxmVolFadeTicks = QUICK_VOL_FADE_TICKS;
-	ch->ntxmVolFadeTicksLeft = QUICK_VOL_FADE_TICKS;
 }
 
 void Player::stopVoices(void) {
@@ -1226,6 +1255,7 @@ void Player::fixTonePorta(stmTyp *ch, const Cell *p, uint8_t inst)
 
 void Player::getNewNote(stmTyp *ch, const Cell *p)
 {
+	ch->ntxmEarlyRamp = false;
 	ch->volKolVol = p->volume;
 
 	if (ch->effTyp == 0)

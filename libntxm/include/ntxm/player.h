@@ -38,10 +38,12 @@ typedef struct stmTyp_t
 	bool envSustainActive;
 
 	uint8_t ntxmTag;
-	uint8_t ntxmVolLast; ///< Last voluem set to the audio channel
-	uint8_t ntxmVolFadeLast; ///< Last volume set to the audio channel before fading began
-	uint16_t ntxmVolFadeTicks; ///< The number of total ticks for voluem fading
-	uint16_t ntxmVolFadeTicksLeft; ///< The number of remaining ticks for voluem fading
+	uint16_t ntxmCurVol; ///< Interpolates between start and end as needed
+	uint16_t ntxmStartVol; ///< Previous volume set to the audio channel (before fading began)
+	uint16_t ntxmEndVol; ///< Latest volume set to the audio channel, or sometimes zero in the case of ramping before a new note.
+	uint16_t ntxmRampTimer;
+	uint16_t ntxmRampDuration;
+	bool ntxmEarlyRamp;  ///< Indicates that this channel is currently ramping out due to a new upcoming note on the next row.
 } stmTyp;
 
 class Player {
@@ -72,7 +74,6 @@ private:
     PlayerState state;
     u64 currMs;
     u64 nextPlayerMs;
-    u64 nextFadeMs;
     bool playing;
     bool songLoop;
     bool patternLoop;
@@ -81,6 +82,7 @@ private:
     void (*playTimerListener)(void);
 
     int getChannelForTag(u16 tag);
+    void tryEarlyVolumeRamps(void);
 
     // ft2play routines
     uint8_t PMPTmpActiveChannel;
