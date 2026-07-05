@@ -41,93 +41,24 @@ extern "C" {
 #include "ntxm/common.h"
 #include "ntxm/ntxmsound.h"
 #include "ntxm/ntxmtools.h"
-
-template <class T>
-class RingBuffer {
-public:
-    RingBuffer() {
-        len = 16384;
-        data = (T*) ntxm_cmalloc(sizeof(T) * len);
-        wr = 0;
-        rd = 0;
-    }
-
-    ~RingBuffer() {
-        ntxm_free(data);
-    }
-
-    void push(const T *sample_data, size_t size) {
-        while(free() < size) {
-            resize(len * 2);
-        }
-
-        while (size) {
-            size_t max_len = len - wr;
-            size_t to_copy = max_len < size ? max_len : size;
-            memcpy(data + wr, sample_data, sizeof(T) * to_copy);
-            sample_data += to_copy;
-            size -= to_copy;
-            wr += to_copy;
-            if (wr >= len) wr -= len;
-        }
-    }
-
-    size_t pop(T *sample_data, size_t size) {
-        size_t read = 0;
-        while (size && wr != rd) {
-            size_t max_len = wr >= rd ? (wr - rd) : (len - rd);
-            size_t to_copy = max_len < size ? max_len : size;
-            memcpy(sample_data, data + rd, sizeof(T) * to_copy);
-            sample_data += to_copy;
-            size -= to_copy;
-            read += to_copy;
-            rd += to_copy;
-            if (rd >= len) rd -= len;
-        }
-        return read;
-    }
-
-    size_t used() const {
-        if (wr >= rd) {
-            return wr - rd;
-        } else {
-            return len + wr - rd;
-        }
-    }
-
-    size_t free() const {
-        return len - used();
-    }
-
-private:
-    T *data;
-    size_t len, wr, rd;
-
-    void resize(size_t newlen) {
-        data = (T*) ntxm_crealloc((void*) data, sizeof(T) * newlen);
-        if (wr < rd) {
-            memmove(data + rd + (newlen - len), data + rd, (len > rd ? (len - rd) : (rd - len)) * sizeof(T));
-            rd += (newlen - len);
-        }
-        len = newlen;
-    }
-};
+#include "ntxm/player.h"
 
 #define BUS_CLOCK (33513982)
 #define TIMER_FREQ_SHIFT(n, divisor, shift) ((-((BUS_CLOCK >> (shift)) * (divisor)) - ((((n) + 1)) >> 1)) / (n))
 #define SOUND_FREQ(n) TIMER_FREQ_SHIFT(n, 1, 1)
 #define TICKS_COUNTER_SHIFT 7
+#define SAMPLES_PER_MS_SHIFT 16
 
 #define clamp(v, vmin, vmax) (((v) < (vmin)) ? (vmin) : ((v > (vmax)) ? (vmax) : (v)))
 
 class SoundEmulator {
 public:
     SoundEmulator();
-    void update();
-    size_t pop(int16_t* sample_data, size_t n);
+    void setRenderFrequency(uint32_t frequency);
+    void generate(Player *player, int16_t *sample_data, size_t n);
 
-    RingBuffer<int16_t> buffer;
     uint32_t ticks_per_ms = 0;
+    uint32_t samples_per_ms = 0;
     uint32_t render_frequency = 0;
     const void *data[MAX_CHANNELS];
     int position[MAX_CHANNELS];
@@ -142,16 +73,21 @@ public:
     bool playing[MAX_CHANNELS];
 
 private:
-    bool can_pop = false;
-    uint32_t last_ms = 0;
-    uint32_t samples_cnt = 0;
+    uint32_t sub_samples = 0;
     uint32_t ticks_cnt = 0;
-    void tick();
+
+    void nextSample(int16_t *buffer);
     int nextPosition(int ch);
 };
 
 SoundEmulator::SoundEmulator() {
-    last_ms = getTicks();
+    setRenderFrequency(32728);
+}
+
+void SoundEmulator::setRenderFrequency(uint32_t frequency) {
+    render_frequency = frequency;
+    samples_per_ms = (frequency << 16) / 1000;
+    ticks_per_ms = (((BUS_CLOCK >> 1) << TICKS_COUNTER_SHIFT) / frequency);
 }
 
 int SoundEmulator::nextPosition(int ch) {
@@ -168,7 +104,7 @@ int SoundEmulator::nextPosition(int ch) {
     }
 }
 
-void SoundEmulator::tick() {
+void SoundEmulator::nextSample(int16_t *buffer) {
     int32_t samples[2] = {0};
 #ifdef NT_PLATFORM_3DS
     bool resample_linear = false;
@@ -222,79 +158,60 @@ void SoundEmulator::tick() {
         }
     }
 
-    int16_t clamped_samples[2] = {
-        (int16_t) clamp(samples[0], -32768, 32767),
-        (int16_t) clamp(samples[1], -32768, 32767)
-    };
-    buffer.push(clamped_samples, 2);
+    buffer[0] = (int16_t) clamp(samples[0], -32768, 32767);
+    buffer[1] = (int16_t) clamp(samples[1], -32768, 32767);
 }
 
-void SoundEmulator::update() {
-    uint32_t ticks = getTicks();
-    if (ticks == last_ms) return;
-
-    uint32_t sub_samples = ((ticks - last_ms) * render_frequency);
-    samples_cnt += sub_samples;
-    uint32_t samples = samples_cnt / 1000;
-    samples_cnt %= 1000;
-    while(samples--) tick();
-    last_ms = ticks;
-}
-
-size_t SoundEmulator::pop(int16_t* sample_data, size_t n) {
-    if (!can_pop && buffer.free() < 2*n) return 0;
-
-    can_pop = true;
-    return buffer.pop(sample_data, n);
+void SoundEmulator::generate(Player *player, int16_t *sample_data, size_t n) {
+    for (size_t i = 0; i < n; i++, sample_data += 2) {
+        sub_samples += (1 << SAMPLES_PER_MS_SHIFT);
+        while (sub_samples >= samples_per_ms) {
+            player->tick(1);
+            sub_samples -= samples_per_ms;
+        }
+        nextSample(sample_data);
+    }
 }
 
 SoundEmulator emu;
 
 void ntxm_sound_set_playback_frequency(int freq) {
-    emu.ticks_per_ms = (((BUS_CLOCK >> 1) << TICKS_COUNTER_SHIFT) / freq);
-    emu.render_frequency = freq;
+    emu.setRenderFrequency(freq);
 }
 
-size_t ntxm_sound_fetch_samples(int16_t* sample_data, size_t n) {
-    emu.update();
-    return emu.pop(sample_data, n);
+size_t ntxm_sound_fetch_samples(Player* player, int16_t* sample_data, size_t n) {
+    emu.generate(player, sample_data, n);
+    return n;
 }
 
 void ntxm_sound_channel_stop(int channel) {
-    emu.update();
     emu.playing[channel] = false;
 }
 
 bool ntxm_sound_channel_is_playing(int channel) {
-    emu.update();
     return emu.playing[channel];
 }
 
 void ntxm_sound_channel_set_volume(int channel, int volume) {
-    emu.update();
     emu.volume[channel] = volume;
 }
 
 void ntxm_sound_channel_set_frequency(int channel, int freq) {
-    emu.update();
     emu.frequency[channel] = -SOUND_FREQ(freq);
 }
 
 void ntxm_sound_channel_set_panning(int channel, u32 panning) {
-    emu.update();
     if (!ntxm_stereo_output) panning = 128;
     emu.panning[channel] = panning;
 }
 
 void ntxm_sound_channel_set_source(int channel, const void *src, uint32_t repeat_point, uint32_t length) {
-    emu.update();
     emu.data[channel] = src;
     emu.repeat_point[channel] = repeat_point;
     emu.length[channel] = repeat_point + length;
 }
 
 void ntxm_sound_channel_play(int channel, u32 loop, u32 format, u32 panning, u32 volume) {
-    emu.update();
     emu.loop[channel] = loop;
     emu.format[channel] = format;
     emu.panning[channel] = panning;

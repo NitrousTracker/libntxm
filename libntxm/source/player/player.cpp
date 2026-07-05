@@ -63,10 +63,13 @@ enum // voice flags
 Player::Player(void (*_playTimerListener)(void))
     : playing(false), patternLoop(false), playTimerListener(_playTimerListener)
 {
+#ifdef NT_PLATFORM_NDS
     // FIXME: Move out of Player
     demoInit();
+    lastMs = getTicks();
+#endif
 
-    nextPlayerMs = nextFadeMs = getTicks();
+    currMs = nextPlayerMs = nextFadeMs = 0;
     PMPSampleOverride = nullptr;
     setSong(nullptr);
 }
@@ -94,10 +97,21 @@ u32 Player::getMsPerTick() const {
     return 2500 / bpm;
 }
 
+#ifdef NT_PLATFORM_NDS
 void Player::playTimerHandler() {
     u32 currMs = getTicks();
+    tick(currMs - lastMs);
+    lastMs = currMs;
+}
+#endif
+
+void Player::tick(int msDelta) {
+    if(msDelta <= 0) return;
+
     u32 msPerTick = getMsPerTick();
     bool changed = false;
+
+    currMs += msDelta;
 
     // Run FT2 player routine
     if(playing) {
@@ -180,8 +194,7 @@ void Player::play(int potpos, int row, bool repeat) {
     setPos(potpos, row);
     playing = true;
     songLoop = repeat;
-    nextPlayerMs = getTicks();
-    nextFadeMs = getTicks();
+    nextPlayerMs = nextFadeMs = currMs;
 }
 
 void Player::stop(void) {

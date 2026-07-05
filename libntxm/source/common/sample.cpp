@@ -171,7 +171,7 @@ void Sample::saveAsWav(char *filename)
 {
 	wav.setCompression(0);
 	wav.setNChannels(1);
-	wav.setSamplingRate(LOOKUP_FREQ(rel_note+96,finetune));
+	wav.setSamplingRate(LOOKUP_FREQ(rel_note+BASE_NOTE,finetune));
 	wav.setBitPerSample(is_16_bit?16:8);
 	wav.setNSamples(n_samples);
 	wav.setAudioData((u8*)getData());

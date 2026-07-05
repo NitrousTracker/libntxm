@@ -63,10 +63,17 @@ public:
     void setPatternLoop(bool repeat);
     void setSong(Song* _song);
 
+#ifdef NT_PLATFORM_NDS
     void playTimerHandler();
+#endif
+    void tick(int msDelta);
 
 private:
     PlayerState state;
+#ifdef NT_PLATFORM_NDS
+    u32 lastMs;
+#endif
+    u32 currMs;
     u32 nextPlayerMs;
     u32 nextFadeMs;
     bool playing;

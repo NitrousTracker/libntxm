@@ -124,8 +124,9 @@ void ntxm_sound_channel_set_panning(int channel, u32 panning);
 void ntxm_sound_channel_set_source(int channel, const void *src, uint32_t repeat_point, uint32_t length);
 void ntxm_sound_channel_play(int channel, u32 loop, u32 format, u32 panning, u32 volume);
 
+#include "player.h"
 void ntxm_sound_set_playback_frequency(int freq);
-size_t ntxm_sound_fetch_samples(int16_t* sample_data, size_t n);
+size_t ntxm_sound_fetch_samples(Player* player, int16_t* sample_data, size_t n);
 
 #endif
 

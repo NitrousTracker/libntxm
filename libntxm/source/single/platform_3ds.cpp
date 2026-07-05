@@ -37,12 +37,10 @@
 #include "ntxm/player.h"
 
 extern Player *player;
-static Handle playerTimer;
-static Thread playerThread;
 static LightLock playerMutex;
 
 #define AUDIO_SAMPLE_RATE 32728
-#define AUDIO_BUFFER_SAMPLES 2048
+#define AUDIO_BUFFER_SAMPLES 1024
 #define AUDIO_BUFFER_SIZE (AUDIO_BUFFER_SAMPLES * 4)
 
 static uint32_t *audioBuffer;
@@ -58,20 +56,17 @@ void NtxmPlayerUnlock(void) {
     LightLock_Unlock(&playerMutex);
 }
 
-static void NtxmTimerThread(void *userdata) {
-    while (player != NULL) {
-        if (NtxmPlayerLock()) {
-            if (ndspAudioBuffer[ndspNextBlock].status == NDSP_WBUF_DONE) {
-                ntxm_sound_fetch_samples(ndspAudioBuffer[ndspNextBlock].data_pcm16, AUDIO_BUFFER_SAMPLES * 2);
+static void NtxmNdspCallback(void *userdata) {
+    if (player != NULL) {
+        if (ndspAudioBuffer[ndspNextBlock].status == NDSP_WBUF_DONE) {
+            if (NtxmPlayerLock()) {
+                ntxm_sound_fetch_samples(player, ndspAudioBuffer[ndspNextBlock].data_pcm16, AUDIO_BUFFER_SAMPLES);
+                NtxmPlayerUnlock();
                 DSP_FlushDataCache(ndspAudioBuffer[ndspNextBlock].data_pcm16, AUDIO_BUFFER_SIZE);
                 ndspChnWaveBufAdd(0, &ndspAudioBuffer[ndspNextBlock]);
                 ndspNextBlock = 1 - ndspNextBlock;
             }
-
-            player->playTimerHandler();
-            NtxmPlayerUnlock();
         }
-        svcWaitSynchronization(playerTimer, 10000000LL);
     }
 }
 
@@ -85,6 +80,7 @@ bool CommandInit() {
     ndspChnSetInterp(0, NDSP_INTERP_NONE);
     ndspChnSetRate(0, AUDIO_SAMPLE_RATE);
     ndspChnSetFormat(0, NDSP_FORMAT_STEREO_PCM16);
+    ndspSetCallback(NtxmNdspCallback, nullptr);
 
     float mix[12];
     memset(mix, 0, sizeof(mix));
@@ -93,6 +89,7 @@ bool CommandInit() {
     ndspChnSetMix(0, mix);
 
     memset(ndspAudioBuffer, 0, sizeof(ndspAudioBuffer));
+    DSP_FlushDataCache(ndspAudioBuffer, sizeof(ndspAudioBuffer));
     ndspAudioBuffer[0].data_vaddr = &audioBuffer[0];
     ndspAudioBuffer[0].nsamples = AUDIO_BUFFER_SAMPLES;
     ndspAudioBuffer[1].data_vaddr = &audioBuffer[AUDIO_BUFFER_SAMPLES];
@@ -107,9 +104,6 @@ bool CommandInit() {
 
     LightLock_Init(&playerMutex);
     player = new Player(NULL);
-    svcCreateTimer(&playerTimer, RESET_PULSE);
-    svcSetTimer(playerTimer, 1000000LL, 1000000LL);
-    playerThread = threadCreate(NtxmTimerThread, 0, (24 * 1024), 0x20, -2, true);
     return true;
 }
 
@@ -117,8 +111,6 @@ void CommandExit() {
     Player *player_local = player;
     player = NULL;
     delete player_local;
-    threadJoin(playerThread, U64_MAX);
-    svcCloseHandle(playerTimer);
 
     ndspExit();
 }
