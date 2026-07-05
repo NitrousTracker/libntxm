@@ -92,6 +92,7 @@ private:
 
     stmTyp stm[MAX_CHANNELS];
 
+    void startSongChannel(int c, stmTyp *ch, Sample *s, int smpOffset);
     void setPos(int32_t pos, int32_t row);
     void resetVoice(stmTyp *ch);
     void stopVoices(void);

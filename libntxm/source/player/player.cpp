@@ -52,8 +52,9 @@ enum // voice flags
 	IS_QuickVol = 16
 };
 
-#define SAMPLETAGGED 254
-#define UNTAGGED 255
+#define TAG_SONG 253
+#define TAG_SAMPLE 254
+#define TAG_NONE 255
 
 #define USE_VOLUME_RAMPING
 #define QUICK_VOL_FADE_TICKS 10
@@ -80,12 +81,17 @@ static inline uint8_t soundGetVolume(uint16_t vol) {
     return vol >> 1;
 }
 
-static inline void soundStartChannel(int c, stmTyp *ch, Sample *s, int smpOffset, bool linear) {
-    if (!s) {
+void Player::startSongChannel(int c, stmTyp *ch, Sample *s, int smpOffset) {
+    if (!s || (!PMPIgnoreMute && song && song->channelMuted(c))) {
+        ntxm_sound_channel_stop(c);
+        ch->ntxmTag = TAG_NONE;
+        ch->ntxmVolLast = 0;
         return;
     }
-    ntxm_sound_channel_set_frequency(c, ntxmGetFrequencyValue(ch->outPeriod, linear));
+
+    ntxm_sound_channel_set_frequency(c, ntxmGetFrequencyValue(ch->outPeriod, !song || song->linear));
     s->play(c, ch->finalPan, 0, smpOffset);
+    ch->ntxmTag = TAG_SONG;
 
     // Skip the sample fade for newly played samples
     ch->ntxmVolLast = ch->finalVol;
@@ -122,6 +128,13 @@ void Player::tick(int msDelta) {
     // Synchronize channels
     for(int c = 0; c < MAX_CHANNELS; c++) {
         stmTyp *ch = &stm[c];
+        if (ch->ntxmTag == TAG_SONG && song->channelMuted(c)) {
+            ntxm_sound_channel_stop(c);
+            ch->ntxmTag = TAG_NONE;
+            ch->status = 0;
+            continue;
+        }
+
         const uint8_t status = ch->status;
         if (!status) continue;
         ch->status = 0;
@@ -245,7 +258,7 @@ void Player::playSample(Sample *sample, int note, int volume, int channel) {
     ch->finalPeriod = ch->outPeriod;
     PMPSampleOverride = nullptr;
     PMPIgnoreMute = false;
-    stm[channel].ntxmTag = SAMPLETAGGED;
+    stm[channel].ntxmTag = TAG_SAMPLE;
 }
 
 void Player::stopChannel(int channel) {
@@ -341,7 +354,7 @@ void Player::setPos(int32_t pos, int32_t row) // -1 = don't change
 }
 
 void Player::resetVoice(stmTyp *ch) {
-    if (ch->ntxmTag == SAMPLETAGGED) {
+    if (ch->ntxmTag == TAG_SAMPLE) {
         CommandSampleFinish();
     }
 
@@ -360,7 +373,7 @@ void Player::resetVoice(stmTyp *ch) {
 	ch->finalPan = 128;
 	ch->vibDepth = 0;
 
-	ch->ntxmTag = UNTAGGED;
+	ch->ntxmTag = TAG_NONE;
 	ch->ntxmVolLast = ch->ntxmVolFadeLast;
 	ch->ntxmVolFadeTicks = QUICK_VOL_FADE_TICKS;
 	ch->ntxmVolFadeTicksLeft = QUICK_VOL_FADE_TICKS;
@@ -549,8 +562,7 @@ void Player::startTone(uint8_t ton, uint8_t effTyp, uint8_t eff, stmTyp *ch)
 		smpOffset = 0;
 	}
 
-	if (!PMPIgnoreMute && song->channelMuted(PMPTmpActiveChannel)) return;
-	soundStartChannel(PMPTmpActiveChannel, ch, s, smpOffset, (!song || song->getLinear()));
+	startSongChannel(PMPTmpActiveChannel, ch, s, smpOffset);
 }
 
 void Player::finePortaUp(stmTyp *ch, uint8_t param)
