@@ -56,7 +56,7 @@ enum // voice flags
 #define UNTAGGED 255
 
 Player::Player(void (*_playTimerListener)(void))
-    : playing(false), patternLoop(false), playTimerListener(_playTimerListener)
+    : playing(false), patternLoop(false), volumeRamping(true), playTimerListener(_playTimerListener)
 {
     // FIXME: Move out of Player
     demoInit();
@@ -106,17 +106,49 @@ void Player::playTimerHandler() {
         const uint8_t status = ch->status;
         ch->status = 0;
 
-        if(status & IS_Vol) {
-            ntxm_sound_channel_set_volume(c, soundGetVolume(ch->finalVol));
+        if (volumeRamping) {
+            if(status & IS_Vol) {
+                ch->ntxmTargVol = ch->finalVol;
+            }
+            if(status & IS_Pan) {
+                ch->ntxmTargPan = ch->finalPan;
+            }
+        } else {
+            if(status & IS_Vol) {
+                ntxm_sound_channel_set_volume(c, soundGetVolume(ch->finalVol));
+            }
+            if(status & IS_Pan) {
+                ntxm_sound_channel_set_panning(c, ch->finalPan);
+            }
         }
-
         if(status & IS_Period) {
             ntxm_sound_channel_set_frequency(c, ntxmGetFrequencyValue(ch->finalPeriod, !song || song->getLinear()));
         }
-
-        if(status & IS_Pan) {
-            ntxm_sound_channel_set_panning(c, ch->finalPan);
+    }
+    
+    if(volumeRamping) for(int c = 0; c < MAX_CHANNELS; c++) {
+        stmTyp *ch = &stm[c];
+        
+        const int rampShift = 2;  // To prevent pops when volum changes instantly. Higher value = slower ramp.
+        const int rampMask = (1 << rampShift) - 1;
+        
+        int volDiff = ch->ntxmTargVol - ch->ntxmOutVol;
+        int panDiff = ch->ntxmTargPan - ch->ntxmOutPan;
+        
+        if (volDiff > 0) {
+            ch->ntxmOutVol += (volDiff + rampMask) >> rampShift;
+        } else {
+            ch->ntxmOutVol += volDiff >> rampShift;
         }
+        
+        if (panDiff > 0) {
+            ch->ntxmOutPan += (panDiff + rampMask) >> rampShift;
+        } else {
+            ch->ntxmOutPan += panDiff >> rampShift;
+        }
+        
+        ntxm_sound_channel_set_volume(c, soundGetVolume(ch->ntxmOutVol));
+        ntxm_sound_channel_set_panning(c, ch->ntxmOutPan);
     }
 
     /* if(playTimerListener) {

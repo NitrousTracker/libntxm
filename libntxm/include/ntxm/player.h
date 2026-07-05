@@ -38,6 +38,8 @@ typedef struct stmTyp_t
 	bool envSustainActive;
 
 	uint8_t ntxmTag;
+	int16_t ntxmTargVol, ntxmTargPan;
+	int16_t ntxmOutVol, ntxmOutPan;
 } stmTyp;
 
 class Player {
@@ -67,6 +69,7 @@ private:
     bool playing;
     bool songLoop;
     bool patternLoop;
+    bool volumeRamping;
 
     Song* song;
     void (*playTimerListener)(void);
