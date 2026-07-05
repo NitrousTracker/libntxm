@@ -31,10 +31,10 @@
  *
  ***** END LICENSE BLOCK *****/
 
-#include <cstdio>
-#include <SDL3/SDL.h>
 #include "ntxm/ntxmsound.h"
 #include "ntxm/player.h"
+#include <SDL3/SDL.h>
+#include <cstdio>
 
 #define AUDIO_SAMPLE_RATE 32728
 
@@ -42,49 +42,54 @@ extern Player *player;
 static SDL_Mutex *playerMutex;
 static SDL_AudioStream *audioStream;
 
-bool NtxmPlayerLock(void) {
-    if (player == NULL)
-        return false;
-    SDL_LockMutex(playerMutex);
-    return true;
+bool NtxmPlayerLock(void)
+{
+	if (player == NULL)
+		return false;
+	SDL_LockMutex(playerMutex);
+	return true;
 }
 
-void NtxmPlayerUnlock(void) {
-    SDL_UnlockMutex(playerMutex);
+void NtxmPlayerUnlock(void) { SDL_UnlockMutex(playerMutex); }
+
+void SDLCALL NtxmFetchAudio(void *userdata, SDL_AudioStream *stream,
+                            int additional_amount, int total_amount)
+{
+	if (additional_amount > 0) {
+		int16_t *data = SDL_stack_alloc(int16_t, additional_amount >> 1);
+		if (data) {
+			if (NtxmPlayerLock()) {
+				int16_t samples_fetched = ntxm_sound_fetch_samples(
+				    player, data, additional_amount >> 2);
+				NtxmPlayerUnlock();
+				SDL_PutAudioStreamData(stream, data, samples_fetched << 2);
+			}
+			SDL_stack_free(data);
+		}
+	}
 }
 
-void SDLCALL NtxmFetchAudio(void *userdata, SDL_AudioStream *stream, int additional_amount, int total_amount) {
-    if (additional_amount > 0) {
-        int16_t *data = SDL_stack_alloc(int16_t, additional_amount >> 1);
-        if (data) {
-            if (NtxmPlayerLock()) {
-                int16_t samples_fetched = ntxm_sound_fetch_samples(player, data, additional_amount >> 2);
-                NtxmPlayerUnlock();
-                SDL_PutAudioStreamData(stream, data, samples_fetched << 2);
-            }
-            SDL_stack_free(data);
-        }
-    }
+bool CommandInit()
+{
+	playerMutex = SDL_CreateMutex();
+	player = new Player(NULL);
+
+	ntxm_sound_set_playback_frequency(AUDIO_SAMPLE_RATE);
+	const SDL_AudioSpec spec = {SDL_AUDIO_S16, 2, AUDIO_SAMPLE_RATE};
+	audioStream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
+	                                        &spec, NtxmFetchAudio, NULL);
+	SDL_ResumeAudioDevice(SDL_GetAudioStreamDevice(audioStream));
+
+	return true;
 }
 
-bool CommandInit() {
-    playerMutex = SDL_CreateMutex();
-    player = new Player(NULL);
+void CommandExit()
+{
+	SDL_DestroyAudioStream(audioStream);
 
-    ntxm_sound_set_playback_frequency(AUDIO_SAMPLE_RATE);
-    const SDL_AudioSpec spec = { SDL_AUDIO_S16, 2, AUDIO_SAMPLE_RATE };
-    audioStream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NtxmFetchAudio, NULL);
-    SDL_ResumeAudioDevice(SDL_GetAudioStreamDevice(audioStream));
-
-    return true;
-}
-
-void CommandExit() {
-    SDL_DestroyAudioStream(audioStream);
-
-    Player *player_local = player;
-    player = NULL;
-    delete player_local;
-    SDL_DestroyMutex(playerMutex);
+	Player *player_local = player;
+	player = NULL;
+	delete player_local;
+	SDL_DestroyMutex(playerMutex);
 }
 #endif

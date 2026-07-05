@@ -36,8 +36,7 @@
 #include "common.h"
 #include "wav.h"
 
-enum LoopType
-{
+enum LoopType {
 	NO_LOOP = 0,
 	FORWARD_LOOP = 1,
 	PING_PONG_LOOP = 2,
@@ -52,96 +51,95 @@ uint32_t ntxmGetFrequencyValue(uint16_t period, bool linear);
 
 class Sample
 {
-	public:
-		Sample(void *_sound_data, u32 _n_samples, u16 _sampling_frequency=44100,
-			bool _is_16_bit=true, u8 _loop=NO_LOOP, u8 _volume=255);
-		Sample(const char *filename, u8 _loop, bool *_success);
-		~Sample();
+  public:
+	Sample(void *_sound_data, u32 _n_samples, u16 _sampling_frequency = 44100,
+	       bool _is_16_bit = true, u8 _loop = NO_LOOP, u8 _volume = 255);
+	Sample(const char *filename, u8 _loop, bool *_success);
+	~Sample();
 
-		void saveAsWav(char *filename);
+	void saveAsWav(char *filename);
 
-		void play(u8 channel, u8 panning, u8 volume, u8 offs = 0);
-		u32 calcPlayLength(u8 note);
+	void play(u8 channel, u8 panning, u8 volume, u8 offs = 0);
+	u32 calcPlayLength(u8 note);
 
-		void setRelNote(s8 _rel_note);
-		void setFinetune(s8 _finetune);
+	void setRelNote(s8 _rel_note);
+	void setFinetune(s8 _finetune);
 
-		u8 getRelNote(void);
-		s8 getFinetune(void);
+	u8 getRelNote(void);
+	s8 getFinetune(void);
 
-		u32 getSize(void); // Get the size in bytes
-		u32 getNSamples(void); // Get the numer of (PCM) samples
+	u32 getSize(void);     // Get the size in bytes
+	u32 getNSamples(void); // Get the numer of (PCM) samples
 
-		void *getData(void);
-		u32 getMaxAmplitude(u32 startsample, u32 endsample);
-		u32 getDynamicRange(void);
+	void *getData(void);
+	u32 getMaxAmplitude(u32 startsample, u32 endsample);
+	u32 getDynamicRange(void);
 
-		u8 getLoop(void); // 0: no loop, 1: loop, 2: ping pong loop
-		bool setLoop(u8 loop_); // Set loop type. Can fail due to memory constraints
-		bool is16bit(void);
+	u8 getLoop(void);       // 0: no loop, 1: loop, 2: ping pong loop
+	bool setLoop(u8 loop_); // Set loop type. Can fail due to memory constraints
+	bool is16bit(void);
 
-		u32 getLoopStart(void); // in samples
-		u32 getLoopLength(void); // in samples
+	u32 getLoopStart(void);  // in samples
+	u32 getLoopLength(void); // in samples
 
-		// Sets loop start and length, arguments are given in samples
-		void setLoopStartAndLength(u32 _loop_start, u32 _loop_length);
+	// Sets loop start and length, arguments are given in samples
+	void setLoopStartAndLength(u32 _loop_start, u32 _loop_length);
 
-		void setVolume(u8 vol);
-		u8 getVolume(void);
+	void setVolume(u8 vol);
+	u8 getVolume(void);
 
-		void setPanning(u8 pan);
-		u8 getPanning(void);
+	void setPanning(u8 pan);
+	u8 getPanning(void);
 
-		void setName(const char *name_);
-		const char *getName(void);
+	void setName(const char *name_);
+	const char *getName(void);
 
-		// Deletes the part between start sample and end sample
-		void delPart(u32 startsample, u32 endsample);
-		void delAll(void);
-		void fadeIn(u32 startsample, u32 endsample);
-		void fadeOut(u32 startsample, u32 endsample);
-		bool reverse(u32 startsample, u32 endsample);
-		void normalize(u16 percent, u32 startsample, u32 endsample);
+	// Deletes the part between start sample and end sample
+	void delPart(u32 startsample, u32 endsample);
+	void delAll(void);
+	void fadeIn(u32 startsample, u32 endsample);
+	void fadeOut(u32 startsample, u32 endsample);
+	bool reverse(u32 startsample, u32 endsample);
+	void normalize(u16 percent, u32 startsample, u32 endsample);
 
+	// Draws a line into the sample
+	void drawLine(int x1, int y1, int x2, int y2);
+	//void cutSilence(void); // Heuristically cut silence in the beginning
 
-		// Draws a line into the sample
-		void drawLine(int x1, int y1, int x2, int y2);
-		//void cutSilence(void); // Heuristically cut silence in the beginning
+  private:
+	void calcSize(void);
+	void setFormat(void);
+	void calcRelnoteAndFinetune(u32 freq);
+	u16 findClosestFreq(u32 freq);
+	bool convertStereoToMono(void);
 
-	private:
-		void calcSize(void);
-		void setFormat(void);
-		void calcRelnoteAndFinetune(u32 freq);
-		u16 findClosestFreq(u32 freq);
-		bool convertStereoToMono(void);
+	void fade(u32 startsample, u32 endsample, bool in);
 
-		void fade(u32 startsample, u32 endsample, bool in);
+	bool setupPingPongLoop(void);
+	void removePingPongLoop(void);
+	bool onSampleDataChanged(void);
 
-		bool setupPingPongLoop(void);
-		void removePingPongLoop(void);
-		bool onSampleDataChanged(void);
+	void *sound_data;
+	void *pingpong_data;
+	u32 n_samples;
+	bool is_16_bit;
+	u8 loop;
+	s8 rel_note;     // Offset in the frequency table from base note
+	s8 finetune;     // -128: one halftone down, +127: one halftone up
+	u32 loop_start;  // In bytes, not in samples!
+	u32 loop_length; // In bytes, not in samples!
+	u8 volume;
+	u8 panning;
+	char name[SAMPLE_NAME_LENGTH + 1];
 
-		void *sound_data;
-		void *pingpong_data;
-		u32 n_samples;
-		bool is_16_bit;
-		u8 loop;
-		s8 rel_note;		// Offset in the frequency table from base note
-		s8 finetune;		// -128: one halftone down, +127: one halftone up
-		u32 loop_start;		// In bytes, not in samples!
-		u32 loop_length;	// In bytes, not in samples!
-		u8 volume;
-		u8 panning;
-		char name[SAMPLE_NAME_LENGTH + 1];
+	// These are calculated in the constructor
+	u32 size;
+	u32 sound_format;
 
-		// These are calculated in the constructor
-		u32 size;
-		u32 sound_format;
+	Wav wav;
+	// Other formats may follow
 
-		Wav wav;
-		// Other formats may follow
-
-		friend class Player;
+	friend class Player;
 };
 
 #endif

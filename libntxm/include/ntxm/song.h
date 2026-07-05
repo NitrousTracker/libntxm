@@ -37,59 +37,59 @@
 
 #include "instrument.h"
 
-#define MAX_INSTRUMENTS			128
-#define MAX_INSTRUMENT_SAMPLES	16
-#define MAX_PATTERNS			256
-#define MAX_POT_LENGTH			256
-#define MAX_PATTERN_LENGTH		256
-#define DEFAULT_PATTERN_LENGTH	64
-#define DEFAULT_BPM				125
-#define DEFAULT_SPEED			6
-#define DEFAULT_CHANNELS		4
+#define MAX_INSTRUMENTS 128
+#define MAX_INSTRUMENT_SAMPLES 16
+#define MAX_PATTERNS 256
+#define MAX_POT_LENGTH 256
+#define MAX_PATTERN_LENGTH 256
+#define DEFAULT_PATTERN_LENGTH 64
+#define DEFAULT_BPM 125
+#define DEFAULT_SPEED 6
+#define DEFAULT_CHANNELS 4
 
-#define EMPTY_NOTE				255
-#define STOP_NOTE				254
+#define EMPTY_NOTE 255
+#define STOP_NOTE 254
 
-#define NO_INSTRUMENT			255
-#define MAX_SONG_NAME_LENGTH	20
+#define NO_INSTRUMENT 255
+#define MAX_SONG_NAME_LENGTH 20
 
-#define NO_VOLUME				0
-#define MAX_VOLUME              64
+#define NO_VOLUME 0
+#define MAX_VOLUME 64
 
-#define NO_EFFECT				255
-#define NO_EFFECT_PARAM			0
+#define NO_EFFECT 255
+#define NO_EFFECT_PARAM 0
 
-#define EFFECT_ARPEGGIO			0x0
-#define EFFECT_PORTA_UP			0x1
-#define EFFECT_PORTA_DOWN     0x2
-#define EFFECT_PORTA_TONE     0x3
-#define EFFECT_VIBRATO     0x4
+#define EFFECT_ARPEGGIO 0x0
+#define EFFECT_PORTA_UP 0x1
+#define EFFECT_PORTA_DOWN 0x2
+#define EFFECT_PORTA_TONE 0x3
+#define EFFECT_VIBRATO 0x4
 
-#define EFFECT_SET_PAN    0x8
-#define EFFECT_SAMPLE_OFFSET    0x9
-#define EFFECT_VOLUME_SLIDE		0xA
-#define EFFECT_POSITION_JUMP	0xB
-#define EFFECT_SET_VOLUME		0xC
-#define EFFECT_PATTERN_BREAK	0xD
-#define EFFECT_E				0xE
+#define EFFECT_SET_PAN 0x8
+#define EFFECT_SAMPLE_OFFSET 0x9
+#define EFFECT_VOLUME_SLIDE 0xA
+#define EFFECT_POSITION_JUMP 0xB
+#define EFFECT_SET_VOLUME 0xC
+#define EFFECT_PATTERN_BREAK 0xD
+#define EFFECT_E 0xE
 
-#define EFFECT_E_FINE_PORTA_UP			0x1
-#define EFFECT_E_FINE_PORTA_DOWN		0x2
-#define EFFECT_E_SET_GLISS_CONTROL		0x3
-#define EFFECT_E_SET_VIBRATO_CONTROL	0x4
-#define EFFECT_E_SET_FINETUNE			0x5
-#define EFFECT_E_SET_LOOP				0x6
+#define EFFECT_E_FINE_PORTA_UP 0x1
+#define EFFECT_E_FINE_PORTA_DOWN 0x2
+#define EFFECT_E_SET_GLISS_CONTROL 0x3
+#define EFFECT_E_SET_VIBRATO_CONTROL 0x4
+#define EFFECT_E_SET_FINETUNE 0x5
+#define EFFECT_E_SET_LOOP 0x6
 
-#define EFFECT_E_NOTE_CUT				0x0C
-#define EFFECT_E_NOTE_DELAY        0x0D
+#define EFFECT_E_NOTE_CUT 0x0C
+#define EFFECT_E_NOTE_DELAY 0x0D
 
-#define EFFECT_E_PATTERN_DELAY			0x0E
+#define EFFECT_E_PATTERN_DELAY 0x0E
 
-#define EFFECT_SET_SPEED_TEMPO			0x0F
+#define EFFECT_SET_SPEED_TEMPO 0x0F
 
-#define EFFECT_EXTRA_FINE_PORTAMENTO	0x21
-#define EFFECT_EXTRA_FINE_PORTAMENTO_UP	0x1
-#define EFFECT_EXTRA_FINE_PORTAMENTO_DOWN	0x2
+#define EFFECT_EXTRA_FINE_PORTAMENTO 0x21
+#define EFFECT_EXTRA_FINE_PORTAMENTO_UP 0x1
+#define EFFECT_EXTRA_FINE_PORTAMENTO_DOWN 0x2
 
 /*
   0      Appregio
@@ -158,102 +158,102 @@ is a subset of XM, but export and import for mod, it, s3m could come. To edit a
 pattern, get its pointer with getPattern().
 */
 
-class Song {
+class Song
+{
 	friend class Player;
 
-	public:
+  public:
+	Song(u8 _speed = DEFAULT_SPEED, u8 _bpm = DEFAULT_BPM,
+	     u8 _channels = DEFAULT_CHANNELS, bool _linear = true);
 
-		Song(u8 _speed=DEFAULT_SPEED, u8 _bpm=DEFAULT_BPM, u8 _channels=DEFAULT_CHANNELS, bool _linear=true);
+	~Song();
 
-		~Song();
+	Cell **getPattern(u8 idx);
+	u8 getChannels(void);
+	u16 getPatternLength(u8 idx);
 
-		Cell **getPattern(u8 idx);
-		u8 getChannels(void);
-		u16 getPatternLength(u8 idx);
+	Instrument *getInstrument(u8 instidx);
+	u8 getInstruments(void);
 
-		Instrument *getInstrument(u8 instidx);
-		u8 getInstruments(void);
+	void setInstrument(u8 idx, Instrument *instrument);
 
-		void setInstrument(u8 idx, Instrument *instrument);
+	//
+	// Playback control
+	//
 
-		//
-		// Playback control
-		//
+	// POT functions
+	void potAdd(u8 ptn = 0);
+	void potDel(u8 element);
+	bool potIns(u8 idx, u8 pattern);
+	u16 getPotLength(void);
+	u8 getPotEntry(u8 idx);
+	void setPotEntry(u8 idx, u8 value);
 
-		// POT functions
-		void potAdd(u8 ptn=0);
-		void potDel(u8 element);
-		bool potIns(u8 idx, u8 pattern);
-		u16 getPotLength(void);
-		u8 getPotEntry(u8 idx);
-		void setPotEntry(u8 idx, u8 value);
+	void addPattern(u16 length = DEFAULT_PATTERN_LENGTH);
 
-		void addPattern(u16 length=DEFAULT_PATTERN_LENGTH);
+	// More/less channels
+	void channelAdd(void);
+	void channelDel(void);
 
-		// More/less channels
-		void channelAdd(void);
-		void channelDel(void);
+	u8 getNumPatterns(void);
 
-		u8 getNumPatterns(void);
+	void resizePattern(u8 ptn, u16 newlength, bool force_reallocation = false);
 
-		void resizePattern(u8 ptn, u16 newlength, bool force_reallocation=false);
+	// The most important functions
+	void setName(const char *_name);
+	const char *getName(void);
 
-		// The most important functions
-		void setName(const char *_name);
-		const char *getName(void);
+	void setRestartPosition(u8 _restart_position);
+	inline u8 getRestartPosition(void) { return restart_position; }
 
-		void setRestartPosition(u8 _restart_position);
-		inline u8 getRestartPosition(void) { return restart_position; }
+	inline u8 getTempo(void) { return speed; }
+	inline u8 getBPM(void) { return bpm; }
+	inline bool getLinear(void) { return linear; }
 
-		inline u8 getTempo(void) { return speed; }
-		inline u8 getBPM(void) { return bpm; }
-		inline bool getLinear(void) { return linear; }
+	void setTempo(u8 _tempo);
+	void setBpm(u8 _bpm);
+	void setLinear(bool value);
 
-		void setTempo(u8 _tempo);
-		void setBpm(u8 _bpm);
-		void setLinear(bool value);
+	// Zapping
+	void zapPatterns(void);
+	void zapInstruments(void);
+	void zapInstrument(u8 inst);
+	void zapUnusedInstruments(bool *used_insts);
 
-		// Zapping
-		void zapPatterns(void);
-		void zapInstruments(void);
-		void zapInstrument(u8 inst);
-		void zapUnusedInstruments(bool *used_insts);
+	void clearCell(Cell *cell);
 
-		void clearCell(Cell *cell);
+	// Muting
+	void setChannelMute(u8 chn, bool muted);
+	bool channelMuted(u8 chn);
 
-		// Muting
-		void setChannelMute(u8 chn, bool muted);
-		bool channelMuted(u8 chn);
+  private:
+	void killPatterns(void);
+	void killInstruments(void);
 
-	private:
+	u8 speed;
+	u8 bpm;
+	u8 n_channels;
+	u8 restart_position;
+	bool linear; // Linear (vs Amiga) frequences
 
-		void killPatterns(void);
-		void killInstruments(void);
+	u16 *patternlengths;
+	u16 *internal_patternlengths; // "real length of the pattern":
+	// patternlengths stores the lengths of the patterns that user actually sees.
+	// If the user shortens a pattern, then only the value in patternlengths is
+	// decreased, but the data is not deleted. This helps prevent accidental data
+	// loss. internal_patternlengths can therefore only grow.
 
-		u8 speed;
-		u8 bpm;
-		u8 n_channels;
-		u8 restart_position;
-		bool linear; // Linear (vs Amiga) frequences
+	u8 *pattern_order_table;
+	Instrument **instruments;
 
-		u16 *patternlengths;
-		u16 *internal_patternlengths; // "real length of the pattern":
-		// patternlengths stores the lengths of the patterns that user actually sees.
-		// If the user shortens a pattern, then only the value in patternlengths is
-		// decreased, but the data is not deleted. This helps prevent accidental data
-		// loss. internal_patternlengths can therefore only grow.
+	char *name;
 
-		u8 *pattern_order_table;
-		Instrument **instruments;
+	u16 n_patterns;
+	u16 potsize;
 
-		char *name;
+	Cell ***patterns;
 
-		u16 n_patterns;
-		u16 potsize;
-
-		Cell ***patterns;
-
-		bool channels_muted[MAX_CHANNELS];
+	bool channels_muted[MAX_CHANNELS];
 };
 
 #endif

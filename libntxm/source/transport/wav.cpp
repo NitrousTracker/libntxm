@@ -30,8 +30,8 @@
  *
  ***** END LICENSE BLOCK *****/
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "ntxm/ntxmtools.h"
@@ -40,15 +40,13 @@
 /* ===================== PUBLIC ===================== */
 
 Wav::Wav()
-	:compression_(CMP_PCM), n_channels_(1), sampling_rate_(22050), bit_per_sample_(8),
-	n_samples_(0), audio_data_(0), loop_type_(0), loop_start_(0), loop_end_(-1)
+    : compression_(CMP_PCM), n_channels_(1), sampling_rate_(22050),
+      bit_per_sample_(8), n_samples_(0), audio_data_(0), loop_type_(0),
+      loop_start_(0), loop_end_(-1)
 {
-
 }
 
-Wav::~Wav() {
-
-}
+Wav::~Wav() {}
 
 #define FOURCC_RIFF 0x46464952
 #define FOURCC_WAVE 0x45564157
@@ -65,14 +63,14 @@ bool Wav::load(const char *filename)
 
 	fileh = fopen(filename, "rb");
 
-	if(!fileh)
+	if (!fileh)
 		return false;
 
 	u32 cc;
 
 	// RIFF header
 	fread(&cc, 4, 1, fileh);
-	if(cc != FOURCC_RIFF) {
+	if (cc != FOURCC_RIFF) {
 		fclose(fileh);
 		return false;
 	}
@@ -82,22 +80,22 @@ bool Wav::load(const char *filename)
 
 	// WAVE header
 	fread(&cc, 4, 1, fileh);
-	if(cc != FOURCC_WAVE) {
+	if (cc != FOURCC_WAVE) {
 		fclose(fileh);
 		return false;
 	}
 
-	while(true) {
-		if(fread(&cc, 4, 1, fileh) <= 0 || feof(fileh)) {
+	while (true) {
+		if (fread(&cc, 4, 1, fileh) <= 0 || feof(fileh)) {
 			fclose(fileh);
 			return false;
 		}
 		// fmt chunk?
-		if(cc == FOURCC_fmt) {
+		if (cc == FOURCC_fmt) {
 			break;
 		}
 		// JUNK chunk?
-		if(cc == FOURCC_JUNK) {
+		if (cc == FOURCC_JUNK) {
 			long junksize;
 			fread(&junksize, 4, 1, fileh);
 			fseek(fileh, junksize, SEEK_CUR);
@@ -114,7 +112,7 @@ bool Wav::load(const char *filename)
 	u16 compression_code;
 	fread(&compression_code, 2, 1, fileh);
 
-	if(compression_code == 1 || compression_code == 0xFFFE) {
+	if (compression_code == 1 || compression_code == 0xFFFE) {
 		// 1 = PCM, 0xFFFE = extensible
 		compression_ = CMP_PCM;
 	} else {
@@ -125,7 +123,7 @@ bool Wav::load(const char *filename)
 	u16 n_channels; // They really thought they were cool when making this 16 bit.
 	fread(&n_channels, 2, 1, fileh);
 
-	if(n_channels > 2) {
+	if (n_channels > 2) {
 		fclose(fileh);
 		return false;
 	} else {
@@ -145,7 +143,7 @@ bool Wav::load(const char *filename)
 
 	u16 bit_per_sample;
 	fread(&bit_per_sample, 2, 1, fileh);
-	if(!(bit_per_sample & 7) && bit_per_sample >= 8) {
+	if (!(bit_per_sample & 7) && bit_per_sample >= 8) {
 		bit_per_sample_ = bit_per_sample > 16 ? 16 : bit_per_sample;
 	} else {
 		fclose(fileh);
@@ -156,12 +154,12 @@ bool Wav::load(const char *filename)
 	fseek(fileh, fmt_chunk_size - 16, SEEK_CUR);
 
 	audio_data_ = NULL;
-	int sample_size = bit_per_sample/8;
+	int sample_size = bit_per_sample / 8;
 
 	loop_type_ = 0;
 
-	while(true) {
-		if(feof(fileh))
+	while (true) {
+		if (feof(fileh))
 			break;
 
 		u32 chunk_size;
@@ -173,42 +171,43 @@ bool Wav::load(const char *filename)
 		u32 chunk_pos = ftell(fileh);
 		u32 loop_id, loop_type = 0, loop_start, loop_end;
 
-		if(cc == FOURCC_data) {
-			if(compression_ == CMP_PCM) {
+		if (cc == FOURCC_data) {
+			if (compression_ == CMP_PCM) {
 				n_samples_ = chunk_size / sample_size;
 			} else {
 				n_samples_ = chunk_size * 2 * sample_size;
 			}
 
-			audio_data_ = (u8*)ntxm_umalloc(chunk_size);
-			if(audio_data_ == 0) {
+			audio_data_ = (u8 *)ntxm_umalloc(chunk_size);
+			if (audio_data_ == 0) {
 				ntxm_dprintf("Could not alloc mem(%ld) for wav.\n", chunk_size);
 				fclose(fileh);
 				return false;
 			}
 
 			// Read the data
-			if(bit_per_sample > bit_per_sample_) {
+			if (bit_per_sample > bit_per_sample_) {
 				int skip_bytes = (bit_per_sample - bit_per_sample_) / 8;
 				u32 i = 0;
-				for(; i < n_samples_; i++) {
+				for (; i < n_samples_; i++) {
 					fseek(fileh, skip_bytes, SEEK_CUR);
-					if(fread(audio_data_ + i * 2, 2, 1, fileh) <= 0) {
+					if (fread(audio_data_ + i * 2, 2, 1, fileh) <= 0) {
 						break;
 					}
 				}
-				if(i < n_samples_) {
+				if (i < n_samples_) {
 					memset(audio_data_ + i * 2, 0, chunk_size - i * 2);
 				}
 			} else {
 				size_t bytes_read = fread(audio_data_, 1, chunk_size, fileh);
 				if (bytes_read < chunk_size) {
-					memset(audio_data_ + bytes_read, 0, chunk_size - bytes_read);
+					memset(audio_data_ + bytes_read, 0,
+					       chunk_size - bytes_read);
 				}
 			}
 
 			// Convert 8 bit samples from unsigned to signed
-			if(bit_per_sample == 8) {
+			if (bit_per_sample == 8) {
 				ntxm_unsigned2signed_8(audio_data_, chunk_size);
 			}
 
@@ -221,7 +220,7 @@ bool Wav::load(const char *filename)
 			fread(&loop_count, 4, 1, fileh);
 			fseek(fileh, 0x2C - 0x28, SEEK_CUR);
 
-			while(loop_count--) {
+			while (loop_count--) {
 				fread(&loop_id, 4, 1, fileh);
 				fread(&loop_type, 4, 1, fileh);
 				fread(&loop_start, 4, 1, fileh);
@@ -245,8 +244,7 @@ bool Wav::load(const char *filename)
 	if (!audio_data_)
 		return false;
 
-	if (!loop_type_)
-	{
+	if (!loop_type_) {
 		loop_start_ = 0;
 		loop_end_ = n_samples_ - 1;
 	}
@@ -256,7 +254,7 @@ bool Wav::load(const char *filename)
 bool Wav::save(const char *filename)
 {
 	FILE *fileh = fopen(filename, "wb");
-	if(fileh == NULL)
+	if (fileh == NULL)
 		return false;
 
 	// RIFF header
@@ -301,21 +299,17 @@ bool Wav::save(const char *filename)
 
 	ntxm_dprintf("rate: %u\ndata: %lu\n", sampling_rate_, data_chunk_size);
 
-	if(bit_per_sample == 8)
-	{
+	if (bit_per_sample == 8) {
 		// Convert from unsigned to signed and back
 		ntxm_unsigned2signed_8(audio_data_, data_chunk_size);
 		fwrite(audio_data_, data_chunk_size, 1, fileh);
 		ntxm_unsigned2signed_8(audio_data_, data_chunk_size);
-	}
-	else if(bit_per_sample == 16)
-	{
-		u16 *audio = (u16*)audio_data_;
+	} else if (bit_per_sample == 16) {
+		u16 *audio = (u16 *)audio_data_;
 		fwrite(audio, data_chunk_size, 1, fileh);
 	}
 
-	if(loop_type_)
-	{
+	if (loop_type_) {
 		fwrite("smpl", 1, 4, fileh);
 
 		u32 smpl_chunk_size = 56;

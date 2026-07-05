@@ -57,11 +57,11 @@ typedef volatile int8_t vs8;
 typedef volatile int16_t vs16;
 typedef volatile int32_t vs32;
 typedef volatile int64_t vs64;
-#define BIT(n) (1<<(n))
+#define BIT(n) (1 << (n))
 #endif
 
 #if defined(NT_PLATFORM_NDS)
-#define MAX_CHANNELS			16
+#define MAX_CHANNELS 16
 #else
-#define MAX_CHANNELS			32
+#define MAX_CHANNELS 32
 #endif

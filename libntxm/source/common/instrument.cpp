@@ -37,56 +37,56 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "ntxm/fifocommand.h"
 #include "ntxm/instrument.h"
 #include "ntxm/ntxmtools.h"
-#include "ntxm/fifocommand.h"
 
 #ifndef ARM7
 
 Instrument::Instrument(const char *_name, u8 _type, u8 _volume)
-	:type(_type), volume(_volume),
-	 n_vol_points(0), vol_env_on(false), vol_env_sustain(false), vol_env_loop(false),
-	 n_pan_points(0), pan_env_on(false), pan_env_sustain(false), pan_env_loop(false),
-	 vol_loop_start_point(0), vol_loop_end_point(0), pan_loop_start_point(0), pan_loop_end_point(0),
-	 vibrato_type(0), vibrato_sweep(0), vibrato_depth(0), vibrato_rate(0),
-	 fadeout_vol(0), mute(false)
+    : type(_type), volume(_volume), n_vol_points(0), vol_env_on(false),
+      vol_env_sustain(false), vol_env_loop(false), n_pan_points(0),
+      pan_env_on(false), pan_env_sustain(false), pan_env_loop(false),
+      vol_loop_start_point(0), vol_loop_end_point(0), pan_loop_start_point(0),
+      pan_loop_end_point(0), vibrato_type(0), vibrato_sweep(0),
+      vibrato_depth(0), vibrato_rate(0), fadeout_vol(0), mute(false)
 {
-	name = (char*)ntxm_cmalloc(MAX_INST_NAME_LENGTH+1);
+	name = (char *)ntxm_cmalloc(MAX_INST_NAME_LENGTH + 1);
 	name[MAX_INST_NAME_LENGTH] = 0;
 	strncpy(name, _name, MAX_INST_NAME_LENGTH);
 
-	note_samples = (u8*)ntxm_ccalloc(sizeof(u8)*MAX_OCTAVE*12, 1);
+	note_samples = (u8 *)ntxm_ccalloc(sizeof(u8) * MAX_OCTAVE * 12, 1);
 
 	samples = NULL;
 	n_samples = 0;
 }
 
 Instrument::Instrument(const char *_name, Sample *_sample, u8 _volume)
-	:type(INST_SAMPLE), volume(_volume),
-	 n_vol_points(0), vol_env_on(false), vol_env_sustain(false), vol_env_loop(false),
-	 n_pan_points(0), pan_env_on(false), pan_env_sustain(false), pan_env_loop(false),
-	 vol_loop_start_point(0), vol_loop_end_point(0), pan_loop_start_point(0), pan_loop_end_point(0),
-	 vibrato_type(0), vibrato_sweep(0), vibrato_depth(0), vibrato_rate(0),
-	 fadeout_vol(0), mute(false)
+    : type(INST_SAMPLE), volume(_volume), n_vol_points(0), vol_env_on(false),
+      vol_env_sustain(false), vol_env_loop(false), n_pan_points(0),
+      pan_env_on(false), pan_env_sustain(false), pan_env_loop(false),
+      vol_loop_start_point(0), vol_loop_end_point(0), pan_loop_start_point(0),
+      pan_loop_end_point(0), vibrato_type(0), vibrato_sweep(0),
+      vibrato_depth(0), vibrato_rate(0), fadeout_vol(0), mute(false)
 {
-	name = (char*)ntxm_cmalloc(MAX_INST_NAME_LENGTH+1);
+	name = (char *)ntxm_cmalloc(MAX_INST_NAME_LENGTH + 1);
 	name[MAX_INST_NAME_LENGTH] = 0;
 	strncpy(name, _name, MAX_INST_NAME_LENGTH);
 
-	samples = (Sample**)ntxm_cmalloc(sizeof(Sample*)*1);
+	samples = (Sample **)ntxm_cmalloc(sizeof(Sample *) * 1);
 	samples[0] = _sample;
 	n_samples = 1;
 
-	note_samples = (u8*)ntxm_ccalloc(sizeof(u8)*MAX_OCTAVE*12, 1);
+	note_samples = (u8 *)ntxm_ccalloc(sizeof(u8) * MAX_OCTAVE * 12, 1);
 }
 
 Instrument::~Instrument()
 {
-	for(u8 i=0;i<n_samples;++i) {
-		if(samples[i] != NULL)
+	for (u8 i = 0; i < n_samples; ++i) {
+		if (samples[i] != NULL)
 			delete samples[i];
 	}
-	if(samples != NULL)
+	if (samples != NULL)
 		ntxm_free(samples);
 
 	ntxm_free(note_samples);
@@ -97,24 +97,23 @@ Instrument::~Instrument()
 void Instrument::addSample(Sample *sample)
 {
 	n_samples++;
-	samples = (Sample**)ntxm_crealloc(samples, sizeof(Sample*)*n_samples);
-	samples[n_samples-1] = sample;
+	samples = (Sample **)ntxm_crealloc(samples, sizeof(Sample *) * n_samples);
+	samples[n_samples - 1] = sample;
 }
 
 void Instrument::setSample(u8 idx, Sample *sample)
 {
 	// Delete the sample if it already exists
-	if( (idx < n_samples) && (samples[idx] != 0) )
+	if ((idx < n_samples) && (samples[idx] != 0))
 		delete samples[idx];
 
 	// Resize sample list if necessary
-	if(n_samples < idx + 1)
-	{
-		samples = (Sample**)ntxm_crealloc(samples, sizeof(Sample*) * (idx + 1));
+	if (n_samples < idx + 1) {
+		samples =
+		    (Sample **)ntxm_crealloc(samples, sizeof(Sample *) * (idx + 1));
 
 		// Initialize new samples with 0
-		while(n_samples < idx + 1)
-		{
+		while (n_samples < idx + 1) {
 			samples[n_samples] = 0;
 			++n_samples;
 		}
@@ -127,30 +126,30 @@ void Instrument::setSample(u8 idx, Sample *sample)
 
 Sample *Instrument::getSample(u8 idx)
 {
-	if((n_samples>0) && (idx<n_samples))
+	if ((n_samples > 0) && (idx < n_samples))
 		return samples[idx];
 	else
 		return NULL;
 }
 
-Sample *Instrument::getSampleForNote(u8 _note) {
-	if(note_samples[_note] >= n_samples) return NULL;
+Sample *Instrument::getSampleForNote(u8 _note)
+{
+	if (note_samples[_note] >= n_samples)
+		return NULL;
 
 	return samples[note_samples[_note]];
 }
 
-
 #ifndef ARM7
 
-void Instrument::setNoteSample(u16 note, u8 sample_id) {
+void Instrument::setNoteSample(u16 note, u8 sample_id)
+{
 	note_samples[note] = sample_id;
 }
 
 #endif
 
-u8 Instrument::getNoteSample(u16 note) {
-	return note_samples[note];
-}
+u8 Instrument::getNoteSample(u16 note) { return note_samples[note]; }
 
 #ifndef ARM7
 
@@ -163,7 +162,8 @@ void Instrument::setVolEnvEnabled(bool is_enabled)
 #endif
 
 // Calculate how long in ms the instrument will play note given note
-u32 Instrument::calcPlayLength(u8 note) {
+u32 Instrument::calcPlayLength(u8 note)
+{
 	if (samples == NULL)
 		return 0;
 	else
@@ -172,75 +172,67 @@ u32 Instrument::calcPlayLength(u8 note) {
 
 #ifndef ARM7
 
-const char *Instrument::getName(void) {
-	return name;
-}
+const char *Instrument::getName(void) { return name; }
 
-void Instrument::setName(const char *_name) {
+void Instrument::setName(const char *_name)
+{
 	strncpy(name, _name, MAX_INST_NAME_LENGTH);
 }
 
 #endif
 
-u16 Instrument::getSamples(void) {
-	return n_samples;
-}
+u16 Instrument::getSamples(void) { return n_samples; }
 
 #ifndef ARM7
 
-void Instrument::setVolumeEnvelope(u16 *envelope, u8 n_points, u8 v_sustain_point, bool vol_env_on_, bool vol_env_sustain_, bool vol_env_loop_)
+void Instrument::setVolumeEnvelope(u16 *envelope, u8 n_points,
+                                   u8 v_sustain_point, bool vol_env_on_,
+                                   bool vol_env_sustain_, bool vol_env_loop_)
 {
 	n_vol_points = n_points;
-	for(u8 i=0; i<n_points; ++i)
-	{
-		vol_envelope_x[i] = envelope[2*i];
-		vol_envelope_y[i] = envelope[2*i+1];
+	for (u8 i = 0; i < n_points; ++i) {
+		vol_envelope_x[i] = envelope[2 * i];
+		vol_envelope_y[i] = envelope[2 * i + 1];
 	}
 
 	vol_sustain_point = v_sustain_point;
-	vol_env_on      = vol_env_on_;
+	vol_env_on = vol_env_on_;
 	vol_env_sustain = vol_env_sustain_;
-	vol_env_loop    = vol_env_loop_;
+	vol_env_loop = vol_env_loop_;
 }
 
-void Instrument::setPanningEnvelope(u16 *envelope, u8 n_points, u8 p_sustain_point,  bool pan_env_on_, bool pan_env_sustain_, bool pan_env_loop_)
+void Instrument::setPanningEnvelope(u16 *envelope, u8 n_points,
+                                    u8 p_sustain_point, bool pan_env_on_,
+                                    bool pan_env_sustain_, bool pan_env_loop_)
 {
 	n_pan_points = n_points;
-	for(u8 i=0; i<n_points; ++i)
-	{
-		pan_envelope_x[i] = envelope[2*i];
-		pan_envelope_y[i] = envelope[2*i+1];
+	for (u8 i = 0; i < n_points; ++i) {
+		pan_envelope_x[i] = envelope[2 * i];
+		pan_envelope_y[i] = envelope[2 * i + 1];
 	}
 
 	pan_sustain_point = p_sustain_point;
-	pan_env_on      = pan_env_on_;
+	pan_env_on = pan_env_on_;
 	pan_env_sustain = pan_env_sustain_;
-	pan_env_loop    = pan_env_loop_;
+	pan_env_loop = pan_env_loop_;
 }
 
 void Instrument::setVibrato(u8 type, u8 sweep, u8 depth, u8 rate)
 {
-    vibrato_type = type;
-    vibrato_sweep = sweep;
-    vibrato_depth = depth;
-    vibrato_rate = rate;
+	vibrato_type = type;
+	vibrato_sweep = sweep;
+	vibrato_depth = depth;
+	vibrato_rate = rate;
 }
 
-void Instrument::setFadeOutVolume(u16 value)
-{
-    fadeout_vol = value;
-}
+void Instrument::setFadeOutVolume(u16 value) { fadeout_vol = value; }
 
-void Instrument::setMute(bool value)
-{
-    mute = value;
-}
+void Instrument::setMute(bool value) { mute = value; }
 
 void Instrument::setVolumeEnvelopePoints(u16 *xs, u16 *ys, u16 n_points)
 {
 	n_vol_points = n_points;
-	for(u8 i=0; i<n_points; ++i)
-	{
+	for (u8 i = 0; i < n_points; ++i) {
 		vol_envelope_x[i] = xs[i];
 		vol_envelope_y[i] = ys[i];
 	}
@@ -248,12 +240,12 @@ void Instrument::setVolumeEnvelopePoints(u16 *xs, u16 *ys, u16 n_points)
 
 void Instrument::setVolumeEnvelopeSustainPoint(u8 sus_point)
 {
-  vol_sustain_point = sus_point;
+	vol_sustain_point = sus_point;
 }
 
 void Instrument::toggleVolumeEnvelopeSustain(bool is_enabled)
 {
-  vol_env_sustain = is_enabled;
+	vol_env_sustain = is_enabled;
 }
 
 u16 Instrument::getVolumeEnvelope(u16 **xs, u16 **ys)
@@ -272,13 +264,7 @@ u16 Instrument::getPanningEnvelope(u16 **xs, u16 **ys)
 	return n_pan_points;
 }
 
-bool Instrument::getVolumeEnvelopeSustainFlag(void)
-{
-  return vol_env_sustain;
-}
+bool Instrument::getVolumeEnvelopeSustainFlag(void) { return vol_env_sustain; }
 
-u8 Instrument::getVolumeEnvelopeSustainPoint(void)
-{
-  return vol_sustain_point;
-}
+u8 Instrument::getVolumeEnvelopeSustainPoint(void) { return vol_sustain_point; }
 #endif

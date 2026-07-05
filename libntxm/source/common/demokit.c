@@ -35,7 +35,7 @@
 #include <SDL3/SDL.h>
 #endif
 
-#define nds_timers2ms(tlow,thigh)(tlow | (thigh<<16)) >> 5
+#define nds_timers2ms(tlow, thigh) (tlow | (thigh << 16)) >> 5
 
 int ticksSpeed;
 unsigned int lastTime;
@@ -51,10 +51,10 @@ void demoInit(void)
 void reStartRealTicks(void)
 {
 #if defined(NT_PLATFORM_NDS)
-	TIMER2_DATA=0;
-	TIMER3_DATA=0;
-	TIMER2_CR=TIMER_DIV_1024 | TIMER_ENABLE;
-	TIMER3_CR=TIMER_CASCADE | TIMER_ENABLE;
+	TIMER2_DATA = 0;
+	TIMER3_DATA = 0;
+	TIMER2_CR = TIMER_DIV_1024 | TIMER_ENABLE;
+	TIMER3_CR = TIMER_CASCADE | TIMER_ENABLE;
 #endif
 }
 
@@ -102,7 +102,7 @@ void setTicksTo(unsigned int time)
 
 unsigned int getTicks(void)
 {
-	unsigned int t = ((getRealTicks() - lastTime)*ticksSpeed)/100;
+	unsigned int t = ((getRealTicks() - lastTime) * ticksSpeed) / 100;
 	if ((t > 0) || (-t < timeCounted)) {
 		timeCounted += t;
 	} else {
@@ -118,12 +118,11 @@ void setTicksSpeed(int percentage)
 	ticksSpeed = percentage;
 }
 
-int getTicksSpeed(void)
-{
-	return ticksSpeed;
-}
+int getTicksSpeed(void) { return ticksSpeed; }
 
-void delay(unsigned int d) {
+void delay(unsigned int d)
+{
 	unsigned int start = getTicks();
-	while (getTicks() <= start+d);
+	while (getTicks() <= start + d)
+		;
 }

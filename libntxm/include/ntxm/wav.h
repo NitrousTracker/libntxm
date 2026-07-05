@@ -33,8 +33,8 @@
 #ifndef WAV_H
 #define WAV_H
 
-#define CMP_PCM		0
-#define CMP_ADPCM	1
+#define CMP_PCM 0
+#define CMP_ADPCM 1
 
 #include "common.h"
 
@@ -51,43 +51,50 @@ It supports
 
 */
 
-class Wav {
-	public:
-		Wav();
-		~Wav();
-		bool load(const char *filename);
-		bool save(const char *filename);
-		
-		u8 *getAudioData(void)    { return audio_data_; }
-		u32 getNSamples(void)     { return (n_channels_==2)?n_samples_/2:n_samples_; }
-		u16 getSamplingRate(void) { return sampling_rate_; }
-		bool isStereo(void)       { return n_channels_ == 2; }
-		u8 getBitPerSample(void)  { return bit_per_sample_; }
-		u8 getCompression(void)   { return compression_; }
-		u8 getLoopType(void)      { return loop_type_; }
-		u32 getLoopStart(void)    { return loop_start_; }
-		u32 getLoopEnd(void)      { return loop_end_; }
+class Wav
+{
+  public:
+	Wav();
+	~Wav();
+	bool load(const char *filename);
+	bool save(const char *filename);
 
-		void setCompression(u8 compression)     { compression_ = compression; }
-		void setNChannels(u8 n_channels)        { n_channels_ = n_channels; }
-		void setSamplingRate(u16 sampling_rate) { sampling_rate_ = sampling_rate; }
-		void setBitPerSample(u8 bit_per_sample) { bit_per_sample_ = bit_per_sample; }
-		void setNSamples(u32 n_samples)         { n_samples_ = n_samples; }
-		void setAudioData(u8 *audio_data)       { audio_data_ = audio_data; }
-		void setLoopType(u8 loop_type)          { loop_type_ = loop_type; }
-		void setLoopStart(u32 loop_start)       { loop_start_ = loop_start; }
-		void setLoopEnd(u32 loop_end)           { loop_end_ = loop_end; }
+	u8 *getAudioData(void) { return audio_data_; }
+	u32 getNSamples(void)
+	{
+		return (n_channels_ == 2) ? n_samples_ / 2 : n_samples_;
+	}
+	u16 getSamplingRate(void) { return sampling_rate_; }
+	bool isStereo(void) { return n_channels_ == 2; }
+	u8 getBitPerSample(void) { return bit_per_sample_; }
+	u8 getCompression(void) { return compression_; }
+	u8 getLoopType(void) { return loop_type_; }
+	u32 getLoopStart(void) { return loop_start_; }
+	u32 getLoopEnd(void) { return loop_end_; }
 
-	private:
-		u8 compression_;
-		u8 n_channels_;
-		u16 sampling_rate_;
-		u8 bit_per_sample_;
-		u32 n_samples_;
-		u8 *audio_data_;
-		u8 loop_type_;
-		u32 loop_start_;
-		u32 loop_end_;
+	void setCompression(u8 compression) { compression_ = compression; }
+	void setNChannels(u8 n_channels) { n_channels_ = n_channels; }
+	void setSamplingRate(u16 sampling_rate) { sampling_rate_ = sampling_rate; }
+	void setBitPerSample(u8 bit_per_sample)
+	{
+		bit_per_sample_ = bit_per_sample;
+	}
+	void setNSamples(u32 n_samples) { n_samples_ = n_samples; }
+	void setAudioData(u8 *audio_data) { audio_data_ = audio_data; }
+	void setLoopType(u8 loop_type) { loop_type_ = loop_type; }
+	void setLoopStart(u32 loop_start) { loop_start_ = loop_start; }
+	void setLoopEnd(u32 loop_end) { loop_end_ = loop_end; }
+
+  private:
+	u8 compression_;
+	u8 n_channels_;
+	u16 sampling_rate_;
+	u8 bit_per_sample_;
+	u32 n_samples_;
+	u8 *audio_data_;
+	u8 loop_type_;
+	u32 loop_start_;
+	u32 loop_end_;
 };
 
 #endif

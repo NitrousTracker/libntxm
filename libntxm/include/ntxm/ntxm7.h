@@ -37,52 +37,55 @@
 
 class NTXM7
 {
-	public:
-		NTXM7(void (*_playTimerHandler)(void));
-		~NTXM7(void);
+  public:
+	NTXM7(void (*_playTimerHandler)(void));
+	~NTXM7(void);
 
-		// override new and delete to avoid linking cruft. (by WinterMute)
-		static void* operator new (size_t size);
-		static void operator delete (void *p);
+	// override new and delete to avoid linking cruft. (by WinterMute)
+	static void *operator new(size_t size);
+	static void operator delete(void *p);
 
-		// Exchange commands with ARM9, call this every vblank
-		void updateCommands(void);
+	// Exchange commands with ARM9, call this every vblank
+	void updateCommands(void);
 
-		const int getPlayTimerFrequency(void) { return player->getPlayTimerFrequency(); }
+	const int getPlayTimerFrequency(void)
+	{
+		return player->getPlayTimerFrequency();
+	}
 
-		// call this from the timer0 irq handler
-		// the timer is set up for you.
-		void timerHandler(void);
+	// call this from the timer0 irq handler
+	// the timer is set up for you.
+	void timerHandler(void);
 
-		void setSong(Song *song);
-		void play(bool repeat, u8 potpos=0, u16 row=0);
-		void stop(void);
+	void setSong(Song *song);
+	void play(bool repeat, u8 potpos = 0, u16 row = 0);
+	void stop(void);
 
-		// Play a single note using an instrument from the loaded song
-		// instidx: index of the instrument
-		//    note: 48 corresponds to c-4
-		//  volume: 0-255
-		// channel: 0-15
-		void playNote(u8 instidx, u8 note, u8 volume, u8 channel);
+	// Play a single note using an instrument from the loaded song
+	// instidx: index of the instrument
+	//    note: 48 corresponds to c-4
+	//  volume: 0-255
+	// channel: 0-15
+	void playNote(u8 instidx, u8 note, u8 volume, u8 channel);
 
-		// Find all matching notes currently being played by an instument, and stop it.
-		void stopAllNotes(u8 note, u8 instidx);
+	// Find all matching notes currently being played by an instument, and stop it.
+	void stopAllNotes(u8 note, u8 instidx);
 
-		// Play the given sample (and send a notification when done)
-		void playSample(Sample *sample, u8 note, u8 volume, u8 channel);
+	// Play the given sample (and send a notification when done)
+	void playSample(Sample *sample, u8 note, u8 volume, u8 channel);
 
-		// Stop playback on a channel
-		void stopChannel(u8 channel);
+	// Stop playback on a channel
+	void stopChannel(u8 channel);
 
-		void playNoteAuto(u8 instidx, u8 note, u8 volume, u16 tag);
+	void playNoteAuto(u8 instidx, u8 note, u8 volume, u16 tag);
 
-		void stopNoteAuto(u16 tag);
+	void stopNoteAuto(u16 tag);
 
-		// Set a pattern to looping
-		void setPatternLoop(bool loopstate);
+	// Set a pattern to looping
+	void setPatternLoop(bool loopstate);
 
-	private:
-		Player *player;
+  private:
+	Player *player;
 };
 
 #endif

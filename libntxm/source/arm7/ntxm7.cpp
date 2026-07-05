@@ -32,19 +32,21 @@
 
 #include <stdlib.h>
 
-#include "ntxm/ntxmtools.h"
-#include "ntxm/ntxm7.h"
 #include "ntxm/fifocommand.h"
+#include "ntxm/ntxm7.h"
+#include "ntxm/ntxmtools.h"
 
-void* NTXM7::operator new (size_t size) {
+void *NTXM7::operator new(size_t size)
+{
 
 	return ntxm_cmalloc(size);
 
 } // default ctor implicitly called here
 
-void NTXM7::operator delete (void *p) {
+void NTXM7::operator delete(void *p)
+{
 
-	if ( NULL != p )
+	if (NULL != p)
 		ntxm_free(p);
 
 } // default dtor implicitly called here
@@ -55,30 +57,18 @@ NTXM7::NTXM7(void (*_playTimerHandler)(void))
 	player = new Player(_playTimerHandler);
 }
 
-NTXM7::~NTXM7(void)
-{
-	delete player;
-}
+NTXM7::~NTXM7(void) { delete player; }
 
-void NTXM7::timerHandler(void)
-{
-	player->playTimerHandler();
-}
+void NTXM7::timerHandler(void) { player->playTimerHandler(); }
 
-void NTXM7::setSong(Song *song)
-{
-	player->setSong(song);
-}
+void NTXM7::setSong(Song *song) { player->setSong(song); }
 
 void NTXM7::play(bool repeat, u8 potpos, u16 row)
 {
 	player->play(potpos, row, repeat);
 }
 
-void NTXM7::stop(void)
-{
-	player->stop();
-}
+void NTXM7::stop(void) { player->stop(); }
 
 void NTXM7::playNote(u8 instidx, u8 note, u8 volume, u8 channel)
 {
@@ -95,20 +85,14 @@ void NTXM7::playSample(Sample *sample, u8 note, u8 volume, u8 channel)
 	player->playSample(sample, note, volume, channel);
 }
 
-void NTXM7::stopChannel(u8 channel)
-{
-	player->stopChannel(channel);
-}
+void NTXM7::stopChannel(u8 channel) { player->stopChannel(channel); }
 
 void NTXM7::playNoteAuto(u8 instidx, u8 note, u8 volume, u16 tag)
 {
 	player->playNoteAuto(instidx, note, volume, tag);
 }
 
-void NTXM7::stopNoteAuto(u16 tag)
-{
-	player->stopNoteAuto(tag);
-}
+void NTXM7::stopNoteAuto(u16 tag) { player->stopNoteAuto(tag); }
 
 void NTXM7::setPatternLoop(bool loopstate)
 {
