@@ -55,13 +55,18 @@ enum // voice flags
 #define SAMPLETAGGED 254
 #define UNTAGGED 255
 
+#define USE_VOLUME_RAMPING
+#define QUICK_VOL_FADE_TICKS 10
+
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+
 Player::Player(void (*_playTimerListener)(void))
     : playing(false), patternLoop(false), playTimerListener(_playTimerListener)
 {
     // FIXME: Move out of Player
     demoInit();
 
-    last_ms = getTicks();
+    nextPlayerMs = nextFadeMs = getTicks();
     PMPSampleOverride = nullptr;
     setSong(nullptr);
 }
@@ -76,7 +81,10 @@ static inline void soundStartChannel(int c, stmTyp *ch, Sample *s, int smpOffset
         return;
     }
     ntxm_sound_channel_set_frequency(c, ntxmGetFrequencyValue(ch->outPeriod, linear));
-    s->play(c, 128, 0, smpOffset);
+    s->play(c, ch->finalPan, 0, smpOffset);
+
+    // Skip the sample fade for newly played samples
+    ch->ntxmVolLast = ch->finalVol;
 }
 
 u32 Player::getMsPerTick() const {
@@ -87,16 +95,17 @@ u32 Player::getMsPerTick() const {
 }
 
 void Player::playTimerHandler() {
-    u32 curr_ms = getTicks();
-
-    u32 ms_per_tick = getMsPerTick();
+    u32 currMs = getTicks();
+    u32 msPerTick = getMsPerTick();
     bool changed = false;
 
     // Run FT2 player routine
-    while(last_ms <= curr_ms) {
-        mainPlayer();
-        changed = true;
-        last_ms += ms_per_tick;
+    if(playing) {
+        while((currMs - nextPlayerMs) <= INT32_MAX) {
+            mainPlayer();
+            changed = true;
+            nextPlayerMs += msPerTick;
+        }
     }
 
     // Synchronize channels
@@ -107,7 +116,13 @@ void Player::playTimerHandler() {
         ch->status = 0;
 
         if(status & IS_Vol) {
+#ifdef USE_VOLUME_RAMPING
+            ch->ntxmVolFadeLast = ch->ntxmVolLast;
+            ch->ntxmVolFadeTicks = (status & IS_QuickVol) ? MIN(QUICK_VOL_FADE_TICKS, msPerTick) : msPerTick;
+            ch->ntxmVolFadeTicksLeft = ch->ntxmVolFadeTicks;
+#else
             ntxm_sound_channel_set_volume(c, soundGetVolume(ch->finalVol));
+#endif
         }
 
         if(status & IS_Period) {
@@ -118,6 +133,37 @@ void Player::playTimerHandler() {
             ntxm_sound_channel_set_panning(c, ch->finalPan);
         }
     }
+
+    // Calculate fades
+#ifdef USE_VOLUME_RAMPING
+    if ((currMs - nextFadeMs) <= INT32_MAX) {
+        u32 fadeTicks = currMs - nextFadeMs;
+
+        for(int c = 0; c < MAX_CHANNELS; c++) {
+            stmTyp *ch = &stm[c];
+            if (ch->ntxmVolFadeTicksLeft) {
+                int targetVol;
+                if (ch->ntxmVolFadeTicksLeft <= fadeTicks || ch->ntxmVolLast == ch->finalVol) {
+                    targetVol = ch->finalVol;
+                } else {
+                    ch->ntxmVolFadeTicksLeft -= fadeTicks;
+                    targetVol = ((ch->finalVol * (ch->ntxmVolFadeTicks - ch->ntxmVolFadeTicksLeft)) + (ch->ntxmVolFadeLast * ch->ntxmVolFadeTicksLeft)) / ch->ntxmVolFadeTicks;
+                }
+                if (targetVol == ch->finalVol) {
+                    ch->ntxmVolFadeLast = targetVol;
+                    ch->ntxmVolFadeTicksLeft = 0;
+                    if (targetVol == 0) {
+                        ntxm_sound_channel_stop(c);
+                    }
+                }
+                ch->ntxmVolLast = targetVol;
+                ntxm_sound_channel_set_volume(c, soundGetVolume(targetVol));
+            }
+        }
+
+        nextFadeMs = currMs;
+    }
+#endif
 
     /* if(playTimerListener) {
         playTimerListener();
@@ -134,7 +180,8 @@ void Player::play(int potpos, int row, bool repeat) {
     setPos(potpos, row);
     playing = true;
     songLoop = repeat;
-    last_ms = getTicks();
+    nextPlayerMs = getTicks();
+    nextFadeMs = getTicks();
 }
 
 void Player::stop(void) {
@@ -303,6 +350,9 @@ void Player::resetVoice(stmTyp *ch) {
 	ch->vibDepth = 0;
 
 	ch->ntxmTag = UNTAGGED;
+	ch->ntxmVolLast = ch->ntxmVolFadeLast;
+	ch->ntxmVolFadeTicks = QUICK_VOL_FADE_TICKS;
+	ch->ntxmVolFadeTicksLeft = QUICK_VOL_FADE_TICKS;
 }
 
 void Player::stopVoices(void) {
@@ -311,7 +361,6 @@ void Player::stopVoices(void) {
 	for (uint8_t i = 0; i < MAX_CHANNELS; i++, ch++)
 	{
 	    resetVoice(ch);
-		ntxm_sound_channel_stop(i);
 	}
 }
 

@@ -38,6 +38,10 @@ typedef struct stmTyp_t
 	bool envSustainActive;
 
 	uint8_t ntxmTag;
+	uint8_t ntxmVolLast; ///< Last voluem set to the audio channel
+	uint8_t ntxmVolFadeLast; ///< Last volume set to the audio channel before fading began
+	uint16_t ntxmVolFadeTicks; ///< The number of total ticks for voluem fading
+	uint16_t ntxmVolFadeTicksLeft; ///< The number of remaining ticks for voluem fading
 } stmTyp;
 
 class Player {
@@ -63,7 +67,8 @@ public:
 
 private:
     PlayerState state;
-    u32 last_ms;
+    u32 nextPlayerMs;
+    u32 nextFadeMs;
     bool playing;
     bool songLoop;
     bool patternLoop;
