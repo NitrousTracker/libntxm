@@ -567,6 +567,9 @@ void Sample::delPart(u32 startsample, u32 endsample)
 		}
 	}
 
+	loop_start = ntxm_clamp(loop_start, 0, size - 1);
+	loop_length = ntxm_clamp(loop_length, 0, size - loop_start - 1);
+	
 	setLoopStartAndLength(getLoopStart(), getLoopLength());
 	onSampleDataChanged();
 }
