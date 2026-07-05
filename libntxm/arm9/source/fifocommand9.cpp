@@ -178,6 +178,17 @@ void CommandStopPlay(void) {
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
+void CommandSetSampleInfoPtr(PlayingSampleInfo *cptr)
+{
+    NTXMFifoMessage command;
+    command.commandType = SET_SAMPLEINFO_PTR;
+
+    SetSampleInfoPtrCommand* c = &command.setPlayingSampleInfoPtr;
+
+    c->sampleinfoptr = cptr;
+
+    fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
+}
 void CommandPlayInst(u8 inst, u8 note, u8 volume, u8 channel)
 {
     NTXMFifoMessage command;

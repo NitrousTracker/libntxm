@@ -78,6 +78,9 @@ class NTXM7
 		
 		// Set a pattern to looping
 		void setPatternLoop(bool loopstate);
+
+		// Set the memory address of where to write info about currently playing samples (for arm9)
+		void setPlayingSampleInfoPtr(PlayingSampleInfo *sampleinfoptr);
 		
 	private:
 		Player *player;

@@ -51,7 +51,21 @@ enum LoopType
 	LOOP_TYPE_COUNT = 3
 };
 
+typedef struct
+{
+	u32 playbackpos;	
+	u32 playbackfreq;			
+	u8 active;
+	u8 looprev;
+	u8 instidx;						
+	u8 smpidx;
+} PlayingSampleInfo;
+
+
 #define SAMPLE_NAME_LENGTH		24
+
+// for accurate playback freq calculations (required above 4137Hz) 
+#define TIMER_FREQ_SHIFT_INV(m) ((-(BUS_CLOCK+1)) / (((m) << 1) + 1))
 
 #define FT_OFFSET_SCALAR 256
 
@@ -66,8 +80,8 @@ class Sample
 		void saveAsWav(char *filename);
 
 		void play(u8 note, u8 volume_, u8 channel  /* effects here */, u8 offs = 0);
-		void bendNote(u8 note, u8 basenote, s16 _finetune, u8 channel);
-		void bendNoteDirect(s16 fine_step, u8 channel);
+		u32 bendNote(u8 note, u8 basenote, s16 _finetune, u8 channel);
+		u32 bendNoteDirect(s16 fine_step, u8 channel);
 		u32 calcPlayLength(u8 note);
 
 		void setRelNote(s8 _rel_note);
@@ -78,7 +92,8 @@ class Sample
 
 		u32 getSize(void); // Get the size in bytes
 		u32 getNSamples(void); // Get the numer of (PCM) samples
-
+		u32 getPlaybackFreq(u8 note_);
+		
 		void *getData(void);
 		u32 getMaxAmplitude(u32 startsample, u32 endsample);
 		u32 getDynamicRange(void);
@@ -143,6 +158,8 @@ class Sample
 		u8 volume;
 		u8 panning;
 		u8 base_panning; // xm panning effects resets when a new note is played
+		u32 sampling_frequency;
+
 		char name[SAMPLE_NAME_LENGTH + 1];
 
 		// These are calculated in the constructor

@@ -161,30 +161,33 @@ void Instrument::play(u8 _note, u8 _volume, u8 _channel /* effects here */, u8 o
 	}
 }
 
-void Instrument::bendNote(u8 _note, u8 _basenote, s16 _finetune, u8 _channel)
+u32 Instrument::bendNote(u8 _note, u8 _basenote, s16 _finetune, u8 _channel)
 {
 	if(_note > MAX_NOTE)
-		return;
+		return NULL;
 	
 	switch(type) {
 		case INST_SAMPLE:
 			if(n_samples > 0)
-				samples[note_samples[_note]]->bendNote(_note, _basenote, _finetune, _channel);
+				return samples[note_samples[_note]]->bendNote(_note, _basenote, _finetune, _channel);
 			break;
 	}
+
+	return NULL;
 }
 
-void Instrument::bendNoteDirect(u8 _note, s16 _fine_step, u8 _channel)
+u32 Instrument::bendNoteDirect(u8 _note, s16 _fine_step, u8 _channel)
 {
 	if(_fine_step > 19968) // 19968 is the highest intermediary pitch calculation
-		return;								// before converted to an index value for lookup table
-	
+		return NULL;								// before converted to an index value for lookup table
 	switch(type) {
 		case INST_SAMPLE:
 			if(n_samples > 0)
-				samples[note_samples[_note]]->bendNoteDirect(_fine_step, _channel);
+				return samples[note_samples[_note]]->bendNoteDirect(_fine_step, _channel);
 			break;
 	}
+
+	return NULL;
 }
 
 #endif

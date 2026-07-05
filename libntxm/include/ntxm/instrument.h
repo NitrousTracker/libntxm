@@ -67,8 +67,8 @@ class Instrument
 		void setSample(u8 idx, Sample *sample);
 		Sample *getSampleForNote(u8 _note);
 		void play(u8 _note, u8 _volume, u8 _channel, u8 offs = 0);
-		void bendNote(u8 _note, u8 _basenote, s16 _finetune, u8 _channel);
-		void bendNoteDirect(u8 _note, s16 _fine_step, u8 _channel);
+		u32 bendNote(u8 _note, u8 _basenote, s16 _finetune, u8 _channel);
+		u32 bendNoteDirect(u8 _note, s16 _fine_step, u8 _channel);
 		void setNoteSample(u16 note, u8 sample_id);
 		u8 getNoteSample(u16 note);
 		void setVolEnvEnabled(bool is_enabled);
