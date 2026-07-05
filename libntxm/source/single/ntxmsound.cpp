@@ -43,6 +43,8 @@ extern "C" {
 #include "ntxm/ntxmtools.h"
 #include "ntxm/player.h"
 
+// #define DEBUG_SOUND
+
 #define BUS_CLOCK (33513982)
 #define TIMER_FREQ_SHIFT(n, divisor, shift) ((-((BUS_CLOCK >> (shift)) * (divisor)) - ((((n) + 1)) >> 1)) / (n))
 #define SOUND_FREQ(n) TIMER_FREQ_SHIFT(n, 1, 1)
@@ -193,25 +195,40 @@ bool ntxm_sound_channel_is_playing(int channel) {
 }
 
 void ntxm_sound_channel_set_volume(int channel, int volume) {
+#ifdef DEBUG_SOUND
+    printf("ntxmsound: volume  ch %d = %d\n", channel, volume);
+#endif
     emu.volume[channel] = volume;
 }
 
 void ntxm_sound_channel_set_frequency(int channel, int freq) {
+#ifdef DEBUG_SOUND
+    printf("ntxmsound: freq    ch %d = %d\n", channel, freq);
+#endif
     emu.frequency[channel] = -SOUND_FREQ(freq);
 }
 
 void ntxm_sound_channel_set_panning(int channel, u32 panning) {
+#ifdef DEBUG_SOUND
+    printf("ntxmsound: panning ch %d = %d\n", channel, panning);
+#endif
     if (!ntxm_stereo_output) panning = 128;
     emu.panning[channel] = panning;
 }
 
 void ntxm_sound_channel_set_source(int channel, const void *src, uint32_t repeat_point, uint32_t length) {
+#ifdef DEBUG_SOUND
+    printf("ntxmsound: source  ch %d, len %d\n", channel, length);
+#endif
     emu.data[channel] = src;
     emu.repeat_point[channel] = repeat_point;
     emu.length[channel] = repeat_point + length;
 }
 
 void ntxm_sound_channel_play(int channel, u32 loop, u32 format, u32 panning, u32 volume) {
+#ifdef DEBUG_SOUND
+    printf("ntxmsound: playing ch %d\n", channel);
+#endif
     emu.loop[channel] = loop;
     emu.format[channel] = format;
     emu.panning[channel] = panning;

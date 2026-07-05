@@ -88,6 +88,7 @@ private:
     // ft2play routines
     uint8_t PMPTmpActiveChannel;
     Sample *PMPSampleOverride;
+    bool PMPIgnoreMute;
 
     stmTyp stm[MAX_CHANNELS];
 

@@ -70,6 +70,7 @@ Player::Player(void (*_playTimerListener)(void))
 #endif
 
     currMs = nextPlayerMs = nextFadeMs = 0;
+    PMPIgnoreMute = false;
     PMPSampleOverride = nullptr;
     setSong(nullptr);
 }
@@ -107,26 +108,22 @@ void Player::playTimerHandler() {
 
 void Player::tick(int msDelta) {
     if(msDelta <= 0) return;
-
     u32 msPerTick = getMsPerTick();
-    bool changed = false;
-
     currMs += msDelta;
 
     // Run FT2 player routine
     if(playing) {
         while((currMs - nextPlayerMs) <= INT32_MAX) {
             mainPlayer();
-            changed = true;
             nextPlayerMs += msPerTick;
         }
     }
 
     // Synchronize channels
-    if(changed) for(int c = 0; c < MAX_CHANNELS; c++) {
+    for(int c = 0; c < MAX_CHANNELS; c++) {
         stmTyp *ch = &stm[c];
-
         const uint8_t status = ch->status;
+        if (!status) continue;
         ch->status = 0;
 
         if(status & IS_Vol) {
@@ -219,8 +216,10 @@ void Player::playNote(int note, int volume, int channel, int instidx) {
     cell.effect_param = 0;
 
     PMPTmpActiveChannel = channel;
+    PMPIgnoreMute = true;
     getNewNote(&stm[channel], &cell);
 	fixaEnvelopeVibrato(&stm[channel]);
+	PMPIgnoreMute = false;
 }
 
 void Player::stopAllNotes(int note, int instidx) {
@@ -235,18 +234,17 @@ void Player::playSample(Sample *sample, int note, int volume, int channel) {
         return;
     }
 
-    Cell cell;
-    cell.note = note;
-    cell.instrument = NO_INSTRUMENT;
-    cell.volume = volume;
-    cell.effect = NO_EFFECT;
-    cell.effect_param = 0;
-
+    stmTyp *ch = &stm[channel];
     PMPSampleOverride = sample;
+    PMPIgnoreMute = true;
     PMPTmpActiveChannel = channel;
-    getNewNote(&stm[channel], &cell);
-	fixaEnvelopeVibrato(&stm[channel]);
+    ch->instrNr = NO_INSTRUMENT;
+    startTone(note, 0, 0, ch);
+    retrigVolume(ch);
+    ch->finalVol = ch->outVol;
+    ch->finalPeriod = ch->outPeriod;
     PMPSampleOverride = nullptr;
+    PMPIgnoreMute = false;
     stm[channel].ntxmTag = SAMPLETAGGED;
 }
 
@@ -551,7 +549,7 @@ void Player::startTone(uint8_t ton, uint8_t effTyp, uint8_t eff, stmTyp *ch)
 		smpOffset = 0;
 	}
 
-	if (song->channelMuted(PMPTmpActiveChannel)) return;
+	if (!PMPIgnoreMute && song->channelMuted(PMPTmpActiveChannel)) return;
 	soundStartChannel(PMPTmpActiveChannel, ch, s, smpOffset, (!song || song->getLinear()));
 }
 
