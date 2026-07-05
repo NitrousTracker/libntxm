@@ -129,23 +129,11 @@ void Player::playTimerHandler() {
     if(volumeRamping) for(int c = 0; c < MAX_CHANNELS; c++) {
         stmTyp *ch = &stm[c];
         
-        const int rampShift = 2;  // To prevent pops when volum changes instantly. Higher value = slower ramp.
-        const int rampMask = (1 << rampShift) - 1;
+        // To prevent pops when volume changes instantly.
+        const int rampSpeed = 48000 / getPlayTimerFrequency();
         
-        int volDiff = ch->ntxmTargVol - ch->ntxmOutVol;
-        int panDiff = ch->ntxmTargPan - ch->ntxmOutPan;
-        
-        if (volDiff > 0) {
-            ch->ntxmOutVol += (volDiff + rampMask) >> rampShift;
-        } else {
-            ch->ntxmOutVol += volDiff >> rampShift;
-        }
-        
-        if (panDiff > 0) {
-            ch->ntxmOutPan += (panDiff + rampMask) >> rampShift;
-        } else {
-            ch->ntxmOutPan += panDiff >> rampShift;
-        }
+        ch->ntxmOutVol = ntxm_approach(ch->ntxmOutVol, ch->ntxmTargVol, rampSpeed);
+        ch->ntxmOutPan = ntxm_approach(ch->ntxmOutPan, ch->ntxmTargPan, rampSpeed);
         
         ntxm_sound_channel_set_volume(c, soundGetVolume(ch->ntxmOutVol));
         ntxm_sound_channel_set_panning(c, ch->ntxmOutPan);

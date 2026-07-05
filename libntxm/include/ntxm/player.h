@@ -56,7 +56,7 @@ public:
     void stopNoteAuto(int tag);
 
     u32 getMsPerTick() const;
-    inline int getPlayTimerFrequency() const { return 1000; }
+    constexpr inline int getPlayTimerFrequency() const { return 4000; }
 
     void setPatternLoop(bool repeat);
     void setSong(Song* _song);

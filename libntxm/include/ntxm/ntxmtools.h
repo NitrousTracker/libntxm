@@ -129,6 +129,15 @@ inline s32 ntxm_clamp(s32 val, s32 min, s32 max)
 	return val;
 }
 
+inline s32 ntxm_approach(s32 cur, s32 targ, s32 step)
+{
+	if (cur+step < targ)
+		return cur+step;
+	if (cur-step > targ)
+		return cur-step;
+	return targ;
+}
+
 u32 ntxm_getFileSize(const char *filename);
 
 void ntxm_unsigned2signed_8(uint8_t *buffer, size_t count);
