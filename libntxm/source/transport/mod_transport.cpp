@@ -199,17 +199,23 @@ FormatTransportError ModTransport::load(const char *filename, Song **_song)
 				    // Convert "Set note volume" to the volume column
 					volume = (effect_param >= MAX_VOLUME ? MAX_VOLUME : effect_param) + 0x10;
 					effect_type = NO_EFFECT;
+					effect_param = 0;
 				} else if (effect_type == 0x1 || effect_type == 0x2 || effect_type == 0xA) {
-				    if (effect_param == 0)
+					if (effect_param == 0)
 						effect_type = NO_EFFECT;
 				} else if (effect_type == 0x5 || effect_type == 0x6) {
 				    if (effect_param == 0)
 						effect_type -= 2;
 				} else if (effect_type == 0xE) {
-				    u8 effect_e = effect_param >> 4;
-					if (effect_e == 1 || effect_e == 2 || effect_e == 0xA || effect_e == 0xB)
-					    if (!(effect_param & 0xF))
+					u8 effect_e = effect_param >> 4;
+					if (effect_e == 1 || effect_e == 2 || effect_e == 0xA || effect_e == 0xB) {
+						if (!(effect_param & 0xF)) {
 							effect_type = NO_EFFECT;
+							effect_param = 0;
+						}
+					}
+				} else if (effect_type == 0 && effect_param == 0) {
+					effect_type = NO_EFFECT;
 				}
 
 				ptn[chn][row].volume = volume;
