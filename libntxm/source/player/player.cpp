@@ -176,7 +176,7 @@ void Player::tick(int msDelta) {
                 if (targetVol == ch->finalVol) {
                     ch->ntxmVolFadeLast = targetVol;
                     ch->ntxmVolFadeTicksLeft = 0;
-                    if (targetVol == 0) {
+                    if (targetVol == 0 && !ch->envSustainActive) {
                         ntxm_sound_channel_stop(c);
                     }
                 }
