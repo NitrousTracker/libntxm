@@ -293,11 +293,6 @@ bool Sample::setLoop(u8 loop_) // Set loop type. Can fail due to memory constrai
 
 	loop = loop_;
 
-	if(loop_ == NO_LOOP)
-	{
-		setLoopStartAndLength(0, n_samples);
-	}
-
 	if(loop_ == PING_PONG_LOOP)
 	{
 		if (!setupPingPongLoop())
@@ -346,7 +341,8 @@ void Sample::setLoopStartAndLength(u32 _loop_start, u32 _loop_length)
 		loop_length = _loop_length;
 		loop_start = _loop_start;
 
-		onSampleDataChanged();
+		if (loop != NO_LOOP)
+			onSampleDataChanged();
 	}
 }
 
@@ -442,37 +438,34 @@ void Sample::delPart(u32 startsample, u32 endsample)
 	u32 end = endsample * bps;
 	u32 del = end - start + 1;
 
-	if(loop != NO_LOOP)
+	if(start < loop_end)
 	{
-		if(start < loop_end)
+		if(start > loop_start)
 		{
-			if(start > loop_start)
+			if(end < loop_end)
 			{
-				if(end < loop_end)
-				{
-					loop_length -= del;
-				}
-				else
-				{
-					loop_length = start - loop_start;
-				}
+				loop_length -= del;
 			}
 			else
 			{
-				if(end > loop_end)
-				{
-					loop_start = 0;
-					loop_length = getSize();
-				}
-				else if(end > loop_start)
-				{
-					loop_length -= end - loop_start;
-					loop_start = start;
-				}
-				else
-				{
-					loop_start -= del;
-				}
+				loop_length = start - loop_start;
+			}
+		}
+		else
+		{
+			if(end > loop_end)
+			{
+				loop_start = 0;
+				loop_length = getSize();
+			}
+			else if(end > loop_start)
+			{
+				loop_length -= end - loop_start;
+				loop_start = start;
+			}
+			else
+			{
+				loop_start -= del;
 			}
 		}
 	}
