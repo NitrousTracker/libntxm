@@ -35,8 +35,11 @@
 
 #include "common.h"
 
+// Shift relative to the TIMER2 divider setting (64 -> 9; 256 -> 7; 1024 -> 5)
+#define MS_PRECISION 9
+
 /*
- * Some fancy functions for emulating getticks using ds timers
+ * Some functions for measuring delta time.
  */
 
 void demoInit(void);
@@ -44,12 +47,8 @@ void reStartRealTicks(void);
 unsigned int getRealTicks(void);
 
 void reStartTicks(void);
-void startTicks(void);
-void stopTicks(void);
-void setTicksTo(unsigned int time);
-unsigned int getTicks(void);
+unsigned int getMsDelta(void);
 void setTicksSpeed(int percentage);
 int getTicksSpeed(void);
-void delay(unsigned int d);
 
 #endif

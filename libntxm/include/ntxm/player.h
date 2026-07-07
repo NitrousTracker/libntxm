@@ -70,9 +70,6 @@ public:
 
 private:
     PlayerState state;
-#ifdef NT_PLATFORM_NDS
-    u32 lastMs;
-#endif
     u32 currMs;
     u32 nextPlayerMs;
     u32 nextFadeMs;

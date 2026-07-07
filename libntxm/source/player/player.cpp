@@ -67,9 +67,7 @@ Player::Player(void (*_playTimerListener)(void))
 #ifdef NT_PLATFORM_NDS
     // FIXME: Move out of Player
     demoInit();
-    lastMs = getTicks();
 #endif
-
     currMs = nextPlayerMs = nextFadeMs = 0;
     PMPIgnoreMute = false;
     PMPSampleOverride = nullptr;
@@ -101,14 +99,12 @@ u32 Player::getMsPerTick() const {
     u8 bpm = state.speed;
     if (!bpm && song) bpm = song->bpm;
     if (!bpm) bpm = 125;
-    return 2500 / bpm;
+    return (2500 << MS_PRECISION) / bpm;
 }
 
 #ifdef NT_PLATFORM_NDS
 void Player::playTimerHandler() {
-    u32 currMs = getTicks();
-    update(currMs - lastMs);
-    lastMs = currMs;
+    update(getMsDelta());
 }
 #endif
 

@@ -35,12 +35,12 @@
 #include <SDL3/SDL.h>
 #endif
 
-#define nds_timers2ms(tlow,thigh)(tlow | (thigh<<16)) >> 5
+inline unsigned int nds_read_timers(unsigned int tlow, unsigned int thigh) {
+	return tlow | (thigh<<16);
+}
 
 int ticksSpeed;
 unsigned int lastTime;
-unsigned int timeCounted;
-int clockStopped;
 
 void demoInit(void)
 {
@@ -53,19 +53,21 @@ void reStartRealTicks(void)
 #if defined(NT_PLATFORM_NDS)
 	TIMER2_DATA=0;
 	TIMER3_DATA=0;
-	TIMER2_CR=TIMER_DIV_1024 | TIMER_ENABLE;
+	TIMER2_CR=TIMER_DIV_64 | TIMER_ENABLE;
 	TIMER3_CR=TIMER_CASCADE | TIMER_ENABLE;
 #endif
 }
 
+// NOTE: each of these values can overflow, but the arithmetic works out, as
+//       long as we only divide the delta rather than the absolute time.
 unsigned int getRealTicks(void)
 {
 #if defined(NT_PLATFORM_NDS)
-	return nds_timers2ms(TIMER2_DATA, TIMER3_DATA);
+	return nds_read_timers(TIMER2_DATA, TIMER3_DATA);
 #elif defined(NT_PLATFORM_3DS)
-	return svcGetSystemTick() / CPU_TICKS_PER_MSEC;
+	return svcGetSystemTick() << MS_PRECISION;
 #elif defined(NT_PLATFORM_SDL3)
-	return SDL_GetTicks();
+	return SDL_GetTicksNS() << MS_PRECISION;
 #else
 #error "Unimplemented getRealTicks() for platform!"
 #endif
@@ -74,56 +76,31 @@ unsigned int getRealTicks(void)
 void reStartTicks(void)
 {
 	ticksSpeed = 100;
-	clockStopped = 0;
-	setTicksTo(0);
-}
-
-void startTicks(void)
-{
-	if (clockStopped) {
-		clockStopped = 0;
-		lastTime = getRealTicks();
-	}
-}
-
-void stopTicks(void)
-{
-	if (!clockStopped) {
-		clockStopped = 1;
-		getTicks();
-	}
-}
-
-void setTicksTo(unsigned int time)
-{
-	timeCounted = time;
 	lastTime = getRealTicks();
 }
 
-unsigned int getTicks(void)
+unsigned int getMsDelta(void)
 {
-	unsigned int t = ((getRealTicks() - lastTime)*ticksSpeed)/100;
-	if ((t > 0) || (-t < timeCounted)) {
-		timeCounted += t;
-	} else {
-		timeCounted = 0;
-	}
-	lastTime = getRealTicks();
-	return timeCounted;
+	unsigned int t = getRealTicks();
+	unsigned int dt = ((t - lastTime)*ticksSpeed)/100;
+	lastTime = t;
+#if defined(NT_PLATFORM_NDS)
+	return (dt * 125) >> 7;   // same as * 1000 / 1024
+#elif defined(NT_PLATFORM_3DS)
+	return dt / CPU_TICKS_PER_MSEC;
+#elif defined(NT_PLATFORM_SDL3)
+	return dt / 1000000;
+#else
+#error "Unimplemented getMsDelta() for platform!"
+#endif
 }
 
 void setTicksSpeed(int percentage)
 {
-	getTicks();
 	ticksSpeed = percentage;
 }
 
 int getTicksSpeed(void)
 {
 	return ticksSpeed;
-}
-
-void delay(unsigned int d) {
-	unsigned int start = getTicks();
-	while (getTicks() <= start+d);
 }
