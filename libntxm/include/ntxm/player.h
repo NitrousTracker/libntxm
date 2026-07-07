@@ -66,7 +66,7 @@ public:
 #ifdef NT_PLATFORM_NDS
     void playTimerHandler();
 #endif
-    void tick(int msDelta);
+    void update(int msDelta);
 
 private:
     PlayerState state;

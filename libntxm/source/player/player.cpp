@@ -107,12 +107,12 @@ u32 Player::getMsPerTick() const {
 #ifdef NT_PLATFORM_NDS
 void Player::playTimerHandler() {
     u32 currMs = getTicks();
-    tick(currMs - lastMs);
+    update(currMs - lastMs);
     lastMs = currMs;
 }
 #endif
 
-void Player::tick(int msDelta) {
+void Player::update(int msDelta) {
     if(msDelta <= 0) return;
     u32 msPerTick = getMsPerTick();
     currMs += msDelta;
