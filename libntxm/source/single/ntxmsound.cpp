@@ -168,7 +168,7 @@ void SoundEmulator::generate(Player *player, int16_t *sample_data, size_t n) {
     for (size_t i = 0; i < n; i++, sample_data += 2) {
         sub_samples += (1 << SAMPLES_PER_MS_SHIFT);
         while (sub_samples >= samples_per_ms) {
-            player->update(1 << MS_PRECISION);
+            player->update(1 * MS_UNIT);
             sub_samples -= samples_per_ms;
         }
         nextSample(sample_data);

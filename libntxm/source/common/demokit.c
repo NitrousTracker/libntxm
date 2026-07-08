@@ -31,76 +31,37 @@
  ***** END LICENSE BLOCK *****/
 
 #include "ntxm/demokit.h"
-#ifdef NT_PLATFORM_SDL3
-#include <SDL3/SDL.h>
-#endif
 
-inline unsigned int nds_read_timers(unsigned int tlow, unsigned int thigh) {
-	return tlow | (thigh<<16);
+#if defined(NT_PLATFORM_NDS)
+
+u32 lastTime;
+
+u32 nds_read_timers() {
+	int ime = enterCriticalSection();
+	u32 a = TIMER2_DATA | (TIMER3_DATA<<16);
+	u32 b = TIMER2_DATA | (TIMER3_DATA<<16);
+	if (a != b) {
+		a = TIMER2_DATA | (TIMER3_DATA<<16);
+	}
+	leaveCriticalSection(ime);
+	return a;
 }
-
-int ticksSpeed;
-unsigned int lastTime;
 
 void demoInit(void)
 {
-	reStartRealTicks();
-	reStartTicks();
-}
-
-void reStartRealTicks(void)
-{
-#if defined(NT_PLATFORM_NDS)
 	TIMER2_DATA=0;
 	TIMER3_DATA=0;
-	TIMER2_CR=TIMER_DIV_64 | TIMER_ENABLE;
+	TIMER2_CR=TIMER_DIV_1024 | TIMER_ENABLE;
 	TIMER3_CR=TIMER_CASCADE | TIMER_ENABLE;
+	lastTime = nds_read_timers();
+}
+
+u64 getMsDelta(void)
+{
+	u64 t1 = lastTime;
+	u64 t2 = nds_read_timers();
+	lastTime = (u32)t2;
+	return (t2 * MS_MULTIPLIER) - (t1 * MS_MULTIPLIER);
+}
+
 #endif
-}
-
-// NOTE: each of these values can overflow, but the arithmetic works out, as
-//       long as we only divide the delta rather than the absolute time.
-unsigned int getRealTicks(void)
-{
-#if defined(NT_PLATFORM_NDS)
-	return nds_read_timers(TIMER2_DATA, TIMER3_DATA);
-#elif defined(NT_PLATFORM_3DS)
-	return svcGetSystemTick() << MS_PRECISION;
-#elif defined(NT_PLATFORM_SDL3)
-	return SDL_GetTicksNS() << MS_PRECISION;
-#else
-#error "Unimplemented getRealTicks() for platform!"
-#endif
-}
-
-void reStartTicks(void)
-{
-	ticksSpeed = 100;
-	lastTime = getRealTicks();
-}
-
-unsigned int getMsDelta(void)
-{
-	unsigned int t = getRealTicks();
-	unsigned int dt = ((t - lastTime)*ticksSpeed)/100;
-	lastTime = t;
-#if defined(NT_PLATFORM_NDS)
-	return (dt * 125) >> 7;   // same as * 1000 / 1024
-#elif defined(NT_PLATFORM_3DS)
-	return dt / CPU_TICKS_PER_MSEC;
-#elif defined(NT_PLATFORM_SDL3)
-	return dt / 1000000;
-#else
-#error "Unimplemented getMsDelta() for platform!"
-#endif
-}
-
-void setTicksSpeed(int percentage)
-{
-	ticksSpeed = percentage;
-}
-
-int getTicksSpeed(void)
-{
-	return ticksSpeed;
-}

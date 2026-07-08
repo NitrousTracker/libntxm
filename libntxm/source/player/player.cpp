@@ -95,11 +95,11 @@ void Player::startSongChannel(int c, stmTyp *ch, Sample *s, int smpOffset) {
     ch->ntxmVolLast = ch->finalVol;
 }
 
-u32 Player::getMsPerTick() const {
+u64 Player::getMsPerTick() const {
     u8 bpm = state.speed;
     if (!bpm && song) bpm = song->bpm;
     if (!bpm) bpm = 125;
-    return (2500 << MS_PRECISION) / bpm;
+    return (2500 * MS_UNIT) / bpm;
 }
 
 #ifdef NT_PLATFORM_NDS
@@ -108,14 +108,14 @@ void Player::playTimerHandler() {
 }
 #endif
 
-void Player::update(int msDelta) {
+void Player::update(s64 msDelta) {
     if(msDelta <= 0) return;
-    u32 msPerTick = getMsPerTick();
+    u64 msPerTick = getMsPerTick();
     currMs += msDelta;
 
     // Run FT2 player routine
     if(playing) {
-        while((currMs - nextPlayerMs) <= INT32_MAX) {
+        while((currMs - nextPlayerMs) <= INT64_MAX) {
             mainPlayer();
             nextPlayerMs += msPerTick;
         }
