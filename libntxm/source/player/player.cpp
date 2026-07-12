@@ -106,6 +106,7 @@ void Player::playTimerHandler() {
 
 void Player::tryEarlyVolumeRamps(void) {
 #ifdef USE_VOLUME_RAMPING
+	u64 msPerTick = getMsPerTick();
 	
 	// Is this the last tick before the next row?
 	if (state.timer == 1 && state.pattDelTime2 == 0) {
@@ -115,11 +116,22 @@ void Player::tryEarlyVolumeRamps(void) {
 			stmTyp *ch = &stm[c];
 			const Cell* p = &song->getPattern(state.pattNr)[c][state.pattPos];
 			
-			if (p->note != EMPTY_NOTE && p->note != STOP_NOTE && p->instrument != NO_INSTRUMENT) {
+			bool anyNote = p->note != EMPTY_NOTE && p->note != STOP_NOTE && p->instrument != NO_INSTRUMENT;
+			bool anyPortaFx = (p->volume & 0xF0) == 0xF0 || p->effect == 3 ||  p->effect == 5;
+			bool anyRetrigFx = p->effect == 27;
+			u32 delayTicks = 0;
+			if (p->effect == 0x0E) {
+				if (p->effect_param >= 0xD1 && p->effect_param <= 0xDF) {
+					delayTicks = p->effect_param - 0xD0;
+				} else if (p->effect_param == 0x90) {
+					anyRetrigFx = true;
+				}
+			}
+			if (anyNote && !anyPortaFx && !anyRetrigFx) {
 				// If so, fade out to avoid a click.
 				ch->ntxmStartVol = ch->ntxmCurVol;
 				ch->ntxmEndVol = 0;
-				ch->ntxmRampTimer = getMsPerTick() / MS_UNIT;
+				ch->ntxmRampTimer = (msPerTick * (1 + delayTicks)) / MS_UNIT;
 				ch->ntxmRampDuration = QUICK_VOL_FADE_MS;
 				ch->ntxmEarlyRamp = true;
 			}
@@ -162,7 +174,7 @@ void Player::update(s64 msDelta) {
             ch->ntxmEndVol = ch->finalVol;
             
             if (!(status & IS_QuickVol)) {
-                ch->ntxmRampDuration = getMsPerTick() / MS_UNIT;  // integer part only.
+                ch->ntxmRampDuration = msPerTick / MS_UNIT;  // integer part only.
                 ch->ntxmRampTimer = ch->ntxmRampDuration;
             } else if (ch->finalVol == 0 && !ch->envSustainActive) {
                 // allow volume ramping
