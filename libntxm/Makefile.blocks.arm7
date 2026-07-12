@@ -11,7 +11,7 @@ ARM_NONE_EABI_PATH	?= $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-arm-none-eabi/bin/
 # Source code paths
 # -----------------
 
-SOURCEDIRS	:= source/arm7 source/common source/player
+SOURCEDIRS	:= source/arm7 source/common source/player source/single
 INCLUDEDIRS	:= $(SOURCEDIRS) include
 
 # Defines passed to all files

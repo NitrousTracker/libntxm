@@ -30,7 +30,6 @@
  *
  ***** END LICENSE BLOCK *****/
 
-#ifndef NT_PLATFORM_NDS
 #include <cstdlib>
 #include <cstring>
 
@@ -42,6 +41,12 @@ extern "C" {
 #include "ntxm/ntxmsound.h"
 #include "ntxm/ntxmtools.h"
 #include "ntxm/player.h"
+
+#ifdef NT_PLATFORM_NDS
+
+SoundChannelRegs buffered_regs[MAX_CHANNELS];
+
+#else
 
 // #define DEBUG_SOUND
 
@@ -176,6 +181,10 @@ void SoundEmulator::generate(Player *player, int16_t *sample_data, size_t n) {
 }
 
 SoundEmulator emu;
+
+void ntxm_sound_flush_channels() {
+    // does nothing on non-DS platforms
+}
 
 void ntxm_sound_set_playback_frequency(int freq) {
     emu.setRenderFrequency(freq);

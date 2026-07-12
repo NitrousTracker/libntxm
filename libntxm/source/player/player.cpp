@@ -229,6 +229,8 @@ void Player::update(s64 msDelta) {
 
 #endif
 
+    ntxm_sound_flush_channels();
+
     /* if(playTimerListener) {
         playTimerListener();
     } */
