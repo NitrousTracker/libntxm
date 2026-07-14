@@ -91,11 +91,11 @@ void Player::startSongChannel(int c, stmTyp *ch, Sample *s, int smpOffset) {
     ch->ntxmTag = TAG_SONG;
 }
 
-u32 Player::getMsPerTick() const {
+void Player::updateMsPerTick(void) {
     u8 bpm = state.speed;
     if (!bpm && song) bpm = song->bpm;
     if (!bpm) bpm = 125;
-    return (2500 * MS_UNIT) / bpm;
+    msPerTick = (2500 * MS_UNIT) / bpm;
 }
 
 #ifdef NT_PLATFORM_NDS
@@ -106,8 +106,6 @@ void Player::playTimerHandler() {
 
 void Player::tryEarlyVolumeRamps(void) {
 #ifdef USE_VOLUME_RAMPING
-	u64 msPerTick = getMsPerTick();
-
 	// Is this the last tick before the next row?
 	if (state.timer == 1 && state.pattDelTime2 == 0) {
 
@@ -142,7 +140,6 @@ void Player::tryEarlyVolumeRamps(void) {
 
 void Player::update(s32 msDelta) {
     if(msDelta <= 0) return;
-    u32 msPerTick = getMsPerTick();
     currMs += msDelta;
 
     // Run FT2 player routine
@@ -242,6 +239,7 @@ void Player::play(int potpos, int row, bool repeat) {
     state.globVol = 64;
     state.pattDelTime = state.pattDelTime2 = 0; // 8bb: added these
     // TODO: repeat flag
+    updateMsPerTick();
 
     setPos(potpos, row);
     playing = true;
@@ -363,6 +361,7 @@ void Player::setSong(Song* _song) {
     memset(&state, 0, sizeof(state));
 
     stopVoices();
+    updateMsPerTick();
 
     state.globVol = 64;
     state.pattDelTime = state.pattDelTime2 = 0; // 8bb: added these
@@ -765,6 +764,8 @@ void Player::setSpeed(stmTyp *ch, uint8_t param)
 	{
 		state.timer = song->speed = param;
 	}
+
+	updateMsPerTick();
 
 	(void)ch;
 }

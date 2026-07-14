@@ -59,7 +59,7 @@ public:
     void playNoteAuto(int instidx, int note, int volume, int tag);
     void stopNoteAuto(int tag);
 
-    u32 getMsPerTick() const;
+    inline u32 getMsPerTick() const { return msPerTick; }
     inline int getPlayTimerFrequency() const { return 1000; }
 
     void setPatternLoop(bool repeat);
@@ -74,6 +74,7 @@ private:
     PlayerState state;
     u32 currMs;
     u32 nextPlayerMs;
+    u32 msPerTick;
     bool playing;
     bool songLoop;
     bool patternLoop;
@@ -91,6 +92,7 @@ private:
 
     stmTyp stm[MAX_CHANNELS];
 
+    void updateMsPerTick(void);
     void startSongChannel(int c, stmTyp *ch, Sample *s, int smpOffset);
     void setPos(int32_t pos, int32_t row);
     void resetVoice(stmTyp *ch);
