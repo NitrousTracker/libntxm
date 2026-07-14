@@ -51,9 +51,6 @@ extern "C" {
 /* ===================== PUBLIC ===================== */
 
 uint32_t ntxmGetFrequencyValue(uint16_t period, bool linear) {
-    if (!period) {
-            return 1;
-    }
     if (linear) {
         const uint16_t invPeriod = (12 * 192 * 4) - period; // 8bb: this intentionally underflows uint16_t to be accurate to FT2
 
@@ -62,8 +59,12 @@ uint32_t ntxmGetFrequencyValue(uint16_t period, bool linear) {
 
 		const int32_t octShift = (14 - quotient) & 31; // 8bb: added needed 32-bit bitshift mask
 
-		return (uint32_t)(((int64_t)logTab[remainder] * 2140928) >> 24) >> octShift;
+		uint32_t result = (uint32_t)(((int64_t)logTab[remainder] * 2140928) >> 24) >> octShift;
+		return !result ? 1 : result;
     } else {
+	    if (!period) {
+	            return 1;
+	    }
         return 14317456 / period;
     }
 }

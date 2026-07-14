@@ -244,6 +244,6 @@ void ntxm_sound_channel_play(int channel, u32 loop, u32 format, u32 panning, u32
     emu.volume[channel] = volume;
     emu.position[channel] = 0;
     emu.timer_tick[channel] = emu.frequency[channel];
-    emu.playing[channel] = true;
+    emu.playing[channel] = emu.length[channel] > 0;
 }
 #endif
