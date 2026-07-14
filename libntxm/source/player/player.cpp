@@ -2156,8 +2156,6 @@ void Player::getNextPos(void)
 		state.pattPos = state.pBreakPos;
 	}
 
-	CommandUpdateRow(state.pattPos);
-
 	if (state.pattPos >= state.pattLen || state.posJumpFlag)
 	{
 		state.pattPos = state.pBreakPos;
@@ -2181,10 +2179,12 @@ void Player::getNextPos(void)
 
     		state.pattNr = song->getPotEntry((uint8_t)state.songPos);
     		state.pattLen = song->getPatternLength((uint8_t)state.pattNr);
-
-            CommandUpdatePotPos(state.songPos);
 		}
+
+		CommandUpdatePotPos(state.songPos);
 	}
+
+	CommandUpdateRow(state.pattPos);
 }
 
 void Player::mainPlayer(void)
