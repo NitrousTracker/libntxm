@@ -55,7 +55,16 @@ void reStartRealTicks(void)
 
 unsigned int getRealTicks(void)
 {
-	return timers2ms(TIMER2_DATA, TIMER3_DATA);
+        // Reading out DS timers has a race condition where TIMER2_DATA may be read
+        // before it overflows, and TIMER3_DATA after it overflows, causing a value of
+        // f.e. 0x1FFFF to be read on a transition from 0x0FFFF to 0x10000.
+        // This workaround ensures that does not happen.
+	u32 a = timers2ms(TIMER2_DATA, TIMER3_DATA);
+	u32 b = timers2ms(TIMER2_DATA, TIMER3_DATA);
+	if (a != b) {
+		a = timers2ms(TIMER2_DATA, TIMER3_DATA);
+	}
+	return a;
 }
 
 void reStartTicks(void)
