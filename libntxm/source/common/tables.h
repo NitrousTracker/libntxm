@@ -41,5 +41,6 @@ extern const uint16_t amigaPeriod[96];
 extern const uint8_t vibTab[32];
 extern const int8_t vibSineTab[256];
 extern const uint8_t arpTab[256];
+extern const uint8_t retrigTickTable[16][32];
 
 #endif /* NTXM_PLAYER_TABLES_H_ */

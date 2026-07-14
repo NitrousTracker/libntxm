@@ -2034,7 +2034,11 @@ void Player::retrigNote(stmTyp *ch, uint8_t param)
 	if (param == 0) // 8bb: E9x with a param of zero is handled in getNewNote()
 		return;
 
+#if 0
 	if ((song->speed-state.timer) % param == 0)
+#else
+	if (retrigTickTable[param][song->speed-state.timer] == 0)
+#endif
 	{
 		startTone(EMPTY_NOTE, 0, 0, ch);
 		retrigEnvelopeVibrato(ch);
