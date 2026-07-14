@@ -65,6 +65,11 @@ void NTXM7::timerHandler(void)
 	player->playTimerHandler();
 }
 
+void NTXM7::onSongSpeedChanged(void)
+{
+	player->onSongSpeedChanged();
+}
+
 void NTXM7::setSong(Song *song)
 {
 	player->setSong(song);

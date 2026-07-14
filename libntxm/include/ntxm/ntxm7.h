@@ -55,6 +55,7 @@ class NTXM7
 		void timerHandler(void);
 
 		void setSong(Song *song);
+		void onSongSpeedChanged(void);
 		void play(bool repeat, u8 potpos=0, u16 row=0);
 		void stop(void);
 

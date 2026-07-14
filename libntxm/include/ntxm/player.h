@@ -10,7 +10,7 @@
 
 typedef struct {
     int16_t songPos, pattNr, pattPos, pattLen;
-    uint16_t speed, globVol, timer;
+    uint16_t speed, bpm, globVol, timer;
     uint8_t pattDelTime, pattDelTime2, pBreakPos;
     bool pBreakFlag, posJumpFlag;
 } PlayerState;
@@ -64,6 +64,7 @@ public:
 
     void setPatternLoop(bool repeat);
     void setSong(Song* _song);
+    void onSongSpeedChanged(void);
 
 #ifdef NT_PLATFORM_NDS
     void playTimerHandler();
@@ -75,6 +76,7 @@ private:
     u32 currMs;
     u32 nextPlayerMs;
     u32 msPerTick;
+    u8 msPerTickCachedBpm;
     bool playing;
     bool songLoop;
     bool patternLoop;

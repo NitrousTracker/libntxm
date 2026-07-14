@@ -266,6 +266,14 @@ void CommandMicOff(void)
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
+void CommandOnSongSpeedChanged(void)
+{
+    NTXMFifoMessage command;
+    command.commandType = ON_SONG_SPEED_CHANGED;
+
+    fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
+}
+
 void CommandSetPatternLoop(bool state)
 {
     NTXMFifoMessage command;

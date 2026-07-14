@@ -93,7 +93,7 @@ void Player::startSongChannel(int c, stmTyp *ch, Sample *s, int smpOffset) {
 }
 
 void Player::updateMsPerTick(void) {
-    u8 bpm = state.speed;
+    u8 bpm = state.bpm;
     if (!bpm && song) bpm = song->bpm;
     if (!bpm) bpm = 125;
     msPerTick = (2500 * MS_UNIT) / bpm;
@@ -243,13 +243,21 @@ void Player::play(int potpos, int row, bool repeat) {
 
     state.globVol = 64;
     state.pattDelTime = state.pattDelTime2 = 0; // 8bb: added these
-    // TODO: repeat flag
-    updateMsPerTick();
 
     setPos(potpos, row);
     playing = true;
     songLoop = repeat;
     nextPlayerMs = currMs;
+    onSongSpeedChanged();
+}
+
+void Player::onSongSpeedChanged(void) {
+	if (!playing) {
+		return;
+	}
+
+	updateMsPerTick();
+	state.speed = song->speed;
 }
 
 void Player::stop(void) {
@@ -763,11 +771,11 @@ void Player::setSpeed(stmTyp *ch, uint8_t param)
 {
 	if (param >= 32)
 	{
-		state.speed = param;
+		state.bpm = param;
 	}
 	else
 	{
-		state.timer = song->speed = param;
+		state.timer = state.speed = param;
 	}
 
 	updateMsPerTick();
@@ -1973,7 +1981,7 @@ void Player::globalVolSlide(stmTyp *ch, uint8_t param)
 
 void Player::keyOffCmd(stmTyp *ch, uint8_t param)
 {
-	if ((uint8_t)(song->speed-state.timer) == (param & 31))
+	if ((uint8_t)(state.speed-state.timer) == (param & 31))
 		keyOff(ch);
 }
 
@@ -2040,9 +2048,9 @@ void Player::retrigNote(stmTyp *ch, uint8_t param)
 		return;
 
 #if 0
-	if ((song->speed-state.timer) % param == 0)
+	if ((state.speed-state.timer) % param == 0)
 #else
-	if (retrigTickTable[param][song->speed-state.timer] == 0)
+	if (retrigTickTable[param][state.speed-state.timer] == 0)
 #endif
 	{
 		startTone(EMPTY_NOTE, 0, 0, ch);
@@ -2052,7 +2060,7 @@ void Player::retrigNote(stmTyp *ch, uint8_t param)
 
 void Player::noteCut(stmTyp *ch, uint8_t param)
 {
-	if ((uint8_t)(song->speed-state.timer) == param)
+	if ((uint8_t)(state.speed-state.timer) == param)
 	{
 		ch->outVol = ch->realVol = 0;
 		ch->status |= IS_Vol + IS_QuickVol;
@@ -2061,7 +2069,7 @@ void Player::noteCut(stmTyp *ch, uint8_t param)
 
 void Player::noteDelay(stmTyp *ch, uint8_t param)
 {
-	if ((uint8_t)(song->speed-state.timer) == param)
+	if ((uint8_t)(state.speed-state.timer) == param)
 	{
 		startTone(ch->tonTyp & 0xFF, 0, 0, ch);
 
@@ -2192,7 +2200,7 @@ void Player::mainPlayer(void)
     	state.timer--;
     	if (state.timer == 0)
     	{
-    		state.timer = song->speed;
+    		state.timer = state.speed;
     		tickZero = true;
     	}
 

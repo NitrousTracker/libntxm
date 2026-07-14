@@ -85,6 +85,13 @@ int CommandStopRecording(void)
     return 0;
 }
 
+void CommandOnSongSpeedChanged(void)
+{
+	if (!player || !NtxmPlayerLock()) return;
+	player->onSongSpeedChanged();
+	NtxmPlayerUnlock();
+}
+
 void CommandSetSong(void *song)
 {
     if (!player || !NtxmPlayerLock()) return;

@@ -44,6 +44,11 @@ static void RecvCommandStopSample(StopSampleSoundCommand* ss) {
     ntxm7->stopChannel(ss->channel);
 }
 
+static void RecvCommandOnSongSpeedChanged(void)
+{
+	ntxm7->onSongSpeedChanged();
+}
+
 static void RecvCommandMicOn(void)
 {
     micOn();
@@ -229,6 +234,9 @@ void CommandRecvHandler(int bytes, void *user_data) {
         case SET_STEREO_OUTPUT:
             RecvCommandSetStereoOutput(&command.setStereoOutput);
             break;
+        case ON_SONG_SPEED_CHANGED:
+        	RecvCommandOnSongSpeedChanged();
+         	break;
         default:
             break;
     }

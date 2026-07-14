@@ -36,7 +36,8 @@ typedef enum {
     MIC_OFF,
     PATTERN_LOOP,
     SAMPLE_FINISH,
-    SET_STEREO_OUTPUT
+    SET_STEREO_OUTPUT,
+    ON_SONG_SPEED_CHANGED
 } NTXMFifoMessageType;
 
 struct PlaySampleCommand
@@ -170,6 +171,7 @@ void CommandMicOn(void);
 void CommandMicOff(void);
 void CommandSetPatternLoop(bool state);
 void CommandSetStereoOutput(bool state);
+void CommandOnSongSpeedChanged(void);
 
 void RegisterRowCallback(void (*onUpdateRow_)(u16));
 void RegisterStopCallback(void (*onStop_)(void));
