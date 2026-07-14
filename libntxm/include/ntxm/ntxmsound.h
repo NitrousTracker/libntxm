@@ -41,10 +41,10 @@
 #if defined(ARM7)
 
 struct SoundChannelRegs {
-	
+
 	bool stop;    // needed so CR can be turned off/on in succession to restart a sample.
 	bool start;   // needed so CR isn't fully rewritten if only the volume/panning changed.
-	
+
 	// control register
 	union {
 		u32 cr;
@@ -74,6 +74,10 @@ static inline void ntxm_sound_flush_channels() {
 			buffered_regs[i].stop = false;
 			SCHANNEL_CR(i) = 0;
 		}
+		SCHANNEL_SOURCE(i) = buffered_regs[i].source;
+		SCHANNEL_TIMER(i) = buffered_regs[i].timer;
+		SCHANNEL_REPEAT_POINT(i) = buffered_regs[i].repeat_point;
+		SCHANNEL_LENGTH(i) = buffered_regs[i].length;
 		if (buffered_regs[i].start) {
 			buffered_regs[i].start = false;
 			SCHANNEL_CR(i) = buffered_regs[i].cr;
@@ -81,10 +85,6 @@ static inline void ntxm_sound_flush_channels() {
 			SCHANNEL_VOL(i) = buffered_regs[i].vol;
 			SCHANNEL_PAN(i) = buffered_regs[i].pan;
 		}
-		SCHANNEL_SOURCE(i) = buffered_regs[i].source;
-		SCHANNEL_TIMER(i) = buffered_regs[i].timer;
-		SCHANNEL_REPEAT_POINT(i) = buffered_regs[i].repeat_point;
-		SCHANNEL_LENGTH(i) = buffered_regs[i].length;
 	}
 }
 
