@@ -49,7 +49,8 @@ enum // voice flags
 	IS_Period = 2,
 	IS_NyTon = 4,
 	IS_Pan = 8,
-	IS_QuickVol = 16
+	IS_QuickVol = 16,
+	IS_NtxmVolFade = 32
 };
 
 #define TAG_SONG 253
@@ -154,6 +155,7 @@ void Player::update(s32 msDelta) {
     // Synchronize channels
     for(int c = 0; c < MAX_CHANNELS; c++) {
         stmTyp *ch = &stm[c];
+
         if (ch->ntxmTag == TAG_SONG && song->channelMuted(c)) {
             ntxm_sound_channel_stop(c);
             ch->ntxmTag = TAG_NONE;
@@ -163,7 +165,11 @@ void Player::update(s32 msDelta) {
 
         const uint8_t status = ch->status;
         if (!status) continue;
-        ch->status = 0;
+#ifdef USE_VOLUME_RAMPING
+        ch->status = status & IS_NtxmVolFade;
+#else
+		ch->status = 0;
+#endif
 
         if((status & IS_Vol) && !ch->ntxmEarlyRamp) {
 #ifdef USE_VOLUME_RAMPING
@@ -182,6 +188,8 @@ void Player::update(s32 msDelta) {
                 ch->ntxmRampTimer = 0;
                 ch->ntxmRampDuration = 10;
             }
+
+            ch->status = IS_NtxmVolFade;
 #else
             ntxm_sound_channel_set_volume(c, soundGetVolume(ch->finalVol));
 #endif
@@ -194,37 +202,34 @@ void Player::update(s32 msDelta) {
         if(status & IS_Pan) {
             ntxm_sound_channel_set_panning(c, ch->finalPan);
         }
-    }
 
-    // Calculate fades
 #ifdef USE_VOLUME_RAMPING
+		// Calculate fades
+		if(status & IS_NtxmVolFade) {
+	        int curVol;
+	        int timer = ch->ntxmRampTimer;
+	        int duration = ch->ntxmRampDuration;
+	        int start = ch->ntxmStartVol;
+	        int end = ch->ntxmEndVol;
 
-    for(int c = 0; c < MAX_CHANNELS; c++) {
-        stmTyp *ch = &stm[c];
+	        if (timer > duration) {
+	            curVol = start;
+	            timer -= 1;
+	        } else if (timer > 0) {
+	            int mix = duration - timer;
+	            curVol = start + ((end-start) * mix) / duration;
+	            timer -= 1;
+	        } else {
+	            curVol = end;
+				ch->status = 0;
+	        }
 
-        int curVol;
-        int timer = ch->ntxmRampTimer;
-        int duration = ch->ntxmRampDuration;
-        int start = ch->ntxmStartVol;
-        int end = ch->ntxmEndVol;
-
-        if (timer > duration) {
-            curVol = start;
-            timer -= 1;
-        } else if (timer > 0) {
-            int mix = duration - timer;
-            curVol = start + ((end-start) * mix) / duration;
-            timer -= 1;
-        } else {
-            curVol = end;
-        }
-
-        ch->ntxmRampTimer = timer;
-        ch->ntxmCurVol = curVol;
-        ntxm_sound_channel_set_volume(c, soundGetVolume(curVol));
-    }
-
+	        ch->ntxmRampTimer = timer;
+	        ch->ntxmCurVol = curVol;
+	        ntxm_sound_channel_set_volume(c, soundGetVolume(curVol));
+	    }
 #endif
+    }
 
     ntxm_sound_flush_channels();
 
