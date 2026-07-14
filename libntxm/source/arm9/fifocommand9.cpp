@@ -58,23 +58,23 @@ void RecvCommandSampleFinish(void) {
 }
 
 void CommandRecvHandler(int bytes, void *user_data) {
-    NTXMFifoMessage msg;
+    u8 msg[NTXM_MESSAGE_MAX_LENGTH];
 
-    fifoGetDatamsg(FIFO_NTXM, bytes, (u8*)&msg);
+    fifoGetDatamsg(FIFO_NTXM, bytes, msg);
 
-    switch(msg.commandType) {
+    switch(msg[0]) {
 #ifdef DEBUG
         case DBG_OUT: // TODO it's not safe to do this in an interrupt handler
-            ntxm_dprintf(msg.dbgOut.msg);
+            ntxm_dprintf(((DbgOutCommand*) msg)->msg);
             break;
 #endif
 
         case UPDATE_ROW:
-            RecvCommandUpdateRow(&msg.updateRow);
+            RecvCommandUpdateRow((UpdateRowCommand*) msg);
             break;
 
         case UPDATE_POTPOS:
-            RecvCommandUpdatePotPos(&msg.updatePotPos);
+            RecvCommandUpdatePotPos((UpdatePotPosCommand*) msg);
             break;
 
         case NOTIFY_STOP:
@@ -102,196 +102,146 @@ void CommandExit() {
 
 void CommandPlaySample(Sample *sample, u8 note, u8 volume, u8 channel)
 {
-    NTXMFifoMessage command;
-    PlaySampleCommand* ps = &command.playSample;
-
-    command.commandType = PLAY_SAMPLE;
-
-    ps->sample = sample;
-    ps->note = note;
-    ps->volume = volume;
-    ps->channel = channel;
-
-
+    PlaySampleCommand command;
+    command.type = PLAY_SAMPLE;
+    command.sample = sample;
+    command.note = note;
+    command.volume = volume;
+    command.channel = channel;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
 void CommandStopSample(int channel)
 {
-    NTXMFifoMessage command;
-    StopSampleSoundCommand *ss = &command.stopSample;
-
-    command.commandType = STOP_SAMPLE;
-    ss->channel = channel;
-
+    StopSampleSoundCommand command;
+    command.type = STOP_SAMPLE;
+    command.channel = channel;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
 void CommandStartRecording(u16* buffer, int length)
 {
-    NTXMFifoMessage command;
-    StartRecordingCommand* sr = &command.startRecording;
-
-    command.commandType = START_RECORDING;
-    sr->buffer = buffer;
-    sr->length = length;
-
+    StartRecordingCommand command;
+    command.type = START_RECORDING;
+    command.buffer = buffer;
+    command.length = length;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
 int CommandStopRecording(void)
 {
-    NTXMFifoMessage command;
-    command.commandType = STOP_RECORDING;
-
+    NtxmCommand command;
+    command.type = STOP_RECORDING;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
-
     fifoWaitValue32(FIFO_NTXM);
-
     return (int)fifoGetValue32(FIFO_NTXM);
 }
 
 void CommandSetSong(void *song)
 {
-    NTXMFifoMessage command;
-    SetSongCommand* c = &command.setSong;
-
-    command.commandType = SET_SONG;
-    c->ptr = song;
-
+    SetSongCommand command;
+    command.type = SET_SONG;
+    command.ptr = song;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
 void CommandStartPlay(u8 potpos, u16 row, bool loop)
 {
-    NTXMFifoMessage command;
-    StartPlayCommand* c = &command.startPlay;
-
-    command.commandType = START_PLAY;
-    c->potpos = potpos;
-    c->row = row;
-    c->loop = loop;
-
+    StartPlayCommand command;
+    command.type = START_PLAY;
+    command.potpos = potpos;
+    command.row = row;
+    command.loop = loop;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
 void CommandStopPlay(void) {
 
-    NTXMFifoMessage command;
-    command.commandType = STOP_PLAY;
-
+    StopPlayCommand command;
+    command.type = STOP_PLAY;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
 void CommandPlayInst(u8 inst, u8 note, u8 volume, u8 channel)
 {
-    NTXMFifoMessage command;
-    command.commandType = PLAY_INST;
-
-    PlayInstCommand* c = &command.playInst;
-
-    c->inst    = inst;
-    c->note    = note;
-    c->volume  = volume;
-    c->channel = channel;
-
+    PlayInstCommand command;
+    command.type = PLAY_INST;
+    command.inst    = inst;
+    command.note    = note;
+    command.volume  = volume;
+    command.channel = channel;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
 void CommandStopInst(u8 channel)
 {
-    NTXMFifoMessage command;
-    command.commandType = STOP_INST;
-
-    StopInstCommand* c = &command.stopInst;
-
-    c->channel = channel;
-
+    StopInstCommand command;
+    command.type = STOP_INST;
+    command.channel = channel;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
 void CommandStopMatchingInst(u8 inst, u8 note)
 {
-    NTXMFifoMessage command;
-    command.commandType = STOP_MATCHING_INST;
-
-    StopMatchingInstCommand* c = &command.stopMatchingInst;
-
-    c->note = note;
-    c->inst = inst;
-
+    StopMatchingInstCommand command;
+    command.type = STOP_MATCHING_INST;
+    command.note = note;
+    command.inst = inst;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
 void CommandPlayNoteAuto(u8 inst, u8 note, u8 volume, u16 tag)
 {
-    NTXMFifoMessage command;
-    command.commandType = PLAY_NOTE_AUTO;
-
-    PlayNoteAutoCommand* c = &command.playNoteAuto;
-
-    c->inst    = inst;
-    c->note    = note;
-    c->volume  = volume;
-    c->tag  = tag;
-
+    PlayNoteAutoCommand command;
+    command.type = PLAY_NOTE_AUTO;
+    command.inst    = inst;
+    command.note    = note;
+    command.volume  = volume;
+    command.tag  = tag;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
 void CommandStopNoteAuto(u16 tag)
 {
-    NTXMFifoMessage command;
-    command.commandType = STOP_NOTE_AUTO;
-
-    StopNoteAutoCommand* c = &command.stopNoteAuto;
-
-    c->tag = tag;
-
+    StopNoteAutoCommand command;
+    command.type = STOP_NOTE_AUTO;
+    command.tag = tag;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
 void CommandMicOn(void)
 {
-    NTXMFifoMessage command;
-    command.commandType = MIC_ON;
-
+    NtxmCommand command;
+    command.type = MIC_ON;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
 void CommandMicOff(void)
 {
-    NTXMFifoMessage command;
-    command.commandType = MIC_OFF;
-
+    NtxmCommand command;
+    command.type = MIC_OFF;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
 void CommandOnSongSpeedChanged(void)
 {
-    NTXMFifoMessage command;
-    command.commandType = ON_SONG_SPEED_CHANGED;
-
+    NtxmCommand command;
+    command.type = ON_SONG_SPEED_CHANGED;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
 void CommandSetPatternLoop(bool state)
 {
-    NTXMFifoMessage command;
-    command.commandType = PATTERN_LOOP;
-
-    PatternLoopCommand* c = &command.ptnLoop;
-    c->state = state;
-
+    PatternLoopCommand command;
+    command.type = PATTERN_LOOP;
+    command.state = state;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
 void CommandSetStereoOutput(bool state)
 {
-    NTXMFifoMessage command;
-    command.commandType = SET_STEREO_OUTPUT;
-
-    SetStereoOutputCommand* c = &command.setStereoOutput;
-    c->state = state;
-
+    SetStereoOutputCommand command;
+    command.type = SET_STEREO_OUTPUT;
+    command.state = state;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }

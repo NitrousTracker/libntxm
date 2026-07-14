@@ -13,7 +13,12 @@
 #include "ntxm/sample.h"
 
 #define FIFO_NTXM FIFO_USER_01
+#ifdef DEBUG
 #define DEBUGSTRSIZE 40
+#define NTXM_MESSAGE_MAX_LENGTH 48
+#else
+#define NTXM_MESSAGE_MAX_LENGTH 16
+#endif
 
 typedef enum {
     PLAY_SAMPLE,
@@ -40,55 +45,70 @@ typedef enum {
     ON_SONG_SPEED_CHANGED
 } NTXMFifoMessageType;
 
+struct NtxmCommand
+{
+	u8 type;
+};
+
 struct PlaySampleCommand
 {
-    Sample *sample;
+	u8 type;
     u8 note;
     u8 volume;
     u8 channel;
+    Sample *sample;
 };
 
 /* Command parameters for stopping a sample */
 struct StopSampleSoundCommand
 {
+	u8 type;
     u8 channel;
 };
 
 /* Command parameters for starting to record from the microphone */
 struct StartRecordingCommand
 {
+	u8 type;
     u16* buffer;
     int length;
 };
 
 struct SetSongCommand {
+	u8 type;
     void *ptr;
 };
 
 struct StartPlayCommand {
+	u8 type;
     u16 row;
     u8 potpos;
     bool loop;
 };
 
 struct StopPlayCommand {
+	u8 type;
 };
 
 #ifdef DEBUG
 struct DbgOutCommand {
+	u8 type;
     char msg[DEBUGSTRSIZE];
 };
 #endif
 
 struct UpdateRowCommand {
+	u8 type;
     u16 row;
 };
 
 struct UpdatePotPosCommand {
+	u8 type;
     u16 potpos;
 };
 
 struct PlayInstCommand {
+	u8 type;
     u8 inst;
     u8 note;
     u8 volume;
@@ -96,15 +116,18 @@ struct PlayInstCommand {
 };
 
 struct StopInstCommand {
+	u8 type;
     u8 channel;
 };
 
 struct StopMatchingInstCommand {
+	u8 type;
     u8 inst;
     u8 note;
 };
 
 struct PlayNoteAutoCommand {
+	u8 type;
     u8 inst;
     u8 note;
     u8 volume;
@@ -112,42 +135,19 @@ struct PlayNoteAutoCommand {
 };
 
 struct StopNoteAutoCommand {
+	u8 type;
     u16 tag;
 };
 
 struct PatternLoopCommand {
+	u8 type;
     bool state;
 };
 
 struct SetStereoOutputCommand {
+	u8 type;
     bool state;
 };
-
-typedef struct NTXMFifoMessage {
-    u16 commandType;
-
-    union {
-        void *data;
-        PlaySampleCommand      playSample;
-        StopSampleSoundCommand stopSample;
-        StartRecordingCommand  startRecording;
-        SetSongCommand         setSong;
-        StartPlayCommand       startPlay;
-        StopPlayCommand        stopPlay;
-#ifdef DEBUG
-        DbgOutCommand          dbgOut;
-#endif
-        UpdateRowCommand       updateRow;
-        UpdatePotPosCommand    updatePotPos;
-        PlayInstCommand        playInst;
-        StopInstCommand        stopInst;
-        StopMatchingInstCommand    stopMatchingInst;
-        PlayNoteAutoCommand    playNoteAuto;
-        StopNoteAutoCommand    stopNoteAuto;
-        PatternLoopCommand     ptnLoop;
-        SetStereoOutputCommand setStereoOutput;
-    };
-} NTXMFifoMessage;
 
 bool CommandInit();
 void CommandExit();

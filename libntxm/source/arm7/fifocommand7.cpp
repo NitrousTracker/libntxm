@@ -120,15 +120,13 @@ static void RecvCommandSetStereoOutput(SetStereoOutputCommand *c) {
 #ifdef DEBUG
 void CommandDbgOut(const char *formatstr, ...)
 {
-    NTXMFifoMessage command;
-    command.commandType = DBG_OUT;
-
-    DbgOutCommand *cmd = &command.dbgOut;
+    DbgOutCommand command;
+    command.type = DBG_OUT;
 
     va_list marker;
     va_start(marker, formatstr);
 
-    char *debugstr = cmd->msg;
+    char *debugstr = command.msg;
 #ifdef BLOCKSDS
     vsnprintf(debugstr, DEBUGSTRSIZE-1, formatstr, marker);
 #else
@@ -144,83 +142,75 @@ void CommandDbgOut(const char *formatstr, ...)
 
 void CommandUpdateRow(u16 row)
 {
-    NTXMFifoMessage command;
-    command.commandType = UPDATE_ROW;
-
-    UpdateRowCommand *c = &command.updateRow;
-    c->row = row;
-
+    UpdateRowCommand command;
+    command.type = UPDATE_ROW;
+    command.row = row;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
 void CommandUpdatePotPos(u16 potpos)
 {
-    NTXMFifoMessage command;
-    command.commandType = UPDATE_POTPOS;
-
-    UpdatePotPosCommand *c = &command.updatePotPos;
-    c->potpos = potpos;
-
+    UpdatePotPosCommand command;
+    command.type = UPDATE_POTPOS;
+    command.potpos = potpos;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
 void CommandNotifyStop(void)
 {
-    NTXMFifoMessage command;
-    command.commandType = NOTIFY_STOP;
-
+    NtxmCommand command;
+    command.type = NOTIFY_STOP;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
 void CommandSampleFinish(void)
 {
-    NTXMFifoMessage command;
-    command.commandType = SAMPLE_FINISH;
-
+    NtxmCommand command;
+    command.type = SAMPLE_FINISH;
     fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8*)&command);
 }
 
 void CommandRecvHandler(int bytes, void *user_data) {
-    NTXMFifoMessage command;
+	u8 command[NTXM_MESSAGE_MAX_LENGTH];
 
-    fifoGetDatamsg(FIFO_NTXM, bytes, (u8*)&command);
+    fifoGetDatamsg(FIFO_NTXM, bytes, command);
 
-    switch(command.commandType) {
+    switch(command[0]) {
         case PLAY_SAMPLE:
-            RecvCommandPlaySample(&command.playSample);
+            RecvCommandPlaySample((PlaySampleCommand*) command);
             break;
         case STOP_SAMPLE:
-            RecvCommandStopSample(&command.stopSample);
+            RecvCommandStopSample((StopSampleSoundCommand*) command);
             break;
         case START_RECORDING:
-            RecvCommandStartRecording(&command.startRecording);
+            RecvCommandStartRecording((StartRecordingCommand*) command);
             break;
         case STOP_RECORDING:
             RecvCommandStopRecording();
             break;
         case SET_SONG:
-            RecvCommandSetSong(&command.setSong);
+            RecvCommandSetSong((SetSongCommand*) command);
             break;
         case START_PLAY:
-            RecvCommandStartPlay(&command.startPlay);
+            RecvCommandStartPlay((StartPlayCommand*) command);
             break;
         case STOP_PLAY:
-            RecvCommandStopPlay(&command.stopPlay);
+            RecvCommandStopPlay((StopPlayCommand*) command);
             break;
         case PLAY_INST:
-            RecvCommandPlayInst(&command.playInst);
+            RecvCommandPlayInst((PlayInstCommand*) command);
             break;
         case STOP_INST:
-            RecvCommandStopInst(&command.stopInst);
+            RecvCommandStopInst((StopInstCommand*) command);
             break;
         case STOP_MATCHING_INST:
-            RecvCommandStopMatchingInst(&command.stopMatchingInst);
+            RecvCommandStopMatchingInst((StopMatchingInstCommand*) command);
             break;
         case PLAY_NOTE_AUTO:
-            RecvCommandPlayNoteAuto(&command.playNoteAuto);
+            RecvCommandPlayNoteAuto((PlayNoteAutoCommand*) command);
             break;
         case STOP_NOTE_AUTO:
-            RecvCommandStopNoteAuto(&command.stopNoteAuto);
+            RecvCommandStopNoteAuto((StopNoteAutoCommand*) command);
             break;
         case MIC_ON:
             RecvCommandMicOn();
@@ -229,10 +219,10 @@ void CommandRecvHandler(int bytes, void *user_data) {
             RecvCommandMicOff();
             break;
         case PATTERN_LOOP:
-            RecvCommandPatternLoop(&command.ptnLoop);
+            RecvCommandPatternLoop((PatternLoopCommand*) command);
             break;
         case SET_STEREO_OUTPUT:
-            RecvCommandSetStereoOutput(&command.setStereoOutput);
+            RecvCommandSetStereoOutput((SetStereoOutputCommand*) command);
             break;
         case ON_SONG_SPEED_CHANGED:
         	RecvCommandOnSongSpeedChanged();
