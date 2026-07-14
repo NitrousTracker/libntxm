@@ -59,7 +59,7 @@ public:
     void playNoteAuto(int instidx, int note, int volume, int tag);
     void stopNoteAuto(int tag);
 
-    u64 getMsPerTick() const;
+    u32 getMsPerTick() const;
     inline int getPlayTimerFrequency() const { return 1000; }
 
     void setPatternLoop(bool repeat);
@@ -68,12 +68,12 @@ public:
 #ifdef NT_PLATFORM_NDS
     void playTimerHandler();
 #endif
-    void update(s64 msDelta);
+    void update(s32 msDelta);
 
 private:
     PlayerState state;
-    u64 currMs;
-    u64 nextPlayerMs;
+    u32 currMs;
+    u32 nextPlayerMs;
     bool playing;
     bool songLoop;
     bool patternLoop;

@@ -35,15 +35,7 @@
 
 #include "common.h"
 
-// Fraction used to convert from timer ticks to milliseconds,
-// equates to 1000/clock_speed with some necessary scaling.
-#define MS_MULTIPLIER ((u64)1000 << 14)
-#define MS_DIVISOR ((u64)33513982 >> 1)
-
-// Note: To avoid precision loss we don't actually perform the division,
-// we just scale the elapsed time by MS_MULTIPLIER and the 'next' time
-// by MS_UNIT.
-#define MS_UNIT (MS_DIVISOR << 5)
+#define MS_UNIT 1
 
 /*
  * Some functions for measuring delta time.
@@ -51,7 +43,7 @@
 #if defined(NT_PLATFORM_NDS)
 
 void demoInit(void);
-u64 getMsDelta(void);
+u32 getMsDelta(void);
 
 #endif
 

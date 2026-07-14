@@ -91,7 +91,7 @@ void Player::startSongChannel(int c, stmTyp *ch, Sample *s, int smpOffset) {
     ch->ntxmTag = TAG_SONG;
 }
 
-u64 Player::getMsPerTick() const {
+u32 Player::getMsPerTick() const {
     u8 bpm = state.speed;
     if (!bpm && song) bpm = song->bpm;
     if (!bpm) bpm = 125;
@@ -107,15 +107,15 @@ void Player::playTimerHandler() {
 void Player::tryEarlyVolumeRamps(void) {
 #ifdef USE_VOLUME_RAMPING
 	u64 msPerTick = getMsPerTick();
-	
+
 	// Is this the last tick before the next row?
 	if (state.timer == 1 && state.pattDelTime2 == 0) {
-		
+
 		// Check if, for any of the active channels, a new note starts in the next row.
 		for (int c = 0; c < song->n_channels; c++) {
 			stmTyp *ch = &stm[c];
 			const Cell* p = &song->getPattern(state.pattNr)[c][state.pattPos];
-			
+
 			bool anyNote = p->note != EMPTY_NOTE && p->note != STOP_NOTE && p->instrument != NO_INSTRUMENT;
 			bool anyPortaFx = (p->volume & 0xF0) == 0xF0 || p->effect == 3 ||  p->effect == 5;
 			bool anyRetrigFx = p->effect == 27;
@@ -140,14 +140,14 @@ void Player::tryEarlyVolumeRamps(void) {
 #endif
 }
 
-void Player::update(s64 msDelta) {
+void Player::update(s32 msDelta) {
     if(msDelta <= 0) return;
-    u64 msPerTick = getMsPerTick();
+    u32 msPerTick = getMsPerTick();
     currMs += msDelta;
 
     // Run FT2 player routine
     if(playing) {
-        while((currMs - nextPlayerMs) <= INT64_MAX) {
+        while((currMs - nextPlayerMs) <= INT32_MAX) {
             mainPlayer();
             tryEarlyVolumeRamps();
             nextPlayerMs += msPerTick;
@@ -172,7 +172,7 @@ void Player::update(s64 msDelta) {
 #ifdef USE_VOLUME_RAMPING
             ch->ntxmStartVol = ch->ntxmCurVol;
             ch->ntxmEndVol = ch->finalVol;
-            
+
             if (!(status & IS_QuickVol)) {
                 ch->ntxmRampDuration = msPerTick / MS_UNIT;  // integer part only.
                 ch->ntxmRampTimer = ch->ntxmRampDuration;
@@ -201,16 +201,16 @@ void Player::update(s64 msDelta) {
 
     // Calculate fades
 #ifdef USE_VOLUME_RAMPING
-    
+
     for(int c = 0; c < MAX_CHANNELS; c++) {
         stmTyp *ch = &stm[c];
-        
+
         int curVol;
         int timer = ch->ntxmRampTimer;
         int duration = ch->ntxmRampDuration;
         int start = ch->ntxmStartVol;
         int end = ch->ntxmEndVol;
-        
+
         if (timer > duration) {
             curVol = start;
             timer -= 1;
@@ -221,7 +221,7 @@ void Player::update(s64 msDelta) {
         } else {
             curVol = end;
         }
-        
+
         ch->ntxmRampTimer = timer;
         ch->ntxmCurVol = curVol;
         ntxm_sound_channel_set_volume(c, soundGetVolume(curVol));
