@@ -30,19 +30,19 @@
  *
  ***** END LICENSE BLOCK *****/
 
+#include "ntxm/common.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/statvfs.h>
-#include "ntxm/common.h"
+#include <unistd.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-__attribute__((noreturn))
-static inline void ntxm_crash(const char *text) {
+__attribute__((noreturn)) static inline void ntxm_crash(const char *text)
+{
 #if defined(NT_PLATFORM_NDS)
 	libndsCrash(text);
 #else
@@ -50,12 +50,14 @@ static inline void ntxm_crash(const char *text) {
 #endif
 }
 
-__attribute__((noreturn))
-static void out_of_memory_error(const char *func, const char *file, int line) {
+__attribute__((noreturn)) static void
+out_of_memory_error(const char *func, const char *file, int line)
+{
 #ifdef DEBUG
 	char text[256];
 	text[sizeof(text) - 1] = 0;
-	snprintf(text, sizeof(text) - 1, "%s() out of memory - %s:%d", func, file, line);
+	snprintf(text, sizeof(text) - 1, "%s() out of memory - %s:%d", func, file,
+	         line);
 	ntxm_crash(text);
 #else
 	ntxm_crash(func);
@@ -63,8 +65,9 @@ static void out_of_memory_error(const char *func, const char *file, int line) {
 }
 
 #ifdef DEBUG
-__attribute__((noreturn))
-static void double_free_error(const char *file, int line) {
+__attribute__((noreturn)) static void double_free_error(const char *file,
+                                                        int line)
+{
 	char text[256];
 	text[sizeof(text) - 1] = 0;
 	snprintf(text, sizeof(text) - 1, "double free - %s:%d", file, line);
@@ -72,28 +75,32 @@ static void double_free_error(const char *file, int line) {
 }
 #endif
 
-void *__ntxm_cmalloc(size_t size, const char *file, int line) {
+void *__ntxm_cmalloc(size_t size, const char *file, int line)
+{
 	void *ptr = malloc(size);
 	if (ptr == NULL)
 		out_of_memory_error("ntxm_cmalloc", file, line);
 	return ptr;
 }
 
-void *__ntxm_crealloc(void *ptr, size_t size, const char *file, int line) {
+void *__ntxm_crealloc(void *ptr, size_t size, const char *file, int line)
+{
 	ptr = realloc(ptr, size);
 	if (ptr == NULL)
 		out_of_memory_error("ntxm_crealloc", file, line);
 	return ptr;
 }
 
-void *__ntxm_ccalloc(size_t nelem, size_t size, const char *file, int line) {
+void *__ntxm_ccalloc(size_t nelem, size_t size, const char *file, int line)
+{
 	void *ptr = calloc(nelem, size);
 	if (ptr == NULL)
 		out_of_memory_error("ntxm_ccalloc", file, line);
 	return ptr;
 }
 
-void *__ntxm_cmemalign(size_t align, size_t size, const char *file, int line) {
+void *__ntxm_cmemalign(size_t align, size_t size, const char *file, int line)
+{
 #ifdef _WIN32
 	// FIXME: Windows needs a separate free for aligned allocations.
 	out_of_memory_error("ntxm_cmemalign", file, line);
@@ -106,14 +113,16 @@ void *__ntxm_cmemalign(size_t align, size_t size, const char *file, int line) {
 #endif
 }
 
-char *__ntxm_cstrdup(const char *text, const char *file, int line) {
+char *__ntxm_cstrdup(const char *text, const char *file, int line)
+{
 	char *ptr = strdup(text);
 	if (ptr == NULL)
 		out_of_memory_error("ntxm_cstrdup", file, line);
 	return ptr;
 }
 
-void __ntxm_free(void *ptr, const char *file, int line) {
+void __ntxm_free(void *ptr, const char *file, int line)
+{
 #ifdef DEBUG
 	if (ptr == NULL)
 		double_free_error(file, line);
@@ -128,12 +137,16 @@ void __ntxm_free(void *ptr, const char *file, int line) {
 extern u8 *fake_heap_end;
 extern u8 *fake_heap_start;
 
-int ntxm_getFreeMem(void) {
+int ntxm_getFreeMem(void)
+{
 	struct mallinfo mi = mallinfo();
-	return mi.fordblks + (fake_heap_end - (u8*)sbrk(0));
+	return mi.fordblks + (fake_heap_end - (u8 *)sbrk(0));
 }
 #else
-int ntxm_getFreeMem(void) { return 1048576; }
+int ntxm_getFreeMem(void)
+{
+	return 1048576;
+}
 #endif
 
 #include "ntxm/ntxmtools.h"
@@ -141,8 +154,8 @@ int ntxm_getFreeMem(void) { return 1048576; }
 bool ntxm_isFileExists(const char *filename)
 {
 	bool res;
-	FILE* f = fopen(filename,"r");
-	if(f == NULL) {
+	FILE *f = fopen(filename, "r");
+	if (f == NULL) {
 		res = false;
 	} else {
 		fclose(f);
@@ -163,7 +176,7 @@ u32 ntxm_getFileSize(const char *filename)
 
 void ntxm_unsigned2signed_8(uint8_t *buffer, size_t count)
 {
-	uint32_t *buf32 = (uint32_t*) buffer;
+	uint32_t *buf32 = (uint32_t *)buffer;
 	size_t count32 = count >> 2;
 	size_t i;
 
@@ -178,13 +191,14 @@ void ntxm_unsigned2signed_8(uint8_t *buffer, size_t count)
 
 void ntxm_unsigned2signed_16(uint16_t *buffer, size_t count)
 {
-	uint32_t *buf32 = (uint32_t*) buffer;
+	uint32_t *buf32 = (uint32_t *)buffer;
 	size_t count32 = count >> 1;
 
 	for (size_t i = 0; i < count32; i++) {
 		buf32[i] ^= 0x80008000;
 	}
-	if (count & 1) buffer[count - 1] ^= 0x8000;
+	if (count & 1)
+		buffer[count - 1] ^= 0x8000;
 }
 
 #ifdef __cplusplus

@@ -33,16 +33,17 @@
 #ifndef _NTXMTOOLS_H_
 #define _NTXMTOOLS_H_
 
+#include "common.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include "common.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-static inline void ntxm_flush_dcache(void) {
+static inline void ntxm_flush_dcache(void)
+{
 #if defined(NT_PLATFORM_NDS)
 #ifdef ARM9
 	DC_FlushAll();
@@ -54,25 +55,32 @@ static inline void ntxm_flush_dcache(void) {
 // ntxm_umalloc() - unchecked malloc() - can return null
 
 extern void *__ntxm_cmalloc(size_t size, const char *file, int line);
-extern void *__ntxm_crealloc(void *ptr, size_t size, const char *file, int line);
-extern void *__ntxm_ccalloc(size_t nelem, size_t size, const char *file, int line);
-extern void *__ntxm_cmemalign(size_t align, size_t size, const char *file, int line);
+extern void *__ntxm_crealloc(void *ptr, size_t size, const char *file,
+                             int line);
+extern void *__ntxm_ccalloc(size_t nelem, size_t size, const char *file,
+                            int line);
+extern void *__ntxm_cmemalign(size_t align, size_t size, const char *file,
+                              int line);
 extern char *__ntxm_cstrdup(const char *text, const char *file, int line);
 extern void __ntxm_free(void *ptr, const char *file, int line);
 
-static inline void *ntxm_umalloc(size_t size) {
+static inline void *ntxm_umalloc(size_t size)
+{
 	return malloc(size);
 }
 
-static inline void *ntxm_urealloc(void *ptr, size_t size) {
+static inline void *ntxm_urealloc(void *ptr, size_t size)
+{
 	return realloc(ptr, size);
 }
 
-static inline void *ntxm_ucalloc(size_t nelem, size_t size) {
+static inline void *ntxm_ucalloc(size_t nelem, size_t size)
+{
 	return calloc(nelem, size);
 }
 
-static inline void *ntxm_umemalign(size_t align, size_t size) {
+static inline void *ntxm_umemalign(size_t align, size_t size)
+{
 #ifdef _WIN32
 	// FIXME: Windows needs a separate free for aligned allocations.
 	return NULL;
@@ -81,15 +89,18 @@ static inline void *ntxm_umemalign(size_t align, size_t size) {
 #endif
 }
 
-static inline char *ntxm_ustrdup(const char *text) {
+static inline char *ntxm_ustrdup(const char *text)
+{
 	return strdup(text);
 }
 
 #if defined(DEBUG)
 #define ntxm_cmalloc(size) __ntxm_cmalloc(size, __FILE__, __LINE__)
 #define ntxm_crealloc(ptr, size) __ntxm_crealloc(ptr, size, __FILE__, __LINE__)
-#define ntxm_ccalloc(nelem, size) __ntxm_ccalloc(nelem, size, __FILE__, __LINE__)
-#define ntxm_cmemalign(align, size) __ntxm_cmemalign(align, size, __FILE__, __LINE__)
+#define ntxm_ccalloc(nelem, size)                                              \
+	__ntxm_ccalloc(nelem, size, __FILE__, __LINE__)
+#define ntxm_cmemalign(align, size)                                            \
+	__ntxm_cmemalign(align, size, __FILE__, __LINE__)
 #define ntxm_cstrdup(text) __ntxm_cstrdup(text, __FILE__, __LINE__)
 #define ntxm_free(ptr) __ntxm_free(ptr, __FILE__, __LINE__)
 #else
@@ -113,7 +124,9 @@ void free(void *ptr) __attribute__((deprecated));
 #if defined(DEBUG)
 #define ntxm_dprintf printf
 #else
-static inline void ntxm_dprintf(...) {}
+static inline void ntxm_dprintf(...)
+{
+}
 #endif
 
 int ntxm_getFreeMem(void);
@@ -122,9 +135,9 @@ bool ntxm_isFileExists(const char *name);
 
 inline s32 ntxm_clamp(s32 val, s32 min, s32 max)
 {
-	if(val < min)
+	if (val < min)
 		return min;
-	if(val > max)
+	if (val > max)
 		return max;
 	return val;
 }

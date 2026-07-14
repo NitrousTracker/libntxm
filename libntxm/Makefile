@@ -30,21 +30,21 @@ endif
 # Targets
 # -------
 
-.PHONY: all arm7 arm9 clean install
+.PHONY: all arm7 arm9 clean install format
 
 all: arm9 arm7 arm9d arm7d
 
 arm9:
-	@+$(MAKE) -f Makefile.blocks.arm9 --no-print-directory DEBUG=false
+	@+$(MAKE) -f Makefile.arm9 --no-print-directory DEBUG=false
 
 arm7:
-	@+$(MAKE) -f Makefile.blocks.arm7 --no-print-directory DEBUG=false
+	@+$(MAKE) -f Makefile.arm7 --no-print-directory DEBUG=false
 
 arm9d:
-	@+$(MAKE) -f Makefile.blocks.arm9 --no-print-directory DEBUG=true
+	@+$(MAKE) -f Makefile.arm9 --no-print-directory DEBUG=true
 
 arm7d:
-	@+$(MAKE) -f Makefile.blocks.arm7 --no-print-directory DEBUG=true
+	@+$(MAKE) -f Makefile.arm7 --no-print-directory DEBUG=true
 
 clean:
 	@echo "  CLEAN"
@@ -55,3 +55,6 @@ install: all
 	$(V)$(RM) $(BLOCKSDSEXT)/$(INSTALLNAME)/
 	$(V)$(INSTALL) -d $(BLOCKSDSEXT)/$(INSTALLNAME)/
 	$(V)$(CP) -r include lib $(BLOCKSDSEXT)/$(INSTALLNAME)/
+
+format:
+	@find include source -iname '*.h' -o -iname '*.cpp' -o -iname '*.c' | xargs clang-format -i

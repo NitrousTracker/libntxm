@@ -30,44 +30,42 @@
  *
  ***** END LICENSE BLOCK *****/
 
-#include <string.h>
-#include <stdlib.h>
 #include <algorithm>
 #include <iterator>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "ntxm/xm_transport.h"
 #include "ntxm/ntxmtools.h"
+#include "ntxm/xm_transport.h"
 
 // Loads a song from a file and puts it in the song argument
 // returns 0 on success, an error code else
 FormatTransportError XMTransport::load(const char *filename, Song **_song)
 {
 	u32 filesize = ntxm_getFileSize(filename);
-	if(filesize == 0)
+	if (filesize == 0)
 		return FormatTransportError::FILE_ZERO_BYTE;
 
 	FILE *xmfile = fopen(filename, "rb");
-	if(!xmfile)
+	if (!xmfile)
 		return FormatTransportError::FOPEN_FAIL;
 
 	// check if the module uses mpt hacks
-	char footer[256] = { 0 };
+	char footer[256] = {0};
 
-	if (filesize > 255)
-	{
+	if (filesize > 255) {
 		fseek(xmfile, -256, SEEK_END);
 
 		fread(footer, sizeof(char), 255, xmfile);
 
-		const char searchstr[4] = { 0x53, 0x54, 0x50, 0x4D }; // "STPM"
-		char* it = std::search(
-			std::begin(footer), std::end(footer), std::begin(searchstr),
-			std::end(searchstr)); // offset of stuff in the footer varies, so
+		const char searchstr[4] = {0x53, 0x54, 0x50, 0x4D}; // "STPM"
+		char *it = std::search(
+		    std::begin(footer), std::end(footer), std::begin(searchstr),
+		    std::end(searchstr)); // offset of stuff in the footer varies, so
 		// unfortunately we need to search
 
-		if (it != std::end(footer))
-		{
+		if (it != std::end(footer)) {
 			fclose(xmfile);
 			return FormatTransportError::MPT_HACKS_UNSUPPORTED;
 		}
@@ -83,7 +81,7 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 	char magicnumber[18] = {0};
 	fread(magicnumber, 1, 17, xmfile);
 
-	if( strcmp(magicnumber, "Extended Module: ") != 0 ) {
+	if (strcmp(magicnumber, "Extended Module: ") != 0) {
 		ntxm_dprintf("Not an XM file!\n");
 		fclose(xmfile);
 		return FormatTransportError::MAGIC_NUMBER_INVALID;
@@ -104,10 +102,10 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 	u16 header_version;
 	fread(&header_version, 2, 1, xmfile);
 	ntxm_dprintf("XM version %x\n", header_version);
-	if(header_version < 0x104) {
-	    // TODO: Support XM 1.02/1.03
-    	fclose(xmfile);
-    	return FormatTransportError::VERSION_UNSUPPORTED;
+	if (header_version < 0x104) {
+		// TODO: Support XM 1.02/1.03
+		fclose(xmfile);
+		return FormatTransportError::VERSION_UNSUPPORTED;
 	}
 
 	// Header size
@@ -129,7 +127,7 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 	fread(&n_channels, 2, 1, xmfile);
 	//ntxm_dprintf("n chn: %u\n", n_channels);
 
-	if(n_channels > MAX_CHANNELS) {
+	if (n_channels > MAX_CHANNELS) {
 		ntxm_dprintf("I only support XMs with 16 or fewer channels!\n");
 		return FormatTransportError::TOO_MANY_CHANNELS;
 	}
@@ -152,9 +150,9 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 	// Tempo
 	u16 tempo;
 	fread(&tempo, 2, 1, xmfile);
-	if(tempo == 0) tempo = 1; // Found an XM that actually had 0 there
+	if (tempo == 0)
+		tempo = 1; // Found an XM that actually had 0 there
 	ntxm_dprintf("tempo: %u\n", tempo);
-
 
 	// BPM
 	u16 bpm;
@@ -163,8 +161,7 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 	ntxm_dprintf("new song %u %u %u %d\n", tempo, bpm, n_channels, linear);
 	// Construct the song with the current info
 	Song *song = new Song(tempo, bpm, n_channels, linear);
-	if(song==NULL)
-	{
+	if (song == NULL) {
 		fclose(xmfile);
 		ntxm_dprintf("memfull on line %d\n", __LINE__);
 		delete song;
@@ -179,21 +176,21 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 	u8 i, potentry;
 
 	fread(&potentry, 1, 1, xmfile);
-	song->setPotEntry(0, potentry); // The first entry is made automatically by the song
+	song->setPotEntry(
+	    0, potentry); // The first entry is made automatically by the song
 
-	for(i=1;i<pot_size;++i) {
+	for (i = 1; i < pot_size; ++i) {
 		fread(&potentry, 1, 1, xmfile);
 		song->potAdd(potentry);
 	}
-	fseek(xmfile, 256-pot_size, SEEK_CUR);
+	fseek(xmfile, 256 - pot_size, SEEK_CUR);
 
 	//
 	// Read patterns
 	//
 
 	u8 pattern;
-	for(pattern=0;pattern<n_patterns;++pattern)
-	{
+	for (pattern = 0; pattern < n_patterns; ++pattern) {
 		//ntxm_dprintf("Reading pattern %u\n",pattern);
 
 		// Pattern header length
@@ -207,7 +204,7 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 
 		// Number of rows
 		u16 n_rows;
-		if( (header_version == 0x104) || (header_version == 0x103) ) {
+		if ((header_version == 0x104) || (header_version == 0x103)) {
 			fread(&n_rows, 2, 1, xmfile);
 		} else {
 			u8 u8_n_rows;
@@ -215,8 +212,7 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 			n_rows = (u16)u8_n_rows + 1;
 		}
 
-		if(n_rows > MAX_PATTERN_LENGTH)
-		{
+		if (n_rows > MAX_PATTERN_LENGTH) {
 			ntxm_dprintf("Pattern too long: %u rows\n", n_rows);
 			fclose(xmfile);
 			delete song;
@@ -231,9 +227,9 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 		//TODO: Handle empty patterns (which are left out in the xm format)
 		//ntxm_dprintf("patterndata_size: %u (%u/%u)\n", patterndata_size,pattern,n_patterns);
 
-		if(patterndata_size > 0) { // Read the pattern
+		if (patterndata_size > 0) { // Read the pattern
 
-			u8 *ptn_data = (u8*)ntxm_umalloc(patterndata_size);
+			u8 *ptn_data = (u8 *)ntxm_umalloc(patterndata_size);
 			if (ptn_data == NULL) {
 				fclose(xmfile);
 				ntxm_dprintf("memfull on line %d\n", __LINE__);
@@ -245,10 +241,11 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 
 			bytes_read = fread(ptn_data, 1, patterndata_size, xmfile);
 
-			if(bytes_read != patterndata_size) {
+			if (bytes_read != patterndata_size) {
 				ntxm_free(ptn_data);
 				fclose(xmfile);
-				ntxm_dprintf("pattern read error.\nread:%lu (should be %u)\n", bytes_read, patterndata_size);
+				ntxm_dprintf("pattern read error.\nread:%lu (should be %u)\n",
+				             bytes_read, patterndata_size);
 				delete song;
 				return FormatTransportError::PATTERN_READ;
 			}
@@ -258,7 +255,7 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 			u8 chn;
 			u16 row;
 
-			if(pattern>0) {
+			if (pattern > 0) {
 				song->addPattern();
 			}
 
@@ -266,64 +263,63 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 
 			Cell **ptn = song->getPattern(pattern);
 
-			for(row=0;row<n_rows;++row)
-			{
-				for(chn=0;chn<n_channels;++chn)
-				{
-					u8 magicbyte = 0, note = EMPTY_NOTE, inst = NO_INSTRUMENT, vol = NO_VOLUME,
-						eff_type = NO_EFFECT, eff_param = NO_EFFECT_PARAM;
+			for (row = 0; row < n_rows; ++row) {
+				for (chn = 0; chn < n_channels; ++chn) {
+					u8 magicbyte = 0, note = EMPTY_NOTE, inst = NO_INSTRUMENT,
+					   vol = NO_VOLUME, eff_type = NO_EFFECT,
+					   eff_param = NO_EFFECT_PARAM;
 
 					magicbyte = ptn_data[ptn_data_offset];
 					ptn_data_offset++;
 
-					bool read_note=true, read_inst=true, read_vol=true,
-						read_eff_type=true, read_eff_param=true;
+					bool read_note = true, read_inst = true, read_vol = true,
+					     read_eff_type = true, read_eff_param = true;
 
-					if(magicbyte & 1<<7) { // It's the magic byte!
+					if (magicbyte & 1 << 7) { // It's the magic byte!
 
-						read_note = magicbyte & 1<<0;
-						read_inst = magicbyte & 1<<1;
-						read_vol = magicbyte & 1<<2;
-						read_eff_type = magicbyte & 1<<3;
-						read_eff_param = magicbyte & 1<<4;
+						read_note = magicbyte & 1 << 0;
+						read_inst = magicbyte & 1 << 1;
+						read_vol = magicbyte & 1 << 2;
+						read_eff_type = magicbyte & 1 << 3;
+						read_eff_param = magicbyte & 1 << 4;
 
 					} else { // It's the note!
 
 						note = magicbyte;
 						read_note = false;
-
 					}
 
-					if(read_note) {
+					if (read_note) {
 						note = ptn_data[ptn_data_offset];
 						ptn_data_offset++;
 					}
 
-					if(read_inst) {
+					if (read_inst) {
 						inst = ptn_data[ptn_data_offset];
 						ptn_data_offset++;
 					} else {
 						inst = NO_INSTRUMENT;
 					}
 
-					if(read_vol) {
+					if (read_vol) {
 						vol = ptn_data[ptn_data_offset];
 						ptn_data_offset++;
 					} else {
 						vol = 0; // 'Do nothing'
 					}
 
-					if(read_eff_type) {
+					if (read_eff_type) {
 						eff_type = ptn_data[ptn_data_offset];
 						ptn_data_offset++;
 					} else {
-						if(!read_eff_param)
+						if (!read_eff_param)
 							eff_type = NO_EFFECT;
 						else
-							eff_type = EFFECT_ARPEGGIO; // If we have params, but no effect, assume arpeggio
+							eff_type =
+							    EFFECT_ARPEGGIO; // If we have params, but no effect, assume arpeggio
 					}
 
-					if(read_eff_param) {
+					if (read_eff_param) {
 						eff_param = ptn_data[ptn_data_offset];
 						ptn_data_offset++;
 					} else {
@@ -332,26 +328,28 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 
 					//ntxm_dprintf("note: %u\ninst: %u\nvol: %u\neff_type: %u\neff_param: %u\n",note,inst,vol,eff_type,eff_param);
 
-					if(nitrotracker_compat) {
-					    // Cover for pre-0.7.0 quirks
-						if ((note == 0 || note == EMPTY_NOTE || note == 97) && inst != 0) {
-						    // Old: ntxm ignores instruments on empty and stop notes
+					if (nitrotracker_compat) {
+						// Cover for pre-0.7.0 quirks
+						if ((note == 0 || note == EMPTY_NOTE || note == 97) &&
+						    inst != 0) {
+							// Old: ntxm ignores instruments on empty and stop notes
 							// New: ft2play does not ignore instruments on stop notes
-						    inst = NO_INSTRUMENT;
+							inst = NO_INSTRUMENT;
 						}
 					}
 
 					// Insert note into song
-					if(note > 0 && note < 97) {
+					if (note > 0 && note < 97) {
 						ptn[chn][row].note = note - 1;
-					} else if(note==97) {
+					} else if (note == 97) {
 						ptn[chn][row].note = STOP_NOTE;
 					} else {
 						ptn[chn][row].note = EMPTY_NOTE;
 					}
 
-					if(inst != NO_INSTRUMENT) {
-						ptn[chn][row].instrument = inst-1; // XM Inst indices start with 1
+					if (inst != NO_INSTRUMENT) {
+						ptn[chn][row].instrument =
+						    inst - 1; // XM Inst indices start with 1
 					} else {
 						ptn[chn][row].instrument = NO_INSTRUMENT;
 					}
@@ -360,29 +358,27 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 					ptn[chn][row].effect = eff_type;
 					ptn[chn][row].effect_param = eff_param;
 				}
-
 			}
 
 			ntxm_free(ptn_data);
 
 		} else { // Make an empty pattern
 
-			if(pattern > 0) {
+			if (pattern > 0) {
 				song->addPattern();
 			}
 
 			song->resizePattern(pattern, n_rows);
 		}
-
 	}
 
 	//
 	// Read instruments
 	//
 
-	for(u8 inst=0; inst<n_inst; ++inst)
-	{
-		struct InstInfo *instinfo = (struct InstInfo*)ntxm_ucalloc(1, sizeof(struct InstInfo));
+	for (u8 inst = 0; inst < n_inst; ++inst) {
+		struct InstInfo *instinfo =
+		    (struct InstInfo *)ntxm_ucalloc(1, sizeof(struct InstInfo));
 		if (instinfo == NULL) {
 			fclose(xmfile);
 			ntxm_dprintf("memfull on line %d\n", __LINE__);
@@ -398,8 +394,7 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 		fread(&instinfo->n_samples, 1, 2, xmfile);
 
 		Instrument *instrument = new Instrument(instinfo->name);
-		if(instrument == 0)
-		{
+		if (instrument == 0) {
 			ntxm_free(instinfo);
 			fclose(xmfile);
 			ntxm_dprintf("memfull on line %d\n", __LINE__);
@@ -408,53 +403,58 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 		}
 		song->setInstrument(inst, instrument);
 
-		if(instinfo->n_samples > 0)
-		{
+		if (instinfo->n_samples > 0) {
 			// Read the rest of the instrument info
-			fread( &instinfo->sample_header_size, 4, 1, xmfile);
-			fread( &instinfo->note_samples, 96, 1, xmfile);
-			fread( &instinfo->vol_points, 48, 1, xmfile);
-			fread( &instinfo->pan_points, 48, 1, xmfile);
-			fread( &instinfo->n_vol_points, 1, 1, xmfile);
-			fread( &instinfo->n_pan_points, 1, 1, xmfile);
-			fread( &instinfo->vol_sustain_point, 1, 1, xmfile);
-			fread( &instinfo->vol_loop_start_point, 1, 1, xmfile);
-			fread( &instinfo->vol_loop_end_point, 1, 1, xmfile);
-			fread( &instinfo->pan_sustain_point, 1, 1, xmfile);
-			fread( &instinfo->pan_loop_start_point, 1, 1, xmfile);
-			fread( &instinfo->pan_loop_end_point, 1, 1, xmfile);
-			fread( &instinfo->vol_type, 1, 1, xmfile);
-			fread( &instinfo->pan_type, 1, 1, xmfile);
-			fread( &instinfo->vibrato_type, 1, 1, xmfile);
-			fread( &instinfo->vibrato_sweep, 1, 1, xmfile);
-			fread( &instinfo->vibrato_depth, 1, 1, xmfile);
-			fread( &instinfo->vibrato_rate, 1, 1, xmfile);
-			fread( &instinfo->vol_fadeout, 2, 1, xmfile);
-			fread( &instinfo->reserved_bytes, 11, 1, xmfile);
+			fread(&instinfo->sample_header_size, 4, 1, xmfile);
+			fread(&instinfo->note_samples, 96, 1, xmfile);
+			fread(&instinfo->vol_points, 48, 1, xmfile);
+			fread(&instinfo->pan_points, 48, 1, xmfile);
+			fread(&instinfo->n_vol_points, 1, 1, xmfile);
+			fread(&instinfo->n_pan_points, 1, 1, xmfile);
+			fread(&instinfo->vol_sustain_point, 1, 1, xmfile);
+			fread(&instinfo->vol_loop_start_point, 1, 1, xmfile);
+			fread(&instinfo->vol_loop_end_point, 1, 1, xmfile);
+			fread(&instinfo->pan_sustain_point, 1, 1, xmfile);
+			fread(&instinfo->pan_loop_start_point, 1, 1, xmfile);
+			fread(&instinfo->pan_loop_end_point, 1, 1, xmfile);
+			fread(&instinfo->vol_type, 1, 1, xmfile);
+			fread(&instinfo->pan_type, 1, 1, xmfile);
+			fread(&instinfo->vibrato_type, 1, 1, xmfile);
+			fread(&instinfo->vibrato_sweep, 1, 1, xmfile);
+			fread(&instinfo->vibrato_depth, 1, 1, xmfile);
+			fread(&instinfo->vibrato_rate, 1, 1, xmfile);
+			fread(&instinfo->vol_fadeout, 2, 1, xmfile);
+			fread(&instinfo->reserved_bytes, 11, 1, xmfile);
 
-			bool vol_env_on, vol_env_sustain, vol_env_loop, pan_env_on, pan_env_sustain, pan_env_loop;
+			bool vol_env_on, vol_env_sustain, vol_env_loop, pan_env_on,
+			    pan_env_sustain, pan_env_loop;
 
-			if(nitrotracker_compat) {
-			    // Cover for pre-0.7.0 quirks
+			if (nitrotracker_compat) {
+				// Cover for pre-0.7.0 quirks
 				if (instinfo->n_pan_points == 0) {
-				    // NitroTracker saved panning envelope flags based on uninitialized memory
+					// NitroTracker saved panning envelope flags based on uninitialized memory
 					instinfo->pan_type = 0;
 				}
 			}
 
-			vol_env_on      = instinfo->vol_type & BIT(0);
+			vol_env_on = instinfo->vol_type & BIT(0);
 			vol_env_sustain = instinfo->vol_type & BIT(1);
-			vol_env_loop    = instinfo->vol_type & BIT(2);
-			pan_env_on      = instinfo->pan_type & BIT(0);
+			vol_env_loop = instinfo->vol_type & BIT(2);
+			pan_env_on = instinfo->pan_type & BIT(0);
 			pan_env_sustain = instinfo->pan_type & BIT(1);
-			pan_env_loop    = instinfo->pan_type & BIT(2);
+			pan_env_loop = instinfo->pan_type & BIT(2);
 
-			instrument->setVolumeEnvelope(instinfo->vol_points, instinfo->n_vol_points, instinfo->vol_sustain_point,
-					vol_env_on, vol_env_sustain, vol_env_loop);
-			instrument->setPanningEnvelope(instinfo->pan_points, instinfo->n_pan_points, instinfo->pan_sustain_point,
-					pan_env_on, pan_env_sustain, pan_env_loop);
-			instrument->setVibrato(instinfo->vibrato_type, instinfo->vibrato_sweep, instinfo->vibrato_depth,
-			        instinfo->vibrato_rate);
+			instrument->setVolumeEnvelope(
+			    instinfo->vol_points, instinfo->n_vol_points,
+			    instinfo->vol_sustain_point, vol_env_on, vol_env_sustain,
+			    vol_env_loop);
+			instrument->setPanningEnvelope(
+			    instinfo->pan_points, instinfo->n_pan_points,
+			    instinfo->pan_sustain_point, pan_env_on, pan_env_sustain,
+			    pan_env_loop);
+			instrument->setVibrato(
+			    instinfo->vibrato_type, instinfo->vibrato_sweep,
+			    instinfo->vibrato_depth, instinfo->vibrato_rate);
 			instrument->setFadeOutVolume(instinfo->vol_fadeout);
 
 			// Skip the rest of the header if is longer than the current position
@@ -463,15 +463,15 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 			// Well, don't care, skip it.
 
 			//if(instinfo->inst_size > 252) // <- apparently wrong! samples can even be nested, so we have to seek back here o_O
-			fseek(xmfile, instinfo->inst_size-252, SEEK_CUR);
+			fseek(xmfile, instinfo->inst_size - 252, SEEK_CUR);
 
-			for(u8 i=0; i<96; ++i)
-				instrument->setNoteSample(i,instinfo->note_samples[i]);
+			for (u8 i = 0; i < 96; ++i)
+				instrument->setNoteSample(i, instinfo->note_samples[i]);
 
 			// Load the sample(s)
 
 			// Headers
-			u8 *sample_headers = (u8*)ntxm_umalloc(instinfo->n_samples*40);
+			u8 *sample_headers = (u8 *)ntxm_umalloc(instinfo->n_samples * 40);
 			if (sample_headers == NULL) {
 				ntxm_free(instinfo);
 				fclose(xmfile);
@@ -481,26 +481,28 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 			}
 			fread(sample_headers, 40, instinfo->n_samples, xmfile);
 
-			for(u8 sample_id=0; sample_id < instinfo->n_samples; sample_id++)
-			{
+			for (u8 sample_id = 0; sample_id < instinfo->n_samples;
+			     sample_id++) {
 				// Sample length
 				u32 sample_length;
-				sample_length = *(u32*)(sample_headers+40*sample_id + 0);
+				sample_length = *(u32 *)(sample_headers + 40 * sample_id + 0);
 				ntxm_dprintf("sample length: %lu\n", sample_length);
 
 				// Sample loop start
 				u32 sample_loop_start;
-				sample_loop_start = *(u32*)(sample_headers+40*sample_id + 4);
+				sample_loop_start =
+				    *(u32 *)(sample_headers + 40 * sample_id + 4);
 				ntxm_dprintf("sample loop start: %lu\n", sample_loop_start);
 
 				// Sample loop length
 				u32 sample_loop_length;
-				sample_loop_length = *(u32*)(sample_headers+40*sample_id + 8);
+				sample_loop_length =
+				    *(u32 *)(sample_headers + 40 * sample_id + 8);
 				ntxm_dprintf("sample loop length: %lu\n", sample_loop_length);
 
 				// Volume (0-64)
 				u8 sample_volume;
-				sample_volume = *(u8*)(sample_headers+40*sample_id + 12);
+				sample_volume = *(u8 *)(sample_headers + 40 * sample_id + 12);
 				//ntxm_dprintf("sample volume: %u\n",sample_volume);
 
 				/*if(sample_volume == 64) { // Convert scale to 0-255
@@ -511,41 +513,41 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 
 				// Finetune
 				s8 sample_finetune;
-				sample_finetune = *(s8*)(sample_headers+40*sample_id + 13);
+				sample_finetune = *(s8 *)(sample_headers + 40 * sample_id + 13);
 				//ntxm_dprintf("sample finetune: %d\n",sample_finetune);
 
 				// Type byte (loop type and wether it's 8 or 16 bit)
 				u8 sample_type;
-				sample_type = *(u8*)(sample_headers+40*sample_id + 14);
+				sample_type = *(u8 *)(sample_headers + 40 * sample_id + 14);
 
 				u8 loop_type = sample_type & 3;
-				if(sample_loop_length == 0)
+				if (sample_loop_length == 0)
 					loop_type = NO_LOOP;
 
 				bool sample_is_16_bit = sample_type & 0x10;
-				if(sample_is_16_bit)
+				if (sample_is_16_bit)
 					ntxm_dprintf("16 bit\n");
 				else
 					ntxm_dprintf("8 bit\n");
 
 				// Panning
 				u8 sample_panning;
-				sample_panning = *(u8*)(sample_headers+40*sample_id + 15);
+				sample_panning = *(u8 *)(sample_headers + 40 * sample_id + 15);
 				//ntxm_dprintf("panning: %u\n", sample_panning);
 
 				// Relative note
 				s8 sample_rel_note;
-				sample_rel_note = *(s8*)(sample_headers+40*sample_id + 16);
+				sample_rel_note = *(s8 *)(sample_headers + 40 * sample_id + 16);
 				//ntxm_dprintf("rel note: %d\n", sample_rel_note);
 
 				// Sample name
 				char sample_name[22 + 1];
 				memset(sample_name, 0, sizeof(sample_name));
-				memcpy(sample_name, sample_headers+40*sample_id + 18, 22);
+				memcpy(sample_name, sample_headers + 40 * sample_id + 18, 22);
 
 				// Cut off trailing spaces
 				int i = sizeof(sample_name) - 2;
-				while(i >= 0 && sample_name[i] == ' ')
+				while (i >= 0 && sample_name[i] == ' ')
 					--i;
 				++i;
 				sample_name[i] = '\0';
@@ -555,15 +557,13 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 				// Sample data
 				ntxm_dprintf("loading data\n");
 				void *sample_data = 0;
-				if(sample_length > 0)
-				{
+				if (sample_length > 0) {
 #if defined(NT_PLATFORM_NDS) || defined(NT_PLATFORM_3DS)
 					sample_data = ntxm_umemalign(4, (sample_length + 3) & ~3);
 #else
-                    sample_data = ntxm_umalloc(sample_length);
+					sample_data = ntxm_umalloc(sample_length);
 #endif
-					if(sample_data==NULL)
-					{
+					if (sample_data == NULL) {
 						ntxm_free(sample_headers);
 						ntxm_free(instinfo);
 						fclose(xmfile);
@@ -577,18 +577,18 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 
 				// Delta-decode
 				ntxm_dprintf("delta decode\n");
-				if(sample_is_16_bit) {
+				if (sample_is_16_bit) {
 					s16 last = 0;
-					s16 *smp = (s16*)sample_data;
-					for(u32 i=0;i<sample_length/2;++i) {
+					s16 *smp = (s16 *)sample_data;
+					for (u32 i = 0; i < sample_length / 2; ++i) {
 						smp[i] += last;
 						last = smp[i];
 					}
 
 				} else {
 					s8 last = 0;
-					s8 *smp = (s8*)sample_data;
-					for(u32 i=0;i<sample_length;++i) {
+					s8 *smp = (s8 *)sample_data;
+					for (u32 i = 0; i < sample_length; ++i) {
 						smp[i] += last;
 						last = smp[i];
 					}
@@ -596,16 +596,16 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 
 				// Insert sample into the instrument
 				u32 n_samples;
-				if(sample_is_16_bit) {
-					n_samples = sample_length/2;
+				if (sample_is_16_bit) {
+					n_samples = sample_length / 2;
 					sample_loop_start /= 2;
 					sample_loop_length /= 2;
 				} else {
 					n_samples = sample_length;
 				}
-				Sample *sample = new Sample(sample_data, n_samples, 8363, sample_is_16_bit);
-				if(sample==NULL)
-				{
+				Sample *sample =
+				    new Sample(sample_data, n_samples, 8363, sample_is_16_bit);
+				if (sample == NULL) {
 					ntxm_free(sample_data);
 					ntxm_free(sample_headers);
 					ntxm_free(instinfo);
@@ -621,7 +621,8 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 				sample->setPanning(sample_panning);
 
 				sample->setLoop(loop_type);
-				sample->setLoopStartAndLength(sample_loop_start, sample_loop_length);
+				sample->setLoopStartAndLength(sample_loop_start,
+				                              sample_loop_length);
 				sample->setName(sample_name);
 				instrument->addSample(sample);
 
@@ -632,12 +633,10 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 
 			//ntxm_dprintf("inst loaded\n");
 
-		}
-		else
-		{
+		} else {
 			// If the instrument has no samples, skip the rest of the instrument header
 			// (which should contain rubbish anyway)
-			fseek(xmfile, instinfo->inst_size-29, SEEK_CUR);
+			fseek(xmfile, instinfo->inst_size - 29, SEEK_CUR);
 		}
 
 		ntxm_free(instinfo);
@@ -655,8 +654,6 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 	return FormatTransportError::SUCCESS;
 }
 
-
-
 // Saves a song to a file
 FormatTransportError XMTransport::save(const char *filename, Song *song)
 {
@@ -666,7 +663,7 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 
 	FILE *xmfile = fopen(filename, "wb");
 
-	if(!xmfile)
+	if (!xmfile)
 		return FormatTransportError::FOPEN_FAIL;
 
 	//
@@ -691,7 +688,8 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 	fwrite(trackername, 1, 20, xmfile);
 
 	// Version number
-	u16 version = 0x104; // FT2 version number (else soundtracker won't accept the file
+	u16 version =
+	    0x104; // FT2 version number (else soundtracker won't accept the file
 	fwrite(&version, 2, 1, xmfile);
 
 	// Header size
@@ -732,7 +730,7 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 
 	// POT
 	u8 pot[256] = {0};
-	for(int i=0; i<song->getPotLength(); ++i) {
+	for (int i = 0; i < song->getPotLength(); ++i) {
 		pot[i] = song->getPotEntry(i);
 	}
 	fwrite(pot, 1, 256, xmfile);
@@ -743,7 +741,7 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 
 	// TODO: Skip empty pattern
 
-	for(u8 ptn = 0; ptn < n_patterns; ++ptn) {
+	for (u8 ptn = 0; ptn < n_patterns; ++ptn) {
 
 		ntxm_dprintf("ptn %u\n", ptn);
 
@@ -759,27 +757,29 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 		u16 n_rows = song->getPatternLength(ptn);
 		fwrite(&n_rows, 2, 1, xmfile);
 
-		if(n_rows > MAX_PATTERN_LENGTH) {
-			ntxm_dprintf("%u rows!\n",n_rows);
-			while(1);
+		if (n_rows > MAX_PATTERN_LENGTH) {
+			ntxm_dprintf("%u rows!\n", n_rows);
+			while (1)
+				;
 		}
 
 		// Pack the pattern in memory, then save it
-		u8 *patterndata = (u8*)ntxm_umalloc(5*MAX_CHANNELS*MAX_PATTERN_LENGTH);
+		u8 *patterndata =
+		    (u8 *)ntxm_umalloc(5 * MAX_CHANNELS * MAX_PATTERN_LENGTH);
 
-		if(patterndata==0) {
+		if (patterndata == 0) {
 			fclose(xmfile);
 			return FormatTransportError::MEM_FULL;
 		}
 
-		memset(patterndata, 0, 5*MAX_CHANNELS*MAX_PATTERN_LENGTH);
+		memset(patterndata, 0, 5 * MAX_CHANNELS * MAX_PATTERN_LENGTH);
 		Cell **pattern = song->getPattern(ptn);
 
 		u16 datapos = 0;
 
 		Cell cell;
-		for(u16 row=0; row<n_rows; ++row) {
-			for(u16 chn=0; chn<n_channels; ++chn) {
+		for (u16 row = 0; row < n_rows; ++row) {
+			for (u16 chn = 0; chn < n_channels; ++chn) {
 
 				//ntxm_dprintf("ptn:%u row:%u chn:%u datapos:%u\n",ptn,row,chn,datapos);
 
@@ -792,56 +792,56 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 				u8 write_effect_param = cell.effect_param != NO_EFFECT_PARAM;
 
 				u8 magicbyte = 0;
-				magicbyte |= write_note         << 0;
-				magicbyte |= write_instrument   << 1;
-				magicbyte |= write_volume       << 2;
-				magicbyte |= write_effect       << 3;
+				magicbyte |= write_note << 0;
+				magicbyte |= write_instrument << 1;
+				magicbyte |= write_volume << 2;
+				magicbyte |= write_effect << 3;
 				magicbyte |= write_effect_param << 4;
 
 				// Check if everything in the cell is set. If not, use the magic byte
-				if(magicbyte != 31) {
+				if (magicbyte != 31) {
 					magicbyte |= 1 << 7;
 					patterndata[datapos] = magicbyte;
 					datapos++;
 				}
 
-				if(write_note) {
-					if(cell.note == EMPTY_NOTE) {
+				if (write_note) {
+					if (cell.note == EMPTY_NOTE) {
 						patterndata[datapos] = 0;
-					} else if(cell.note == STOP_NOTE) {
+					} else if (cell.note == STOP_NOTE) {
 						patterndata[datapos] = 97;
 					} else {
-						patterndata[datapos] = cell.note+1;
+						patterndata[datapos] = cell.note + 1;
 					}
 
 					datapos++;
 				}
-				if(write_instrument) {
-					patterndata[datapos] = cell.instrument+1;
+				if (write_instrument) {
+					patterndata[datapos] = cell.instrument + 1;
 					datapos++;
 				}
-				if(write_volume) {
+				if (write_volume) {
 					patterndata[datapos] = cell.volume;
 					datapos++;
 				}
-				if(write_effect) {
+				if (write_effect) {
 					patterndata[datapos] = cell.effect;
 					datapos++;
 				}
-				if(write_effect_param) {
+				if (write_effect_param) {
 					patterndata[datapos] = cell.effect_param;
 					datapos++;
 				}
-
 			}
 		}
 
 		// Packed patterndata size
-		u16 packed_ptn_size = datapos+1;
+		u16 packed_ptn_size = datapos + 1;
 		//ntxm_dprintf("saving packed size\n");
 		fwrite(&packed_ptn_size, 2, 1, xmfile);
 		// Packed patterndata
-		ntxm_dprintf("saving ptn (%u bytes) %p\n",packed_ptn_size,patterndata);
+		ntxm_dprintf("saving ptn (%u bytes) %p\n", packed_ptn_size,
+		             patterndata);
 		fwrite(patterndata, 1, packed_ptn_size, xmfile);
 
 		ntxm_free(patterndata);
@@ -855,7 +855,7 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 
 	Instrument *instrument = 0;
 
-	for(u8 inst=0; inst<song->getInstruments(); ++inst) {
+	for (u8 inst = 0; inst < song->getInstruments(); ++inst) {
 
 		ntxm_dprintf("saving inst %u\n", inst);
 
@@ -863,7 +863,7 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 
 		// We also have to save empty instruments
 		bool empty_inst = false;
-		if(instrument==NULL) {
+		if (instrument == NULL) {
 			instrument = new Instrument("");
 			if (instrument == NULL) {
 				fclose(xmfile);
@@ -892,13 +892,15 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 
 		ntxm_dprintf("n samples: %u\n", inst_n_samples);
 
-		if(inst_n_samples > 0) {
+		if (inst_n_samples > 0) {
 
 			// Second part of inst header:
 
-			struct InstInfo *instinfo = (InstInfo*)ntxm_ucalloc(1, sizeof(InstInfo));
+			struct InstInfo *instinfo =
+			    (InstInfo *)ntxm_ucalloc(1, sizeof(InstInfo));
 			if (instinfo == NULL) {
-				if (empty_inst) delete instrument;
+				if (empty_inst)
+					delete instrument;
 				fclose(xmfile);
 				ntxm_dprintf("memfull on line %d\n", __LINE__);
 				return FormatTransportError::MEM_FULL;
@@ -908,48 +910,47 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 			instinfo->sample_header_size = 0x28;
 
 			// Sample number for all notes
-			for(u8 i=0;i<96;++i)
+			for (u8 i = 0; i < 96; ++i)
 				instinfo->note_samples[i] = instrument->getNoteSample(i);
 
 			// Volume envelope points
-			for(u8 i=0; i<12; ++i)
-			{
-				instinfo->vol_points[2*i] = instrument->vol_envelope_x[i];
-				instinfo->vol_points[2*i+1] = instrument->vol_envelope_y[i];
+			for (u8 i = 0; i < 12; ++i) {
+				instinfo->vol_points[2 * i] = instrument->vol_envelope_x[i];
+				instinfo->vol_points[2 * i + 1] = instrument->vol_envelope_y[i];
 			}
 
 			instinfo->n_vol_points = instrument->n_vol_points;
 
 			// Panning envelope points
-			for(u8 i=0; i<12; ++i)
-			{
-				instinfo->pan_points[2*i] = instrument->pan_envelope_x[i];
-				instinfo->pan_points[2*i+1] = instrument->pan_envelope_y[i];
+			for (u8 i = 0; i < 12; ++i) {
+				instinfo->pan_points[2 * i] = instrument->pan_envelope_x[i];
+				instinfo->pan_points[2 * i + 1] = instrument->pan_envelope_y[i];
 			}
 
 			instinfo->n_pan_points = instrument->n_pan_points;
 
 			// Vol env sustain, start, end (not used for now)
-			instinfo->vol_sustain_point = instrument->getVolumeEnvelopeSustainPoint();
+			instinfo->vol_sustain_point =
+			    instrument->getVolumeEnvelopeSustainPoint();
 			instinfo->vol_loop_start_point = 0;
 			instinfo->vol_loop_end_point = 0;
 
 			// Volume envelope type
 			instinfo->vol_type = 0;
-			if(instrument->vol_env_on)
+			if (instrument->vol_env_on)
 				instinfo->vol_type |= BIT(0);
-			if(instrument->vol_env_sustain)
+			if (instrument->vol_env_sustain)
 				instinfo->vol_type |= BIT(1);
-			if(instrument->vol_env_loop)
+			if (instrument->vol_env_loop)
 				instinfo->vol_type |= BIT(2);
 
 			// Panning envelope type
 			instinfo->pan_type = 0;
-			if(instrument->pan_env_on)
+			if (instrument->pan_env_on)
 				instinfo->pan_type |= BIT(0);
-			if(instrument->pan_env_sustain)
+			if (instrument->pan_env_sustain)
 				instinfo->pan_type |= BIT(1);
-			if(instrument->pan_env_loop)
+			if (instrument->pan_env_loop)
 				instinfo->pan_type |= BIT(2);
 
 			instinfo->vibrato_type = instrument->getVibratoType();
@@ -958,49 +959,48 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 			instinfo->vibrato_rate = instrument->getVibratoRate();
 			instinfo->vol_fadeout = instrument->getFadeOutVolume();
 
-			fwrite( &instinfo->sample_header_size, 4, 1, xmfile);
-			fwrite( &instinfo->note_samples, 96, 1, xmfile);
-			fwrite( &instinfo->vol_points, 48, 1, xmfile);
-			fwrite( &instinfo->pan_points, 48, 1, xmfile);
-			fwrite( &instinfo->n_vol_points, 1, 1, xmfile);
-			fwrite( &instinfo->n_pan_points, 1, 1, xmfile);
-			fwrite( &instinfo->vol_sustain_point, 1, 1, xmfile);
-			fwrite( &instinfo->vol_loop_start_point, 1, 1, xmfile);
-			fwrite( &instinfo->vol_loop_end_point, 1, 1, xmfile);
-			fwrite( &instinfo->pan_sustain_point, 1, 1, xmfile);
-			fwrite( &instinfo->pan_loop_start_point, 1, 1, xmfile);
-			fwrite( &instinfo->pan_loop_end_point, 1, 1, xmfile);
-			fwrite( &instinfo->vol_type, 1, 1, xmfile);
-			fwrite( &instinfo->pan_type, 1, 1, xmfile);
-			fwrite( &instinfo->vibrato_type, 1, 1, xmfile);
-			fwrite( &instinfo->vibrato_sweep, 1, 1, xmfile);
-			fwrite( &instinfo->vibrato_depth, 1, 1, xmfile);
-			fwrite( &instinfo->vibrato_rate, 1, 1, xmfile);
-			fwrite( &instinfo->vol_fadeout, 2, 1, xmfile);
-			fwrite( &instinfo->reserved_bytes, 11, 1, xmfile);
+			fwrite(&instinfo->sample_header_size, 4, 1, xmfile);
+			fwrite(&instinfo->note_samples, 96, 1, xmfile);
+			fwrite(&instinfo->vol_points, 48, 1, xmfile);
+			fwrite(&instinfo->pan_points, 48, 1, xmfile);
+			fwrite(&instinfo->n_vol_points, 1, 1, xmfile);
+			fwrite(&instinfo->n_pan_points, 1, 1, xmfile);
+			fwrite(&instinfo->vol_sustain_point, 1, 1, xmfile);
+			fwrite(&instinfo->vol_loop_start_point, 1, 1, xmfile);
+			fwrite(&instinfo->vol_loop_end_point, 1, 1, xmfile);
+			fwrite(&instinfo->pan_sustain_point, 1, 1, xmfile);
+			fwrite(&instinfo->pan_loop_start_point, 1, 1, xmfile);
+			fwrite(&instinfo->pan_loop_end_point, 1, 1, xmfile);
+			fwrite(&instinfo->vol_type, 1, 1, xmfile);
+			fwrite(&instinfo->pan_type, 1, 1, xmfile);
+			fwrite(&instinfo->vibrato_type, 1, 1, xmfile);
+			fwrite(&instinfo->vibrato_sweep, 1, 1, xmfile);
+			fwrite(&instinfo->vibrato_depth, 1, 1, xmfile);
+			fwrite(&instinfo->vibrato_rate, 1, 1, xmfile);
+			fwrite(&instinfo->vol_fadeout, 2, 1, xmfile);
+			fwrite(&instinfo->reserved_bytes, 11, 1, xmfile);
 
 			ntxm_free(instinfo);
 
 			Sample *sample = 0;
 
 			// Fill up to header size = 0x107 = 263. We have written 252 bytes up will now.
-			u8* moreemptydata = (u8*)ntxm_cmalloc(inst_size - 252);
+			u8 *moreemptydata = (u8 *)ntxm_cmalloc(inst_size - 252);
 			memset(moreemptydata, 0, inst_size - 252);
 			fwrite(moreemptydata, 1, inst_size - 252, xmfile);
 			ntxm_free(moreemptydata);
 
 			// Write sample headers
 
-			for(u8 smp=0; smp<inst_n_samples; ++smp)
-			{
+			for (u8 smp = 0; smp < inst_n_samples; ++smp) {
 				sample = instrument->getSample(smp);
 
 				bool empty_sample = false;
-				if(sample == NULL)
-				{
+				if (sample == NULL) {
 					sample = new Sample(NULL, 0);
 					if (sample == NULL) {
-						if (empty_inst) delete instrument;
+						if (empty_inst)
+							delete instrument;
 						fclose(xmfile);
 						ntxm_dprintf("memfull on line %d\n", __LINE__);
 						return FormatTransportError::MEM_FULL;
@@ -1016,8 +1016,7 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 				u32 smp_loop_start = sample->getLoopStart();
 				u32 smp_loop_length = sample->getLoopLength();
 
-				if(sample->is16bit())
-				{
+				if (sample->is16bit()) {
 					smp_loop_start *= 2;
 					smp_loop_length *= 2;
 				}
@@ -1026,7 +1025,8 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 				fwrite(&smp_loop_length, 4, 1, xmfile);
 
 				// Sample Volume
-				u8 smp_vol = /* (sample->getVolume() + 1) / 4 */ sample->getVolume(); // Convert scale to 0-64
+				u8 smp_vol = /* (sample->getVolume() + 1) / 4 */ sample
+				                 ->getVolume(); // Convert scale to 0-64
 				fwrite(&smp_vol, 1, 1, xmfile);
 
 				// Finetune
@@ -1036,8 +1036,8 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 				// Type
 				u8 smp_type = 0;
 				smp_type |= sample->getLoop();
-				if(sample->is16bit()) {
-					smp_type |= 1<<4;
+				if (sample->is16bit()) {
+					smp_type |= 1 << 4;
 				}
 				fwrite(&smp_type, 1, 1, xmfile);
 
@@ -1055,25 +1055,25 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 
 				// Sample name
 				char sample_name[23] = "                      ";
-				strncpy(sample_name, sample->getName(), strlen(sample->getName())); // Don't copy \0 character
+				strncpy(sample_name, sample->getName(),
+				        strlen(sample->getName())); // Don't copy \0 character
 				fwrite(sample_name, 1, 22, xmfile);
 
-				if(empty_sample == true)
+				if (empty_sample == true)
 					ntxm_free(sample);
 			}
 
 			// Write sample data
 
-			for(u8 smp=0; smp<inst_n_samples; ++smp)
-			{
+			for (u8 smp = 0; smp < inst_n_samples; ++smp) {
 				sample = instrument->getSample(smp);
 
 				bool empty_sample = false;
-				if(sample == NULL)
-				{
+				if (sample == NULL) {
 					sample = new Sample(NULL, 0);
 					if (sample == NULL) {
-						if (empty_inst) delete instrument;
+						if (empty_inst)
+							delete instrument;
 						fclose(xmfile);
 						ntxm_dprintf("memfull on line %d\n", __LINE__);
 						return FormatTransportError::MEM_FULL;
@@ -1081,16 +1081,14 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 					empty_sample = true;
 				}
 
-				if(sample->is16bit())
-				{
-					s16 *sample_data = (s16*)sample->getData();
-					s16 *sample_data_enc = (s16*)ntxm_umalloc( sample->getSize() );
+				if (sample->is16bit()) {
+					s16 *sample_data = (s16 *)sample->getData();
+					s16 *sample_data_enc =
+					    (s16 *)ntxm_umalloc(sample->getSize());
 
-					if(sample_data_enc != 0)
-					{
+					if (sample_data_enc != 0) {
 						s16 last = 0;
-						for(u32 i=0; i<sample->getNSamples(); ++i)
-						{
+						for (u32 i = 0; i < sample->getNSamples(); ++i) {
 							sample_data_enc[i] = sample_data[i] - last;
 							last = sample_data[i];
 						}
@@ -1102,7 +1100,7 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 
 						ntxm_dprintf("saving with slow uncached fallback\n");
 						s16 last = 0, curr;
-						for(u32 i=0; i<sample->getNSamples(); ++i) {
+						for (u32 i = 0; i < sample->getNSamples(); ++i) {
 							curr = sample_data[i] - last;
 							fwrite(&curr, 1, 2, xmfile);
 							last = sample_data[i];
@@ -1112,14 +1110,12 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 
 				} else {
 
-					s8 *sample_data = (s8*)sample->getData();
-					s8 *sample_data_enc = (s8*)ntxm_umalloc( sample->getSize() );
+					s8 *sample_data = (s8 *)sample->getData();
+					s8 *sample_data_enc = (s8 *)ntxm_umalloc(sample->getSize());
 
-					if(sample_data_enc != 0)
-					{
+					if (sample_data_enc != 0) {
 						s8 last = 0;
-						for(u32 i=0; i<sample->getNSamples(); ++i)
-						{
+						for (u32 i = 0; i < sample->getNSamples(); ++i) {
 							sample_data_enc[i] = sample_data[i] - last;
 							last = sample_data[i];
 						}
@@ -1127,45 +1123,37 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 						fwrite(sample_data_enc, 1, sample->getSize(), xmfile);
 
 						ntxm_free(sample_data_enc);
-					}
-					else
-					{
+					} else {
 						ntxm_dprintf("saving with slow uncached fallback\n");
 						s8 last = 0, curr;
-						for(u32 i=0; i<sample->getNSamples(); ++i)
-						{
+						for (u32 i = 0; i < sample->getNSamples(); ++i) {
 							curr = sample_data[i] - last;
 							fwrite(&curr, 1, 2, xmfile);
 							last = sample_data[i];
 						}
 						ntxm_dprintf("done\n");
 					}
-
 				}
 
-				if(empty_sample == true)
+				if (empty_sample == true)
 					ntxm_free(sample);
-
 			}
-		}
-		else
-		{
+		} else {
 			// fill up the instrument header with 0es
-			u8 *zeroes = (u8*)ntxm_umalloc(inst_size - 29);
+			u8 *zeroes = (u8 *)ntxm_umalloc(inst_size - 29);
 			if (zeroes != NULL) {
 				memset(zeroes, 0, inst_size - 29);
 				fwrite(zeroes, inst_size - 29, 1, xmfile);
 				ntxm_free(zeroes);
 			} else {
-				for (u32 i=0; i<inst_size - 29; ++i)
+				for (u32 i = 0; i < inst_size - 29; ++i)
 					fputc(0, xmfile);
 			}
 		}
 
-		if(empty_inst == true) {
+		if (empty_inst == true) {
 			delete instrument;
 		}
-
 	}
 
 	//

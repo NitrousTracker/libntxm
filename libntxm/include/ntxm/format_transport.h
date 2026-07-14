@@ -36,38 +36,38 @@
 #include "song.h"
 
 enum class FormatTransportError {
-    SUCCESS = 0,
-    INIT_FAIL = 1,
-    FOPEN_FAIL,
-    MAGIC_NUMBER_INVALID,
-    MEM_FULL,
-    PATTERN_READ,
-    FILE_TOO_BIG_FOR_RAM,
-    PATTERN_TOO_LONG,
-    FILE_ZERO_BYTE,
-    DISK_FULL,
-    MPT_HACKS_UNSUPPORTED,
-    TOO_MANY_CHANNELS,
-    VERSION_UNSUPPORTED
+	SUCCESS = 0,
+	INIT_FAIL = 1,
+	FOPEN_FAIL,
+	MAGIC_NUMBER_INVALID,
+	MEM_FULL,
+	PATTERN_READ,
+	FILE_TOO_BIG_FOR_RAM,
+	PATTERN_TOO_LONG,
+	FILE_ZERO_BYTE,
+	DISK_FULL,
+	MPT_HACKS_UNSUPPORTED,
+	TOO_MANY_CHANNELS,
+	VERSION_UNSUPPORTED
 };
 
 // This is the abstract base class of transports.
 // Transports are classes that handle import and export of songs.
-class FormatTransport {
-	public:
+class FormatTransport
+{
+public:
+	// Loads a song from a file pots it into _song
+	// Returns 0 on success, an error code else
+	virtual FormatTransportError load(const char *filename, Song **_song) = 0;
 
-		// Loads a song from a file pots it into _song
-		// Returns 0 on success, an error code else
-		virtual FormatTransportError load(const char *filename, Song **_song) = 0;
+	// Saves a song to a file
+	virtual FormatTransportError save(const char *filename, Song *song) = 0;
 
-		// Saves a song to a file
-		virtual FormatTransportError save(const char *filename, Song *song) = 0;
+	virtual ~FormatTransport() {};
 
-		virtual ~FormatTransport() {};
+	const char *getError(FormatTransportError error);
 
-		const char *getError(FormatTransportError error);
-
-	private:
+private:
 };
 
 #endif

@@ -65,17 +65,17 @@ struct InstInfo {
 	u8 reserved_bytes[11];
 };
 
-class XMTransport: public FormatTransport {
-	public:
+class XMTransport : public FormatTransport
+{
+public:
+	// Loads a song from a file and puts it in the song argument
+	// returns 0 on success, an error code else
+	FormatTransportError load(const char *filename, Song **_song) override;
 
-		// Loads a song from a file and puts it in the song argument
-		// returns 0 on success, an error code else
-		FormatTransportError load(const char *filename, Song **_song) override;
+	// Saves a song to a file, returns 0 on success, an error code otherwise
+	FormatTransportError save(const char *filename, Song *song) override;
 
-		// Saves a song to a file, returns 0 on success, an error code otherwise
-		FormatTransportError save(const char *filename, Song *song) override;
-
-	private:
+private:
 };
 
 #endif

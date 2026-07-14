@@ -30,32 +30,33 @@
  *
  ***** END LICENSE BLOCK *****/
 
-#include <string.h>
-#include <stdlib.h>
-#include <sys/stat.h>
 #include <algorithm>
 #include <iterator>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
 
-#include "ntxm/xm_transport.h"
 #include "ntxm/ntxmtools.h"
+#include "ntxm/xm_transport.h"
 
-static const char *transporterrors[] =
-	{NULL,
-	"fat init failed",
-	"could not open file",
-	"not a valid file",
-	"memory full",
-	"pattern read error",
-	"file too big for ram",
-	"pattern too long",
-	"file is zero byte",
-	"disk is full",
-	"format hacks not supported",
-	"too many channels",
-	"version not supported"};
+static const char *transporterrors[] = {
+    NULL,
+    "fat init failed",
+    "could not open file",
+    "not a valid file",
+    "memory full",
+    "pattern read error",
+    "file too big for ram",
+    "pattern too long",
+    "file is zero byte",
+    "disk is full",
+    "format hacks not supported",
+    "too many channels",
+    "version not supported"
+};
 
 const char *FormatTransport::getError(FormatTransportError error_id)
 {
-	return transporterrors[(int) error_id];
+	return transporterrors[(int)error_id];
 }

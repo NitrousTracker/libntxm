@@ -35,17 +35,17 @@
 
 #include "format_transport.h"
 
-class ModTransport: public FormatTransport {
-	public:
+class ModTransport : public FormatTransport
+{
+public:
+	// Loads a song from a file and puts it in the song argument
+	// returns 0 on success, an error code else
+	FormatTransportError load(const char *filename, Song **_song) override;
 
-		// Loads a song from a file and puts it in the song argument
-		// returns 0 on success, an error code else
-		FormatTransportError load(const char *filename, Song **_song) override;
+	// Saves a song to a file
+	FormatTransportError save(const char *filename, Song *song) override;
 
-		// Saves a song to a file
-		FormatTransportError save(const char *filename, Song *song) override;
-
-	private:
+private:
 };
 
 #endif

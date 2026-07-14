@@ -38,27 +38,27 @@
 
 class NTXM9
 {
-	public:
-		NTXM9();
-		~NTXM9();
-		
-		// Load the specified xm file from the file system using libfat
-		// Returns 0 on success, else an error code
-		u16 load(const char *filename);
-		
-		// Returns a pointer to a string describing the error corresponding
-		// to the given error code.
-		const char *getError(u16 error_id);
-		
-		// Start playing
-		void play(bool repeat);
-		
-		// Stop playing
-		void stop(void);
-		
-	private:
-		XMTransport* xm_transport;
-		Song *song;
+public:
+	NTXM9();
+	~NTXM9();
+
+	// Load the specified xm file from the file system using libfat
+	// Returns 0 on success, else an error code
+	u16 load(const char *filename);
+
+	// Returns a pointer to a string describing the error corresponding
+	// to the given error code.
+	const char *getError(u16 error_id);
+
+	// Start playing
+	void play(bool repeat);
+
+	// Stop playing
+	void stop(void);
+
+private:
+	XMTransport *xm_transport;
+	Song *song;
 };
 
 #endif

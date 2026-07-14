@@ -34,19 +34,18 @@
 #include "ntxm/demokit.h"
 #include "ntxm/fifocommand.h"
 
-NTXM9::NTXM9()
-	:xm_transport(0), song(0)
+NTXM9::NTXM9() : xm_transport(0), song(0)
 {
-    CommandInit();
+	CommandInit();
 	xm_transport = new XMTransport();
 }
 
 NTXM9::~NTXM9()
 {
-    CommandExit();
+	CommandExit();
 	delete xm_transport;
 
-	if(song != 0)
+	if (song != 0)
 		delete song;
 }
 
@@ -54,17 +53,17 @@ u16 NTXM9::load(const char *filename)
 {
 	FormatTransportError err = xm_transport->load(filename, &song);
 	CommandSetSong(song);
-	return (u16) err;
+	return (u16)err;
 }
 
 const char *NTXM9::getError(u16 error_id)
 {
-	return xm_transport->getError((FormatTransportError) error_id);
+	return xm_transport->getError((FormatTransportError)error_id);
 }
 
 void NTXM9::play(bool repeat)
 {
-	if(song == 0)
+	if (song == 0)
 		return;
 
 	CommandStartPlay(0, 0, repeat);
@@ -72,7 +71,7 @@ void NTXM9::play(bool repeat)
 
 void NTXM9::stop(void)
 {
-	if(song == 0)
+	if (song == 0)
 		return;
 
 	CommandStopPlay();
