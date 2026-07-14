@@ -44,6 +44,10 @@
 
 void demoInit(void);
 u32 getMsDelta(void);
+static inline u32 getSubMsDelta(void)
+{
+	return getMsDelta() * MS_UNIT;
+}
 
 #endif
 

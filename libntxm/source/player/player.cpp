@@ -100,7 +100,7 @@ u32 Player::getMsPerTick() const {
 
 #ifdef NT_PLATFORM_NDS
 void Player::playTimerHandler() {
-    update(getMsDelta());
+    update(getSubMsDelta());
 }
 #endif
 
