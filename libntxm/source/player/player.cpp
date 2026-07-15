@@ -163,6 +163,15 @@ void Player::update(s32 msDelta)
 			tryEarlyVolumeRamps();
 			nextPlayerMs += msPerTick;
 		}
+	} else {
+		while ((currMs - nextPlayerMs) <= INT32_MAX) {
+			for (int c = 0; c < MAX_CHANNELS; c++) {
+				if (stm[c].ntxmTag < TAG_SAMPLE) {
+					fixaEnvelopeVibrato(&stm[c]);
+				}
+			}
+			nextPlayerMs += msPerTick;
+		}
 	}
 
 	// Synchronize channels
