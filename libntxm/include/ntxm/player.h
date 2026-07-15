@@ -41,6 +41,8 @@ typedef struct stmTyp_t {
 	bool envSustainActive;
 
 	uint8_t ntxmTag;
+	bool
+	    ntxmEarlyRamp; ///< Indicates that this channel is currently ramping out due to a new upcoming note on the next row.
 	uint16_t ntxmCurVol; ///< Interpolates between start and end as needed
 	uint16_t
 	    ntxmStartVol; ///< Previous volume set to the audio channel (before fading began)
@@ -48,8 +50,7 @@ typedef struct stmTyp_t {
 	    ntxmEndVol; ///< Latest volume set to the audio channel, or sometimes zero in the case of ramping before a new note.
 	uint16_t ntxmRampTimer;
 	uint16_t ntxmRampDuration;
-	bool
-	    ntxmEarlyRamp; ///< Indicates that this channel is currently ramping out due to a new upcoming note on the next row.
+	uint16_t ntxmSampleTimer; ///< Milliseconds until automatic sample stop
 } stmTyp;
 
 class Player

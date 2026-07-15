@@ -61,6 +61,7 @@ enum // voice flags
 #define QUICK_VOL_FADE_MS 10
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 Player::Player(void (*_playTimerListener)(void))
     : playing(false), patternLoop(false), playTimerListener(_playTimerListener)
@@ -183,6 +184,15 @@ void Player::update(s32 msDelta)
 			ch->ntxmTag = TAG_NONE;
 			ch->status = 0;
 			continue;
+		}
+
+		if (ch->ntxmTag == TAG_SAMPLE && ch->ntxmSampleTimer) {
+			if (ch->ntxmSampleTimer <= (msDelta / MS_UNIT)) {
+				stopChannel(c);
+				continue;
+			} else {
+				ch->ntxmSampleTimer -= (msDelta / MS_UNIT);
+			}
 		}
 
 		const uint8_t status = ch->status;
@@ -344,6 +354,8 @@ void Player::playSample(Sample *sample, int note, int volume, int channel)
 	PMPSampleOverride = nullptr;
 	PMPIgnoreMute = false;
 	stm[channel].ntxmTag = TAG_SAMPLE;
+	stm[channel].ntxmSampleTimer =
+	    sample->getLoop() ? MAX(500, sample->calcPlayLength(note) * 3 / 2) : 0;
 }
 
 void Player::stopChannel(int channel)
