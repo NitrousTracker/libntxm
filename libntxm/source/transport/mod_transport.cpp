@@ -73,7 +73,7 @@ FormatTransportError ModTransport::load(const char *filename, Song **_song)
 	if (!modfile)
 		return FormatTransportError::FOPEN_FAIL;
 
-	setvbuf(modfile, NULL, _IOFBF, 4096);
+	setvbuf(modfile, NULL, _IOFBF, NTXM_FILE_BUFFER_SIZE);
 
 	// Read name
 

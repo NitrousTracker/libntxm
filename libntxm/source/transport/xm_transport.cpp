@@ -72,7 +72,7 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 	}
 
 	fseek(xmfile, 0, SEEK_SET);
-	setvbuf(xmfile, NULL, _IOFBF, 4096);
+	setvbuf(xmfile, NULL, _IOFBF, NTXM_FILE_BUFFER_SIZE);
 	//
 	// Read header
 	//

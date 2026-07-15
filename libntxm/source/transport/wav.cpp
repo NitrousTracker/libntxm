@@ -188,24 +188,25 @@ bool Wav::load(const char *filename)
 			}
 
 			// Read the data
+			size_t bytes_read = fread(audio_data_, 1, chunk_size, fileh);
+
+			if (bytes_read < chunk_size) {
+				memset(audio_data_ + bytes_read, 0, chunk_size - bytes_read);
+			}
+
 			if (bit_per_sample > bit_per_sample_) {
-				int skip_bytes = (bit_per_sample - bit_per_sample_) / 8;
+				u32 offset_read = (bit_per_sample - bit_per_sample_) / 8;
+				u32 offset_write = 0;
+
 				u32 i = 0;
-				for (; i < n_samples_; i++) {
-					fseek(fileh, skip_bytes, SEEK_CUR);
-					if (fread(audio_data_ + i * 2, 2, 1, fileh) <= 0) {
-						break;
-					}
+				for (; i < n_samples_; i++,
+				                       offset_write += bit_per_sample_ >> 3,
+				                       offset_read += bit_per_sample >> 3) {
+					memcpy(audio_data_ + offset_write,
+					       audio_data_ + offset_read, 2);
 				}
-				if (i < n_samples_) {
-					memset(audio_data_ + i * 2, 0, chunk_size - i * 2);
-				}
-			} else {
-				size_t bytes_read = fread(audio_data_, 1, chunk_size, fileh);
-				if (bytes_read < chunk_size) {
-					memset(audio_data_ + bytes_read, 0,
-					       chunk_size - bytes_read);
-				}
+
+				audio_data_ = (u8 *)ntxm_crealloc(audio_data_, n_samples_ * 2);
 			}
 
 			// Convert 8 bit samples from unsigned to signed

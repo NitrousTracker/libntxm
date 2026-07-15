@@ -60,6 +60,7 @@ typedef volatile int64_t vs64;
 #define BIT(n) (1 << (n))
 #endif
 
+#define NTXM_FILE_BUFFER_SIZE 4096
 #if defined(NT_PLATFORM_NDS)
 #define MAX_CHANNELS 16
 #else
