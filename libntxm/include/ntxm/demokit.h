@@ -35,7 +35,7 @@
 
 #include "common.h"
 
-#define MS_UNIT 1
+#define MS_UNIT 32768
 
 /*
  * Some functions for measuring delta time.
