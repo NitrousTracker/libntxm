@@ -8,6 +8,10 @@
 #include "instrument.h"
 #include "song.h"
 
+#define NTXM_TAG_SONG 253
+#define NTXM_TAG_SAMPLE 254
+#define NTXM_TAG_NONE 255
+
 typedef struct {
 	int16_t songPos, pattNr, pattPos, pattLen;
 	uint16_t speed, bpm, globVol, timer;

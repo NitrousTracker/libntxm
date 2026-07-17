@@ -53,10 +53,6 @@ enum // voice flags
 	IS_NtxmVolFade = 32
 };
 
-#define TAG_SONG 253
-#define TAG_SAMPLE 254
-#define TAG_NONE 255
-
 #define USE_VOLUME_RAMPING
 #define QUICK_VOL_FADE_MS 10
 
@@ -87,14 +83,14 @@ void Player::startSongChannel(int c, stmTyp *ch, Sample *s, int smpOffset)
 {
 	if (!s || (!PMPIgnoreMute && song && song->channelMuted(c))) {
 		ntxm_sound_channel_stop(c);
-		ch->ntxmTag = TAG_NONE;
+		ch->ntxmTag = NTXM_TAG_NONE;
 		return;
 	}
 
 	ntxm_sound_channel_set_frequency(
 	    c, ntxmGetFrequencyValue(ch->outPeriod, !song || song->linear));
 	s->play(c, ch->finalPan, 0, smpOffset);
-	ch->ntxmTag = TAG_SONG;
+	ch->ntxmTag = NTXM_TAG_SONG;
 }
 
 void Player::updateMsPerTick(void)
@@ -167,7 +163,7 @@ void Player::update(s32 msDelta)
 	} else {
 		while ((currMs - nextPlayerMs) <= INT32_MAX) {
 			for (int c = 0; c < MAX_CHANNELS; c++) {
-				if (stm[c].ntxmTag < TAG_SAMPLE) {
+				if (stm[c].ntxmTag < NTXM_TAG_SAMPLE) {
 					fixaEnvelopeVibrato(&stm[c]);
 				}
 			}
@@ -179,14 +175,14 @@ void Player::update(s32 msDelta)
 	for (int c = 0; c < MAX_CHANNELS; c++) {
 		stmTyp *ch = &stm[c];
 
-		if (ch->ntxmTag == TAG_SONG && song->channelMuted(c)) {
+		if (ch->ntxmTag == NTXM_TAG_SONG && song->channelMuted(c)) {
 			ntxm_sound_channel_stop(c);
-			ch->ntxmTag = TAG_NONE;
+			ch->ntxmTag = NTXM_TAG_NONE;
 			ch->status = 0;
 			continue;
 		}
 
-		if (ch->ntxmTag == TAG_SAMPLE && ch->ntxmSampleTimer) {
+		if (ch->ntxmTag == NTXM_TAG_SAMPLE && ch->ntxmSampleTimer) {
 			if (ch->ntxmSampleTimer <= (msDelta / MS_UNIT)) {
 				stopChannel(c);
 				continue;
@@ -338,7 +334,10 @@ void Player::stopAllNotes(int note, int instidx)
 
 void Player::playSample(Sample *sample, int note, int volume, int channel)
 {
-	if (channel >= MAX_CHANNELS) {
+	if (channel == NTXM_TAG_NONE) {
+		channel = getChannelForTag(NTXM_TAG_SAMPLE);
+	}
+	if (channel < 0 || channel >= MAX_CHANNELS) {
 		return;
 	}
 
@@ -353,8 +352,8 @@ void Player::playSample(Sample *sample, int note, int volume, int channel)
 	ch->finalPeriod = ch->outPeriod;
 	PMPSampleOverride = nullptr;
 	PMPIgnoreMute = false;
-	stm[channel].ntxmTag = TAG_SAMPLE;
-	stm[channel].ntxmSampleTimer =
+	ch->ntxmTag = NTXM_TAG_SAMPLE;
+	ch->ntxmSampleTimer =
 	    sample->getLoop() ? MAX(500, sample->calcPlayLength(note) * 3 / 2) : 0;
 }
 
@@ -456,7 +455,7 @@ void Player::setPos(int32_t pos, int32_t row) // -1 = don't change
 
 void Player::resetVoice(stmTyp *ch)
 {
-	if (ch->ntxmTag == TAG_SAMPLE) {
+	if (ch->ntxmTag == NTXM_TAG_SAMPLE) {
 		CommandSampleFinish();
 	}
 
@@ -475,7 +474,7 @@ void Player::resetVoice(stmTyp *ch)
 	ch->finalPan = 128;
 	ch->vibDepth = 0;
 
-	ch->ntxmTag = TAG_NONE;
+	ch->ntxmTag = NTXM_TAG_NONE;
 }
 
 void Player::stopVoices(void)
@@ -2154,6 +2153,9 @@ void Player::mainPlayer(void)
 		const bool readNewNote = tickZero && (state.pattDelTime2 == 0);
 		if (readNewNote) {
 			for (; i < song->n_channels; i++, c++) {
+				if (stm[i].ntxmTag == NTXM_TAG_SAMPLE)
+					continue;
+
 				const Cell *pattPtr =
 				    &song->getPattern(state.pattNr)[i][state.pattPos];
 				PMPTmpActiveChannel = i; // 8bb: for P_StartTone()
@@ -2164,6 +2166,9 @@ void Player::mainPlayer(void)
 	}
 
 	for (; i < MAX_CHANNELS; i++, c++) {
+		if (stm[i].ntxmTag == NTXM_TAG_SAMPLE)
+			continue;
+
 		PMPTmpActiveChannel = i; // 8bb: for P_StartTone()
 		doEffects(c);
 		fixaEnvelopeVibrato(c);
