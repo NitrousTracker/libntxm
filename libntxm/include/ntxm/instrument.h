@@ -99,10 +99,20 @@ public:
 	void toggleVolumeEnvelopeSustain(bool is_enabled);
 	void setVolumeEnvelopeSustainPoint(u8 sus_point);
 
+	void setPanningEnvelopePoints(u16 *xs, u16 *ys, u16 n_points);
+	void togglePanningEnvelopeSustain(bool is_enabled);
+	void setPanningEnvelopeSustainPoint(u8 sus_point);
+
 	u16 getVolumeEnvelope(u16 **xs, u16 **ys);
 	u16 getPanningEnvelope(u16 **xs, u16 **ys);
-	bool getVolumeEnvelopeSustainFlag(void);
-	u8 getVolumeEnvelopeSustainPoint(void);
+
+	inline bool getVolumeEnvelopeSustainFlag(void) { return vol_env_sustain; }
+
+	inline u8 getVolumeEnvelopeSustainPoint(void) { return vol_sustain_point; }
+
+	inline bool getPanningEnvelopeSustainFlag(void) { return pan_env_sustain; }
+
+	inline u8 getPanningEnvelopeSustainPoint(void) { return pan_sustain_point; }
 
 	void updateEnvelopePos(u8 bpm, u8 ms_passed, u8 channel, u8 note);
 	u16 getEnvelopeAmp(u8 channel, u8 note);

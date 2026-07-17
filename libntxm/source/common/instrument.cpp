@@ -162,6 +162,12 @@ void Instrument::setVolEnvEnabled(bool is_enabled)
 	ntxm_flush_dcache();
 }
 
+void Instrument::setPanEnvEnabled(bool is_enabled)
+{
+	pan_env_on = is_enabled;
+	ntxm_flush_dcache();
+}
+
 #endif
 
 // Calculate how long in ms the instrument will play note given note
@@ -263,6 +269,25 @@ void Instrument::toggleVolumeEnvelopeSustain(bool is_enabled)
 	vol_env_sustain = is_enabled;
 }
 
+void Instrument::setPanningEnvelopePoints(u16 *xs, u16 *ys, u16 n_points)
+{
+	n_pan_points = n_points;
+	for (u8 i = 0; i < n_points; ++i) {
+		pan_envelope_x[i] = xs[i];
+		pan_envelope_y[i] = ys[i];
+	}
+}
+
+void Instrument::setPanningEnvelopeSustainPoint(u8 sus_point)
+{
+	pan_sustain_point = sus_point;
+}
+
+void Instrument::togglePanningEnvelopeSustain(bool is_enabled)
+{
+	pan_env_sustain = is_enabled;
+}
+
 u16 Instrument::getVolumeEnvelope(u16 **xs, u16 **ys)
 {
 	*xs = vol_envelope_x;
@@ -277,15 +302,5 @@ u16 Instrument::getPanningEnvelope(u16 **xs, u16 **ys)
 	*ys = pan_envelope_y;
 
 	return n_pan_points;
-}
-
-bool Instrument::getVolumeEnvelopeSustainFlag(void)
-{
-	return vol_env_sustain;
-}
-
-u8 Instrument::getVolumeEnvelopeSustainPoint(void)
-{
-	return vol_sustain_point;
 }
 #endif
