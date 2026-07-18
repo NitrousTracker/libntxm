@@ -338,6 +338,7 @@ void Player::playSample(Sample *sample, int note, int volume, int channel)
 		channel = getChannelForTag(NTXM_TAG_SAMPLE);
 	}
 	if (channel < 0 || channel >= MAX_CHANNELS) {
+		CommandSampleFinish();
 		return;
 	}
 
