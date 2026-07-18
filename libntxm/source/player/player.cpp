@@ -475,6 +475,7 @@ void Player::resetVoice(stmTyp *ch)
 	ch->vibDepth = 0;
 
 	ch->ntxmTag = NTXM_TAG_NONE;
+	ch->ntxmEarlyRamp = false;
 }
 
 void Player::stopVoices(void)
