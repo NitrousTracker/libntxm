@@ -42,12 +42,6 @@ extern "C" {
 #include "ntxm/ntxmtools.h"
 #include "ntxm/player.h"
 
-#ifdef NT_PLATFORM_NDS
-
-SoundChannelRegs buffered_regs[MAX_CHANNELS];
-
-#else
-
 // #define DEBUG_SOUND
 
 #define BUS_CLOCK (33513982)
@@ -271,4 +265,3 @@ void ntxm_sound_channel_play(int channel, u32 loop, u32 format, u32 panning,
 	emu.timer_tick[channel] = emu.frequency[channel];
 	emu.playing[channel] = emu.length[channel] > 0;
 }
-#endif

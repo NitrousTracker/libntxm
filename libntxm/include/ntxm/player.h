@@ -19,7 +19,9 @@ typedef struct {
 	bool pBreakFlag, posJumpFlag;
 } PlayerState;
 
-typedef struct stmTyp_t {
+class stmTyp
+{
+public:
 	int32_t smpStartPos;
 	Instrument *instrSeg;
 
@@ -44,7 +46,6 @@ typedef struct stmTyp_t {
 	uint8_t oldPan, outPan, finalPan;
 	bool envSustainActive;
 
-	uint8_t ntxmTag;
 	bool
 	    ntxmEarlyRamp; ///< Indicates that this channel is currently ramping out due to a new upcoming note on the next row.
 	uint16_t ntxmCurVol; ///< Interpolates between start and end as needed
@@ -55,7 +56,13 @@ typedef struct stmTyp_t {
 	uint16_t ntxmRampTimer;
 	uint16_t ntxmRampDuration;
 	uint16_t ntxmSampleTimer; ///< Milliseconds until automatic sample stop
-} stmTyp;
+
+	inline uint8_t getNtxmTag() { return ntxmTag; }
+	void setNtxmTag(uint8_t tag);
+
+private:
+	uint8_t ntxmTag;
+};
 
 class Player
 {
