@@ -158,7 +158,7 @@ FormatTransportError ModTransport::load(const char *filename, Song **_song)
 	//
 	u16 patterndata_size = 4 * n_channels * 64;
 
-	u8 *ptn_data = (u8 *)ntxm_ucalloc(patterndata_size, 1);
+	u8 *ptn_data = (u8 *)ntxm_umalloc(patterndata_size);
 	if (!ptn_data) {
 		fclose(modfile);
 		delete song;
