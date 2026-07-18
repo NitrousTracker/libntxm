@@ -762,6 +762,14 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 	// Write patterns
 	//
 
+	u8 *patterndata =
+	    (u8 *)ntxm_umalloc(5 * n_channels * MAX_PATTERN_LENGTH + 1);
+
+	if (patterndata == 0) {
+		fclose(xmfile);
+		return FormatTransportError::MEM_FULL;
+	}
+
 	// TODO: Skip empty pattern
 
 	for (u8 ptn = 0; ptn < n_patterns; ++ptn) {
@@ -787,15 +795,6 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 		}
 
 		// Pack the pattern in memory, then save it
-		u8 *patterndata =
-		    (u8 *)ntxm_umalloc(5 * MAX_CHANNELS * MAX_PATTERN_LENGTH);
-
-		if (patterndata == 0) {
-			fclose(xmfile);
-			return FormatTransportError::MEM_FULL;
-		}
-
-		memset(patterndata, 0, 5 * MAX_CHANNELS * MAX_PATTERN_LENGTH);
 		Cell **pattern = song->getPattern(ptn);
 
 		u16 datapos = 0;
@@ -824,8 +823,7 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 				// Check if everything in the cell is set. If not, use the magic byte
 				if (magicbyte != 31) {
 					magicbyte |= 1 << 7;
-					patterndata[datapos] = magicbyte;
-					datapos++;
+					patterndata[datapos++] = magicbyte;
 				}
 
 				if (write_note) {
@@ -836,40 +834,36 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 					} else {
 						patterndata[datapos] = cell.note + 1;
 					}
-
 					datapos++;
 				}
 				if (write_instrument) {
-					patterndata[datapos] = cell.instrument + 1;
-					datapos++;
+					patterndata[datapos++] = cell.instrument + 1;
 				}
 				if (write_volume) {
-					patterndata[datapos] = cell.volume;
-					datapos++;
+					patterndata[datapos++] = cell.volume;
 				}
 				if (write_effect) {
-					patterndata[datapos] = cell.effect;
-					datapos++;
+					patterndata[datapos++] = cell.effect;
 				}
 				if (write_effect_param) {
-					patterndata[datapos] = cell.effect_param;
-					datapos++;
+					patterndata[datapos++] = cell.effect_param;
 				}
 			}
 		}
 
+		patterndata[datapos++] = 0;
+
 		// Packed patterndata size
-		u16 packed_ptn_size = datapos + 1;
+		u16 packed_ptn_size = datapos;
 		//ntxm_dprintf("saving packed size\n");
 		fwrite(&packed_ptn_size, 2, 1, xmfile);
 		// Packed patterndata
 		ntxm_dprintf("saving ptn (%u bytes) %p\n", packed_ptn_size,
 		             patterndata);
 		fwrite(patterndata, 1, packed_ptn_size, xmfile);
-
-		ntxm_free(patterndata);
 	}
 
+	ntxm_free(patterndata);
 	ntxm_dprintf("patterns ready\n");
 
 	//
