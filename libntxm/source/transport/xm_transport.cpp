@@ -39,6 +39,60 @@
 #include "ntxm/ntxmtools.h"
 #include "ntxm/xm_transport.h"
 
+static void readSharedInstInfo(struct InstInfo *instinfo, FILE *xmfile)
+{
+	fread(&instinfo->note_samples, 96, 1, xmfile);
+	fread(&instinfo->vol_points, 48, 1, xmfile);
+	fread(&instinfo->pan_points, 48, 1, xmfile);
+	fread(&instinfo->n_vol_points, 1, 1, xmfile);
+	fread(&instinfo->n_pan_points, 1, 1, xmfile);
+	fread(&instinfo->vol_sustain_point, 1, 1, xmfile);
+	fread(&instinfo->vol_loop_start_point, 1, 1, xmfile);
+	fread(&instinfo->vol_loop_end_point, 1, 1, xmfile);
+	fread(&instinfo->pan_sustain_point, 1, 1, xmfile);
+	fread(&instinfo->pan_loop_start_point, 1, 1, xmfile);
+	fread(&instinfo->pan_loop_end_point, 1, 1, xmfile);
+	fread(&instinfo->vol_type, 1, 1, xmfile);
+	fread(&instinfo->pan_type, 1, 1, xmfile);
+	fread(&instinfo->vibrato_type, 1, 1, xmfile);
+	fread(&instinfo->vibrato_sweep, 1, 1, xmfile);
+	fread(&instinfo->vibrato_depth, 1, 1, xmfile);
+	fread(&instinfo->vibrato_rate, 1, 1, xmfile);
+	fread(&instinfo->vol_fadeout, 2, 1, xmfile);
+	fread(&instinfo->midi_type, 1, 1, xmfile);
+	fread(&instinfo->midi_channel, 1, 1, xmfile);
+	fread(&instinfo->midi_program, 2, 1, xmfile);
+	fread(&instinfo->midi_bend, 2, 1, xmfile);
+	fread(&instinfo->mute, 1, 1, xmfile);
+}
+
+static void writeSharedInstInfo(struct InstInfo *instinfo, FILE *xmfile)
+{
+	fwrite(&instinfo->note_samples, 96, 1, xmfile);
+	fwrite(&instinfo->vol_points, 48, 1, xmfile);
+	fwrite(&instinfo->pan_points, 48, 1, xmfile);
+	fwrite(&instinfo->n_vol_points, 1, 1, xmfile);
+	fwrite(&instinfo->n_pan_points, 1, 1, xmfile);
+	fwrite(&instinfo->vol_sustain_point, 1, 1, xmfile);
+	fwrite(&instinfo->vol_loop_start_point, 1, 1, xmfile);
+	fwrite(&instinfo->vol_loop_end_point, 1, 1, xmfile);
+	fwrite(&instinfo->pan_sustain_point, 1, 1, xmfile);
+	fwrite(&instinfo->pan_loop_start_point, 1, 1, xmfile);
+	fwrite(&instinfo->pan_loop_end_point, 1, 1, xmfile);
+	fwrite(&instinfo->vol_type, 1, 1, xmfile);
+	fwrite(&instinfo->pan_type, 1, 1, xmfile);
+	fwrite(&instinfo->vibrato_type, 1, 1, xmfile);
+	fwrite(&instinfo->vibrato_sweep, 1, 1, xmfile);
+	fwrite(&instinfo->vibrato_depth, 1, 1, xmfile);
+	fwrite(&instinfo->vibrato_rate, 1, 1, xmfile);
+	fwrite(&instinfo->vol_fadeout, 2, 1, xmfile);
+	fwrite(&instinfo->midi_type, 1, 1, xmfile);
+	fwrite(&instinfo->midi_channel, 1, 1, xmfile);
+	fwrite(&instinfo->midi_program, 2, 1, xmfile);
+	fwrite(&instinfo->midi_bend, 2, 1, xmfile);
+	fwrite(&instinfo->mute, 1, 1, xmfile);
+}
+
 // Loads a song from a file and puts it in the song argument
 // returns 0 on success, an error code else
 FormatTransportError XMTransport::load(const char *filename, Song **_song)
@@ -376,26 +430,19 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 	// Read instruments
 	//
 
+	struct InstInfo instinfo;
 	for (u8 inst = 0; inst < n_inst; ++inst) {
-		struct InstInfo *instinfo =
-		    (struct InstInfo *)ntxm_ucalloc(1, sizeof(struct InstInfo));
-		if (instinfo == NULL) {
-			fclose(xmfile);
-			ntxm_dprintf("memfull on line %d\n", __LINE__);
-			delete song;
-			return FormatTransportError::MEM_FULL;
-		}
+		memset(&instinfo, 0, sizeof(struct InstInfo));
 
 		// Read fields up to number of samples
 
-		fread(&instinfo->inst_size, 1, 4, xmfile);
-		fread(&instinfo->name, 1, 22, xmfile);
-		fread(&instinfo->inst_type, 1, 1, xmfile);
-		fread(&instinfo->n_samples, 1, 2, xmfile);
+		fread(&instinfo.inst_size, 1, 4, xmfile);
+		fread(&instinfo.name, 1, 22, xmfile);
+		fread(&instinfo.inst_type, 1, 1, xmfile);
+		fread(&instinfo.n_samples, 1, 2, xmfile);
 
-		Instrument *instrument = new Instrument(instinfo->name);
+		Instrument *instrument = new Instrument(instinfo.name);
 		if (instrument == 0) {
-			ntxm_free(instinfo);
 			fclose(xmfile);
 			ntxm_dprintf("memfull on line %d\n", __LINE__);
 			delete song;
@@ -403,85 +450,65 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 		}
 		song->setInstrument(inst, instrument);
 
-		if (instinfo->n_samples > 0) {
+		if (instinfo.n_samples > 0) {
 			// Read the rest of the instrument info
-			fread(&instinfo->sample_header_size, 4, 1, xmfile);
-			fread(&instinfo->note_samples, 96, 1, xmfile);
-			fread(&instinfo->vol_points, 48, 1, xmfile);
-			fread(&instinfo->pan_points, 48, 1, xmfile);
-			fread(&instinfo->n_vol_points, 1, 1, xmfile);
-			fread(&instinfo->n_pan_points, 1, 1, xmfile);
-			fread(&instinfo->vol_sustain_point, 1, 1, xmfile);
-			fread(&instinfo->vol_loop_start_point, 1, 1, xmfile);
-			fread(&instinfo->vol_loop_end_point, 1, 1, xmfile);
-			fread(&instinfo->pan_sustain_point, 1, 1, xmfile);
-			fread(&instinfo->pan_loop_start_point, 1, 1, xmfile);
-			fread(&instinfo->pan_loop_end_point, 1, 1, xmfile);
-			fread(&instinfo->vol_type, 1, 1, xmfile);
-			fread(&instinfo->pan_type, 1, 1, xmfile);
-			fread(&instinfo->vibrato_type, 1, 1, xmfile);
-			fread(&instinfo->vibrato_sweep, 1, 1, xmfile);
-			fread(&instinfo->vibrato_depth, 1, 1, xmfile);
-			fread(&instinfo->vibrato_rate, 1, 1, xmfile);
-			fread(&instinfo->vol_fadeout, 2, 1, xmfile);
-			fread(&instinfo->reserved_bytes, 11, 1, xmfile);
+			fread(&instinfo.sample_header_size, 4, 1, xmfile);
+			readSharedInstInfo(&instinfo, xmfile);
 
 			bool vol_env_on, vol_env_sustain, vol_env_loop, pan_env_on,
 			    pan_env_sustain, pan_env_loop;
 
 			if (nitrotracker_compat) {
 				// Cover for pre-0.7.0 quirks
-				if (instinfo->n_pan_points == 0) {
+				if (instinfo.n_pan_points == 0) {
 					// NitroTracker saved panning envelope flags based on uninitialized memory
-					instinfo->pan_type = 0;
+					instinfo.pan_type = 0;
 				}
 			}
 
-			vol_env_on = instinfo->vol_type & BIT(0);
-			vol_env_sustain = instinfo->vol_type & BIT(1);
-			vol_env_loop = instinfo->vol_type & BIT(2);
-			pan_env_on = instinfo->pan_type & BIT(0);
-			pan_env_sustain = instinfo->pan_type & BIT(1);
-			pan_env_loop = instinfo->pan_type & BIT(2);
+			vol_env_on = instinfo.vol_type & BIT(0);
+			vol_env_sustain = instinfo.vol_type & BIT(1);
+			vol_env_loop = instinfo.vol_type & BIT(2);
+			pan_env_on = instinfo.pan_type & BIT(0);
+			pan_env_sustain = instinfo.pan_type & BIT(1);
+			pan_env_loop = instinfo.pan_type & BIT(2);
 
 			instrument->setVolumeEnvelope(
-			    instinfo->vol_points, instinfo->n_vol_points,
-			    instinfo->vol_sustain_point, vol_env_on, vol_env_sustain,
+			    instinfo.vol_points, instinfo.n_vol_points,
+			    instinfo.vol_sustain_point, vol_env_on, vol_env_sustain,
 			    vol_env_loop);
 			instrument->setPanningEnvelope(
-			    instinfo->pan_points, instinfo->n_pan_points,
-			    instinfo->pan_sustain_point, pan_env_on, pan_env_sustain,
+			    instinfo.pan_points, instinfo.n_pan_points,
+			    instinfo.pan_sustain_point, pan_env_on, pan_env_sustain,
 			    pan_env_loop);
 			instrument->setVibrato(
-			    instinfo->vibrato_type, instinfo->vibrato_sweep,
-			    instinfo->vibrato_depth, instinfo->vibrato_rate);
-			instrument->setFadeOutVolume(instinfo->vol_fadeout);
+			    instinfo.vibrato_type, instinfo.vibrato_sweep,
+			    instinfo.vibrato_depth, instinfo.vibrato_rate);
+			instrument->setFadeOutVolume(instinfo.vol_fadeout);
 
 			// Skip the rest of the header if is longer than the current position
 			// This was really strange and took some time (and debugging with Tim)
 			// to figure out. Why the fsck is the instrument header that much longer?
 			// Well, don't care, skip it.
 
-			//if(instinfo->inst_size > 252) // <- apparently wrong! samples can even be nested, so we have to seek back here o_O
-			fseek(xmfile, instinfo->inst_size - 252, SEEK_CUR);
+			fseek(xmfile, instinfo.inst_size - 248, SEEK_CUR);
 
 			for (u8 i = 0; i < 96; ++i)
-				instrument->setNoteSample(i, instinfo->note_samples[i]);
+				instrument->setNoteSample(i, instinfo.note_samples[i]);
 
 			// Load the sample(s)
 
 			// Headers
-			u8 *sample_headers = (u8 *)ntxm_umalloc(instinfo->n_samples * 40);
+			u8 *sample_headers = (u8 *)ntxm_umalloc(instinfo.n_samples * 40);
 			if (sample_headers == NULL) {
-				ntxm_free(instinfo);
 				fclose(xmfile);
 				ntxm_dprintf("memfull on line %d\n", __LINE__);
 				delete song;
 				return FormatTransportError::MEM_FULL;
 			}
-			fread(sample_headers, 40, instinfo->n_samples, xmfile);
+			fread(sample_headers, 40, instinfo.n_samples, xmfile);
 
-			for (u8 sample_id = 0; sample_id < instinfo->n_samples;
+			for (u8 sample_id = 0; sample_id < instinfo.n_samples;
 			     sample_id++) {
 				// Sample length
 				u32 sample_length;
@@ -565,7 +592,6 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 #endif
 					if (sample_data == NULL) {
 						ntxm_free(sample_headers);
-						ntxm_free(instinfo);
 						fclose(xmfile);
 						ntxm_dprintf("memfull on line %d\n", __LINE__);
 						delete song;
@@ -608,7 +634,6 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 				if (sample == NULL) {
 					ntxm_free(sample_data);
 					ntxm_free(sample_headers);
-					ntxm_free(instinfo);
 					fclose(xmfile);
 					ntxm_dprintf("memfull on line %d\n", __LINE__);
 					delete song;
@@ -636,10 +661,8 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 		} else {
 			// If the instrument has no samples, skip the rest of the instrument header
 			// (which should contain rubbish anyway)
-			fseek(xmfile, instinfo->inst_size - 29, SEEK_CUR);
+			fseek(xmfile, instinfo.inst_size - 29, SEEK_CUR);
 		}
-
-		ntxm_free(instinfo);
 	}
 
 	ntxm_dprintf("XM Loaded.\n");
@@ -854,6 +877,7 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 	//
 
 	Instrument *instrument = 0;
+	u8 inst_reserved[15] = {0};
 
 	for (u8 inst = 0; inst < song->getInstruments(); ++inst) {
 
@@ -892,103 +916,71 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 
 		ntxm_dprintf("n samples: %u\n", inst_n_samples);
 
+		struct InstInfo instinfo;
 		if (inst_n_samples > 0) {
-
 			// Second part of inst header:
-
-			struct InstInfo *instinfo =
-			    (InstInfo *)ntxm_ucalloc(1, sizeof(InstInfo));
-			if (instinfo == NULL) {
-				if (empty_inst)
-					delete instrument;
-				fclose(xmfile);
-				ntxm_dprintf("memfull on line %d\n", __LINE__);
-				return FormatTransportError::MEM_FULL;
-			}
+			memset(&instinfo, 0, sizeof(struct InstInfo));
 
 			// Sample header size (always 0x28)
-			instinfo->sample_header_size = 0x28;
+			instinfo.sample_header_size = 0x28;
 
 			// Sample number for all notes
 			for (u8 i = 0; i < 96; ++i)
-				instinfo->note_samples[i] = instrument->getNoteSample(i);
+				instinfo.note_samples[i] = instrument->getNoteSample(i);
 
 			// Volume envelope points
 			for (u8 i = 0; i < 12; ++i) {
-				instinfo->vol_points[2 * i] = instrument->vol_envelope_x[i];
-				instinfo->vol_points[2 * i + 1] = instrument->vol_envelope_y[i];
+				instinfo.vol_points[2 * i] = instrument->vol_envelope_x[i];
+				instinfo.vol_points[2 * i + 1] = instrument->vol_envelope_y[i];
 			}
 
-			instinfo->n_vol_points = instrument->n_vol_points;
+			instinfo.n_vol_points = instrument->n_vol_points;
 
 			// Panning envelope points
 			for (u8 i = 0; i < 12; ++i) {
-				instinfo->pan_points[2 * i] = instrument->pan_envelope_x[i];
-				instinfo->pan_points[2 * i + 1] = instrument->pan_envelope_y[i];
+				instinfo.pan_points[2 * i] = instrument->pan_envelope_x[i];
+				instinfo.pan_points[2 * i + 1] = instrument->pan_envelope_y[i];
 			}
 
-			instinfo->n_pan_points = instrument->n_pan_points;
+			instinfo.n_pan_points = instrument->n_pan_points;
 
 			// Vol env sustain, start, end (not used for now)
-			instinfo->vol_sustain_point =
+			instinfo.vol_sustain_point =
 			    instrument->getVolumeEnvelopeSustainPoint();
-			instinfo->vol_loop_start_point = 0;
-			instinfo->vol_loop_end_point = 0;
+			instinfo.vol_loop_start_point = 0;
+			instinfo.vol_loop_end_point = 0;
 
 			// Volume envelope type
-			instinfo->vol_type = 0;
+			instinfo.vol_type = 0;
 			if (instrument->vol_env_on)
-				instinfo->vol_type |= BIT(0);
+				instinfo.vol_type |= BIT(0);
 			if (instrument->vol_env_sustain)
-				instinfo->vol_type |= BIT(1);
+				instinfo.vol_type |= BIT(1);
 			if (instrument->vol_env_loop)
-				instinfo->vol_type |= BIT(2);
+				instinfo.vol_type |= BIT(2);
 
 			// Panning envelope type
-			instinfo->pan_type = 0;
+			instinfo.pan_type = 0;
 			if (instrument->pan_env_on)
-				instinfo->pan_type |= BIT(0);
+				instinfo.pan_type |= BIT(0);
 			if (instrument->pan_env_sustain)
-				instinfo->pan_type |= BIT(1);
+				instinfo.pan_type |= BIT(1);
 			if (instrument->pan_env_loop)
-				instinfo->pan_type |= BIT(2);
+				instinfo.pan_type |= BIT(2);
 
-			instinfo->vibrato_type = instrument->getVibratoType();
-			instinfo->vibrato_sweep = instrument->getVibratoSweep();
-			instinfo->vibrato_depth = instrument->getVibratoDepth();
-			instinfo->vibrato_rate = instrument->getVibratoRate();
-			instinfo->vol_fadeout = instrument->getFadeOutVolume();
+			instinfo.vibrato_type = instrument->getVibratoType();
+			instinfo.vibrato_sweep = instrument->getVibratoSweep();
+			instinfo.vibrato_depth = instrument->getVibratoDepth();
+			instinfo.vibrato_rate = instrument->getVibratoRate();
+			instinfo.vol_fadeout = instrument->getFadeOutVolume();
 
-			fwrite(&instinfo->sample_header_size, 4, 1, xmfile);
-			fwrite(&instinfo->note_samples, 96, 1, xmfile);
-			fwrite(&instinfo->vol_points, 48, 1, xmfile);
-			fwrite(&instinfo->pan_points, 48, 1, xmfile);
-			fwrite(&instinfo->n_vol_points, 1, 1, xmfile);
-			fwrite(&instinfo->n_pan_points, 1, 1, xmfile);
-			fwrite(&instinfo->vol_sustain_point, 1, 1, xmfile);
-			fwrite(&instinfo->vol_loop_start_point, 1, 1, xmfile);
-			fwrite(&instinfo->vol_loop_end_point, 1, 1, xmfile);
-			fwrite(&instinfo->pan_sustain_point, 1, 1, xmfile);
-			fwrite(&instinfo->pan_loop_start_point, 1, 1, xmfile);
-			fwrite(&instinfo->pan_loop_end_point, 1, 1, xmfile);
-			fwrite(&instinfo->vol_type, 1, 1, xmfile);
-			fwrite(&instinfo->pan_type, 1, 1, xmfile);
-			fwrite(&instinfo->vibrato_type, 1, 1, xmfile);
-			fwrite(&instinfo->vibrato_sweep, 1, 1, xmfile);
-			fwrite(&instinfo->vibrato_depth, 1, 1, xmfile);
-			fwrite(&instinfo->vibrato_rate, 1, 1, xmfile);
-			fwrite(&instinfo->vol_fadeout, 2, 1, xmfile);
-			fwrite(&instinfo->reserved_bytes, 11, 1, xmfile);
-
-			ntxm_free(instinfo);
+			fwrite(&instinfo.sample_header_size, 4, 1, xmfile);
+			writeSharedInstInfo(&instinfo, xmfile);
 
 			Sample *sample = 0;
 
-			// Fill up to header size = 0x107 = 263. We have written 252 bytes up will now.
-			u8 *moreemptydata = (u8 *)ntxm_cmalloc(inst_size - 252);
-			memset(moreemptydata, 0, inst_size - 252);
-			fwrite(moreemptydata, 1, inst_size - 252, xmfile);
-			ntxm_free(moreemptydata);
+			// Fill up to header size = 0x107 = 263. We have written 248 bytes up will now.
+			fwrite(inst_reserved, 1, inst_size - 248, xmfile);
 
 			// Write sample headers
 

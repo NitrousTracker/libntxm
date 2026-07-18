@@ -62,7 +62,11 @@ struct InstInfo {
 	u8 vibrato_depth;
 	u8 vibrato_rate;
 	u16 vol_fadeout;
-	u8 reserved_bytes[11];
+	u8 midi_type;
+	u8 midi_channel;
+	u16 midi_program;
+	u16 midi_bend;
+	u8 mute;
 };
 
 class XMTransport : public FormatTransport
