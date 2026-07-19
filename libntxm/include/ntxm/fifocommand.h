@@ -86,13 +86,6 @@ struct StopPlayCommand {
 	u8 type;
 };
 
-#ifdef DEBUG
-struct DbgOutCommand {
-	u8 type;
-	char msg[DEBUGSTRSIZE];
-};
-#endif
-
 struct UpdateRowCommand {
 	u8 type;
 	u16 row;
@@ -177,12 +170,6 @@ void RegisterPotPosChangeCallback(void (*onPotPosChange_)(u16));
 #endif
 
 #if !defined(NT_PLATFORM_NDS) || defined(ARM7)
-#ifdef DEBUG
-void CommandDbgOut(const char *formatstr,
-                   ...); // Print text from the ARM7, syntax like printf
-#else
-#define CommandDbgOut(...)
-#endif
 void CommandUpdateRow(u16 row);
 void CommandUpdatePotPos(u16 potpos);
 void CommandNotifyStop(void);

@@ -128,29 +128,6 @@ static void RecvCommandSetStereoOutput(SetStereoOutputCommand *c)
 	ntxm_stereo_output = c->state;
 }
 
-#ifdef DEBUG
-void CommandDbgOut(const char *formatstr, ...)
-{
-	DbgOutCommand command;
-	command.type = DBG_OUT;
-
-	va_list marker;
-	va_start(marker, formatstr);
-
-	char *debugstr = command.msg;
-#ifdef BLOCKSDS
-	vsnprintf(debugstr, DEBUGSTRSIZE - 1, formatstr, marker);
-#else
-	vsniprintf(debugstr, DEBUGSTRSIZE - 1, formatstr, marker);
-#endif
-	debugstr[DEBUGSTRSIZE - 1] = 0;
-
-	va_end(marker);
-
-	fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8 *)&command);
-}
-#endif
-
 void CommandUpdateRow(u16 row)
 {
 	UpdateRowCommand command;

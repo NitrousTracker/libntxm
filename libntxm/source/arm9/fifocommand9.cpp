@@ -65,12 +65,6 @@ void CommandRecvHandler(int bytes, void *user_data)
 	fifoGetDatamsg(FIFO_NTXM, bytes, msg);
 
 	switch (msg[0]) {
-#ifdef DEBUG
-	case DBG_OUT: // TODO it's not safe to do this in an interrupt handler
-		ntxm_dprintf(((DbgOutCommand *)msg)->msg);
-		break;
-#endif
-
 	case UPDATE_ROW: RecvCommandUpdateRow((UpdateRowCommand *)msg); break;
 
 	case UPDATE_POTPOS:
