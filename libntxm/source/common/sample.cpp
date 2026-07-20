@@ -67,8 +67,8 @@ uint32_t ntxmGetFrequencyValue(uint16_t period, bool linear)
 		const int32_t octShift =
 		    (14 - quotient) & 31; // 8bb: added needed 32-bit bitshift mask
 
-		return ((int64_t)16756991 << (24 + octShift)) /
-		       ((int64_t)logTab[remainder] * 2140928);
+		return ((int64_t)16756991 << (16 + octShift)) /
+		       ((int64_t)logTab[remainder] * 8363);
 	} else {
 		// 2513390938 = round[(NDS_AUDIO_CLOCK / (8363*1712)) * 2^31]
 		// return umul32shift_rounded(period, 2513390938, 31);
@@ -96,7 +96,7 @@ uint32_t ntxmGetFrequencyValueHz(uint16_t period, bool linear)
 		    (14 - quotient) & 31; // 8bb: added needed 32-bit bitshift mask
 
 		uint32_t result =
-		    (uint32_t)(((int64_t)logTab[remainder] * 2140928) >> 24) >>
+		    (uint32_t)(((int64_t)logTab[remainder] * 8363) >> 16) >>
 		    octShift;
 		return !result ? 1 : result;
 	} else {
