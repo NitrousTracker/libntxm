@@ -51,7 +51,38 @@ extern "C" {
 
 /* ===================== PUBLIC ===================== */
 
+#if defined(NT_PLATFORM_NDS) || defined(NT_PLATFORM_3DS)
+__attribute__((target("arm")))
+#endif
 uint32_t ntxmGetFrequencyValue(uint16_t period, bool linear)
+{
+	if (linear) {
+		const uint16_t invPeriod =
+		    (12 * 192 * 4) -
+		    period; // 8bb: this intentionally underflows uint16_t to be accurate to FT2
+
+		const uint32_t quotient = invPeriod / 768;
+		const uint32_t remainder = invPeriod % 768;
+
+		const int32_t octShift =
+		    (14 - quotient) & 31; // 8bb: added needed 32-bit bitshift mask
+
+		return ((int64_t)16756991 << (24 + octShift)) /
+		       ((int64_t)logTab[remainder] * 2140928);
+	} else {
+		// 2513390938 = round[(NDS_AUDIO_CLOCK / (8363*1712)) * 2^31]
+		// return umul32shift_rounded(period, 2513390938, 31);
+		if (!period) {
+			return 1;
+		}
+		return ((int64_t)16756991 * period) / 14317456;
+	}
+}
+
+#if defined(NT_PLATFORM_NDS) || defined(NT_PLATFORM_3DS)
+__attribute__((target("arm")))
+#endif
+uint32_t ntxmGetFrequencyValueHz(uint16_t period, bool linear)
 {
 	if (linear) {
 		const uint16_t invPeriod =
@@ -87,7 +118,7 @@ inline u32 linear_freq_table_lookup(u32 freqpos)
 	u32 finetune = freqpos % N_FINETUNE_STEPS;
 	u32 note = freqpos / N_FINETUNE_STEPS;
 
-	return ntxmGetFrequencyValue(
+	return ntxmGetFrequencyValueHz(
 	    10 * 12 * 16 * 4 - note * 16 * 4 - finetune / 2, linear);
 }
 

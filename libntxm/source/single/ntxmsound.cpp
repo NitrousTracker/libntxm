@@ -44,10 +44,6 @@ extern "C" {
 
 // #define DEBUG_SOUND
 
-#define BUS_CLOCK (33513982)
-#define TIMER_FREQ_SHIFT(n, divisor, shift)                                    \
-	((-((BUS_CLOCK >> (shift)) * (divisor)) - ((((n) + 1)) >> 1)) / (n))
-#define SOUND_FREQ(n) TIMER_FREQ_SHIFT(n, 1, 1)
 #define TICKS_COUNTER_SHIFT 7
 #define SAMPLES_PER_MS_SHIFT 16
 
@@ -93,7 +89,8 @@ void SoundEmulator::setRenderFrequency(uint32_t frequency)
 {
 	render_frequency = frequency;
 	samples_per_ms = (frequency << 16) / 1000;
-	ticks_per_ms = (((BUS_CLOCK >> 1) << TICKS_COUNTER_SHIFT) / frequency);
+	ticks_per_ms =
+	    (((NTXM_NDS_BUS_CLOCK >> 1) << TICKS_COUNTER_SHIFT) / frequency);
 }
 
 int SoundEmulator::nextPosition(int ch)
@@ -227,7 +224,7 @@ void ntxm_sound_channel_set_frequency(int channel, int freq)
 #ifdef DEBUG_SOUND
 	printf("ntxmsound: freq    ch %d = %d\n", channel, freq);
 #endif
-	emu.frequency[channel] = -SOUND_FREQ(freq);
+	emu.frequency[channel] = freq;
 }
 
 void ntxm_sound_channel_set_panning(int channel, u32 panning)

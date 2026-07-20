@@ -103,7 +103,7 @@ void ntxm_sound_channel_set_volume(int channel, int volume)
 
 void ntxm_sound_channel_set_frequency(int channel, int freq)
 {
-	buffered_regs[channel].timer = SOUND_FREQ(freq);
+	buffered_regs[channel].timer = -freq;
 }
 
 void ntxm_sound_channel_set_panning(int channel, u32 panning)

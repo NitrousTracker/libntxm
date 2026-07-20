@@ -45,6 +45,11 @@
 #define NTXMSOUND_ONE_SHOT 0
 #endif
 
+#define NTXM_NDS_BUS_CLOCK (33513982)
+#define NTXM_NDS_TIMER_FREQ_SHIFT(n, divisor, shift)                           \
+	((((NTXM_NDS_BUS_CLOCK >> (shift)) * (divisor)) - ((((n) + 1)) >> 1)) / (n))
+#define NTXM_NDS_SOUND_FREQ(n) NTXM_NDS_TIMER_FREQ_SHIFT(n, 1, 1)
+
 #if defined(ARM7) || !defined(NT_PLATFORM_NDS)
 extern bool ntxm_stereo_output;
 
