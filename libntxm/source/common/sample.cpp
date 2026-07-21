@@ -96,8 +96,7 @@ uint32_t ntxmGetFrequencyValueHz(uint16_t period, bool linear)
 		    (14 - quotient) & 31; // 8bb: added needed 32-bit bitshift mask
 
 		uint32_t result =
-		    (uint32_t)(((int64_t)logTab[remainder] * 8363) >> 16) >>
-		    octShift;
+		    (uint32_t)(((int64_t)logTab[remainder] * 8363) >> 16) >> octShift;
 		return !result ? 1 : result;
 	} else {
 		if (!period) {

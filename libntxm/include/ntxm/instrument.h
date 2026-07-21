@@ -96,12 +96,23 @@ public:
 	void setMute(bool value);
 
 	void setVolumeEnvelopePoints(u16 *xs, u16 *ys, u16 n_points);
-	void toggleVolumeEnvelopeSustain(bool is_enabled);
+	void setVolumeEnvelopeSustain(bool is_enabled);
 	void setVolumeEnvelopeSustainPoint(u8 sus_point);
+	void setVolumeEnvelopeLoop(bool is_enabled);
+	void setVolumeEnvelopeLoopStartPoint(u8 point);
+	void setVolumeEnvelopeLoopEndPoint(u8 point);
 
 	void setPanningEnvelopePoints(u16 *xs, u16 *ys, u16 n_points);
-	void togglePanningEnvelopeSustain(bool is_enabled);
+	void setPanningEnvelopeSustain(bool is_enabled);
 	void setPanningEnvelopeSustainPoint(u8 sus_point);
+	void setPanningEnvelopeLoop(bool is_enabled);
+	void setPanningEnvelopeLoopStartPoint(u8 point);
+	void setPanningEnvelopeLoopEndPoint(u8 point);
+
+	void setVibratoType(u8 value);
+	void setVibratoSweep(u8 value);
+	void setVibratoDepth(u8 value);
+	void setVibratoRate(u8 value);
 
 	u16 getVolumeEnvelope(u16 **xs, u16 **ys);
 	u16 getPanningEnvelope(u16 **xs, u16 **ys);
@@ -110,9 +121,30 @@ public:
 
 	inline u8 getVolumeEnvelopeSustainPoint(void) { return vol_sustain_point; }
 
+	inline bool getVolumeEnvelopeLoopFlag(void) { return vol_env_loop; }
+
+	inline u8 getVolumeEnvelopeLoopStartPoint(void)
+	{
+		return vol_loop_start_point;
+	}
+
+	inline u8 getVolumeEnvelopeLoopEndPoint(void) { return vol_loop_end_point; }
+
 	inline bool getPanningEnvelopeSustainFlag(void) { return pan_env_sustain; }
 
 	inline u8 getPanningEnvelopeSustainPoint(void) { return pan_sustain_point; }
+
+	inline bool getPanningEnvelopeLoopFlag(void) { return pan_env_loop; }
+
+	inline u8 getPanningEnvelopeLoopStartPoint(void)
+	{
+		return pan_loop_start_point;
+	}
+
+	inline u8 getPanningEnvelopeLoopEndPoint(void)
+	{
+		return pan_loop_end_point;
+	}
 
 	void updateEnvelopePos(u8 bpm, u8 ms_passed, u8 channel, u8 note);
 	u16 getEnvelopeAmp(u8 channel, u8 note);

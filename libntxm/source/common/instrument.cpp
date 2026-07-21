@@ -259,14 +259,29 @@ void Instrument::setVolumeEnvelopePoints(u16 *xs, u16 *ys, u16 n_points)
 	}
 }
 
+void Instrument::setVolumeEnvelopeSustain(bool is_enabled)
+{
+	vol_env_sustain = is_enabled;
+}
+
 void Instrument::setVolumeEnvelopeSustainPoint(u8 sus_point)
 {
 	vol_sustain_point = sus_point;
 }
 
-void Instrument::toggleVolumeEnvelopeSustain(bool is_enabled)
+void Instrument::setVolumeEnvelopeLoop(bool is_enabled)
 {
-	vol_env_sustain = is_enabled;
+	vol_env_loop = is_enabled;
+}
+
+void Instrument::setVolumeEnvelopeLoopStartPoint(u8 point)
+{
+	vol_loop_start_point = point;
+}
+
+void Instrument::setVolumeEnvelopeLoopEndPoint(u8 point)
+{
+	vol_loop_end_point = point;
 }
 
 void Instrument::setPanningEnvelopePoints(u16 *xs, u16 *ys, u16 n_points)
@@ -278,14 +293,49 @@ void Instrument::setPanningEnvelopePoints(u16 *xs, u16 *ys, u16 n_points)
 	}
 }
 
+void Instrument::setPanningEnvelopeSustain(bool is_enabled)
+{
+	pan_env_sustain = is_enabled;
+}
+
 void Instrument::setPanningEnvelopeSustainPoint(u8 sus_point)
 {
 	pan_sustain_point = sus_point;
 }
 
-void Instrument::togglePanningEnvelopeSustain(bool is_enabled)
+void Instrument::setPanningEnvelopeLoop(bool is_enabled)
 {
-	pan_env_sustain = is_enabled;
+	pan_env_loop = is_enabled;
+}
+
+void Instrument::setPanningEnvelopeLoopStartPoint(u8 point)
+{
+	pan_loop_start_point = point;
+}
+
+void Instrument::setPanningEnvelopeLoopEndPoint(u8 point)
+{
+	pan_loop_end_point = point;
+}
+
+void Instrument::setVibratoType(u8 value)
+{
+	vibrato_type = value;
+}
+
+void Instrument::setVibratoSweep(u8 value)
+{
+	vibrato_sweep = value;
+}
+
+void Instrument::setVibratoDepth(u8 value)
+{
+	vibrato_depth = value;
+}
+
+void Instrument::setVibratoRate(u8 value)
+{
+	vibrato_rate = value;
 }
 
 u16 Instrument::getVolumeEnvelope(u16 **xs, u16 **ys)
