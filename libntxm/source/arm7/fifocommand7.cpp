@@ -65,7 +65,7 @@ static void RecvCommandStartRecording(StartRecordingCommand *sr)
 	ntxm_recording = true;
 	ntxm_record_buffer_size = 0;
 	ntxm_record_max_buffer_size = sr->length;
-	micStartRecording((u8 *)sr->buffer, sr->length, 16384, 1, false,
+	micStartRecording((u8 *)sr->buffer, sr->length, 16384, 2, false,
 	                  MicBufSwapCallback);
 }
 
