@@ -163,6 +163,7 @@ void Player::update(s32 msDelta)
 
 	// Run FT2 player routine
 	if (playing) {
+		syncPattNr(); // NitrousTracker/#274
 		while ((currMs - nextPlayerMs) <= INT32_MAX) {
 			mainPlayer();
 			tryEarlyVolumeRamps();
@@ -2093,6 +2094,12 @@ void Player::doEffects(stmTyp *ch) // tick>0 effect handling
 	JumpTab_TickNonZero(ch, ch->effTyp, ch->eff);
 }
 
+void Player::syncPattNr(void)
+{
+	state.pattNr = song->getPotEntry((uint8_t)state.songPos);
+	state.pattLen = song->getPatternLength((uint8_t)state.pattNr);
+}
+
 void Player::getNextPos(void)
 {
 	state.pattPos++;
@@ -2131,8 +2138,7 @@ void Player::getNextPos(void)
 				state.songPos = song->getRestartPosition();
 			}
 
-			state.pattNr = song->getPotEntry((uint8_t)state.songPos);
-			state.pattLen = song->getPatternLength((uint8_t)state.pattNr);
+			syncPattNr();
 		}
 
 		CommandUpdatePotPos(state.songPos);

@@ -184,6 +184,7 @@ private:
 	void E_Effects_TickNonZero(stmTyp *ch, uint8_t param);
 	void JumpTab_TickNonZero(stmTyp *ch, uint8_t effTyp, uint8_t eff);
 	void doEffects(stmTyp *ch);
+	void syncPattNr(void);
 	void getNextPos(void);
 	void mainPlayer(void);
 };
