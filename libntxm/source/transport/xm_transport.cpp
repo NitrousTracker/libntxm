@@ -36,8 +36,29 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "ntxm/format_transport.h"
 #include "ntxm/ntxmtools.h"
 #include "ntxm/xm_transport.h"
+
+static void zeroesToSpaces(char *buf, int len)
+{
+	for (int i = len - 1; i >= 0; i--) {
+		if (buf[i] == 0)
+			buf[i] = 0x20;
+		else
+			break;
+	}
+}
+
+static void spacesToZeroes(char *buf, int len)
+{
+	for (int i = len - 1; i >= 0; i--) {
+		if (buf[i] == 0x20)
+			buf[i] = 0;
+		else
+			break;
+	}
+}
 
 static void readSharedInstInfo(struct InstInfo *instinfo, FILE *xmfile)
 {
@@ -66,6 +87,179 @@ static void readSharedInstInfo(struct InstInfo *instinfo, FILE *xmfile)
 	fread(&instinfo->mute, 1, 1, xmfile);
 }
 
+static void applyInstInfo(struct InstInfo &instinfo, Instrument *instrument)
+{
+	bool vol_env_on, vol_env_sustain, vol_env_loop, pan_env_on, pan_env_sustain,
+	    pan_env_loop;
+
+	vol_env_on = instinfo.vol_type & BIT(0);
+	vol_env_sustain = instinfo.vol_type & BIT(1);
+	vol_env_loop = instinfo.vol_type & BIT(2);
+	pan_env_on = instinfo.pan_type & BIT(0);
+	pan_env_sustain = instinfo.pan_type & BIT(1);
+	pan_env_loop = instinfo.pan_type & BIT(2);
+
+	instrument->setVolumeEnvelope(instinfo.vol_points, instinfo.n_vol_points,
+	                              instinfo.vol_sustain_point, vol_env_on,
+	                              vol_env_sustain, vol_env_loop);
+	instrument->setPanningEnvelope(instinfo.pan_points, instinfo.n_pan_points,
+	                               instinfo.pan_sustain_point, pan_env_on,
+	                               pan_env_sustain, pan_env_loop);
+	instrument->setVibrato(instinfo.vibrato_type, instinfo.vibrato_sweep,
+	                       instinfo.vibrato_depth, instinfo.vibrato_rate);
+	instrument->setFadeOutVolume(instinfo.vol_fadeout);
+
+	for (u8 i = 0; i < 96; ++i)
+		instrument->setNoteSample(i, instinfo.note_samples[i]);
+}
+
+static FormatTransportError readSamples(FILE *xmfile, Instrument *instrument,
+                                        int n_samples)
+{
+	if (n_samples <= 0)
+		return FormatTransportError::SUCCESS;
+
+	// Headers
+	u8 *sample_headers = (u8 *)ntxm_umalloc(n_samples * 40);
+	if (sample_headers == NULL) {
+		return FormatTransportError::MEM_FULL;
+	}
+	fread(sample_headers, 40, n_samples, xmfile);
+
+	for (u8 sample_id = 0; sample_id < n_samples; sample_id++) {
+		// Sample length
+		u32 sample_length;
+		sample_length = *(u32 *)(sample_headers + 40 * sample_id + 0);
+		ntxm_dprintf("sample length: %lu\n", sample_length);
+
+		// Sample loop start
+		u32 sample_loop_start;
+		sample_loop_start = *(u32 *)(sample_headers + 40 * sample_id + 4);
+		ntxm_dprintf("sample loop start: %lu\n", sample_loop_start);
+
+		// Sample loop length
+		u32 sample_loop_length;
+		sample_loop_length = *(u32 *)(sample_headers + 40 * sample_id + 8);
+		ntxm_dprintf("sample loop length: %lu\n", sample_loop_length);
+
+		// Volume (0-64)
+		u8 sample_volume;
+		sample_volume = *(u8 *)(sample_headers + 40 * sample_id + 12);
+		//ntxm_dprintf("sample volume: %u\n",sample_volume);
+
+		/*if(sample_volume == 64) { // Convert scale to 0-255
+			sample_volume = 255;
+		} else {
+			sample_volume *= 4;
+		}*/
+
+		// Finetune
+		s8 sample_finetune;
+		sample_finetune = *(s8 *)(sample_headers + 40 * sample_id + 13);
+		//ntxm_dprintf("sample finetune: %d\n",sample_finetune);
+
+		// Type byte (loop type and wether it's 8 or 16 bit)
+		u8 sample_type;
+		sample_type = *(u8 *)(sample_headers + 40 * sample_id + 14);
+
+		u8 loop_type = sample_type & 3;
+		if (sample_loop_length == 0)
+			loop_type = NO_LOOP;
+
+		bool sample_is_16_bit = sample_type & 0x10;
+		if (sample_is_16_bit)
+			ntxm_dprintf("16 bit\n");
+		else
+			ntxm_dprintf("8 bit\n");
+
+		// Panning
+		u8 sample_panning;
+		sample_panning = *(u8 *)(sample_headers + 40 * sample_id + 15);
+		//ntxm_dprintf("panning: %u\n", sample_panning);
+
+		// Relative note
+		s8 sample_rel_note;
+		sample_rel_note = *(s8 *)(sample_headers + 40 * sample_id + 16);
+		//ntxm_dprintf("rel note: %d\n", sample_rel_note);
+
+		// Sample name
+		char sample_name[22 + 1];
+		sample_name[22] = 0;
+		memcpy(sample_name, sample_headers + 40 * sample_id + 18, 22);
+		spacesToZeroes(sample_name, 22);
+
+		//ntxm_dprintf("sample name: '%s' (%u)\n", sample_name, strlen(sample_name));
+
+		// Sample data
+		ntxm_dprintf("loading data\n");
+		void *sample_data = 0;
+		if (sample_length > 0) {
+#if defined(NT_PLATFORM_NDS) || defined(NT_PLATFORM_3DS)
+			sample_data = ntxm_umemalign(4, (sample_length + 3) & ~3);
+#else
+			sample_data = ntxm_umalloc(sample_length);
+#endif
+			if (sample_data == NULL) {
+				ntxm_free(sample_headers);
+				return FormatTransportError::MEM_FULL;
+			}
+
+			fread(sample_data, sample_length, 1, xmfile);
+		}
+
+		// Delta-decode
+		ntxm_dprintf("delta decode\n");
+		if (sample_is_16_bit) {
+			s16 last = 0;
+			s16 *smp = (s16 *)sample_data;
+			for (u32 i = 0; i < sample_length / 2; ++i) {
+				smp[i] += last;
+				last = smp[i];
+			}
+
+		} else {
+			s8 last = 0;
+			s8 *smp = (s8 *)sample_data;
+			for (u32 i = 0; i < sample_length; ++i) {
+				smp[i] += last;
+				last = smp[i];
+			}
+		}
+
+		// Insert sample into the instrument
+		u32 n_samples;
+		if (sample_is_16_bit) {
+			n_samples = sample_length / 2;
+			sample_loop_start /= 2;
+			sample_loop_length /= 2;
+		} else {
+			n_samples = sample_length;
+		}
+		Sample *sample =
+		    new Sample(sample_data, n_samples, 8363, sample_is_16_bit);
+		if (sample == NULL) {
+			ntxm_free(sample_data);
+			ntxm_free(sample_headers);
+			return FormatTransportError::MEM_FULL;
+		}
+
+		sample->setVolume(sample_volume);
+		sample->setRelNote(sample_rel_note);
+		sample->setFinetune(sample_finetune);
+		sample->setPanning(sample_panning);
+
+		sample->setLoop(loop_type);
+		sample->setLoopStartAndLength(sample_loop_start, sample_loop_length);
+		sample->setName(sample_name);
+		instrument->addSample(sample);
+
+		ntxm_dprintf("Sample loaded\n");
+	}
+
+	ntxm_free(sample_headers);
+	return FormatTransportError::SUCCESS;
+}
+
 static void writeSharedInstInfo(struct InstInfo *instinfo, FILE *xmfile)
 {
 	fwrite(&instinfo->note_samples, 96, 1, xmfile);
@@ -91,6 +285,216 @@ static void writeSharedInstInfo(struct InstInfo *instinfo, FILE *xmfile)
 	fwrite(&instinfo->midi_program, 2, 1, xmfile);
 	fwrite(&instinfo->midi_bend, 2, 1, xmfile);
 	fwrite(&instinfo->mute, 1, 1, xmfile);
+}
+
+void XMTransport::extractInstInfo(struct InstInfo &instinfo,
+                                  Instrument *instrument)
+{
+	// Second part of inst header:
+	memset(&instinfo, 0, sizeof(struct InstInfo));
+
+	// Sample header size (always 0x28)
+	instinfo.sample_header_size = 0x28;
+
+	// Sample number for all notes
+	for (u8 i = 0; i < 96; ++i)
+		instinfo.note_samples[i] = instrument->getNoteSample(i);
+
+	// Volume envelope points
+	for (u8 i = 0; i < 12; ++i) {
+		instinfo.vol_points[2 * i] = instrument->vol_envelope_x[i];
+		instinfo.vol_points[2 * i + 1] = instrument->vol_envelope_y[i];
+	}
+
+	instinfo.n_vol_points = instrument->n_vol_points;
+
+	// Panning envelope points
+	for (u8 i = 0; i < 12; ++i) {
+		instinfo.pan_points[2 * i] = instrument->pan_envelope_x[i];
+		instinfo.pan_points[2 * i + 1] = instrument->pan_envelope_y[i];
+	}
+
+	instinfo.n_pan_points = instrument->n_pan_points;
+
+	// Vol env sustain, start, end (not used for now)
+	instinfo.vol_sustain_point = instrument->getVolumeEnvelopeSustainPoint();
+	instinfo.vol_loop_start_point = 0;
+	instinfo.vol_loop_end_point = 0;
+
+	// Volume envelope type
+	instinfo.vol_type = 0;
+	if (instrument->vol_env_on)
+		instinfo.vol_type |= BIT(0);
+	if (instrument->vol_env_sustain)
+		instinfo.vol_type |= BIT(1);
+	if (instrument->vol_env_loop)
+		instinfo.vol_type |= BIT(2);
+
+	// Panning envelope type
+	instinfo.pan_type = 0;
+	if (instrument->pan_env_on)
+		instinfo.pan_type |= BIT(0);
+	if (instrument->pan_env_sustain)
+		instinfo.pan_type |= BIT(1);
+	if (instrument->pan_env_loop)
+		instinfo.pan_type |= BIT(2);
+
+	instinfo.vibrato_type = instrument->getVibratoType();
+	instinfo.vibrato_sweep = instrument->getVibratoSweep();
+	instinfo.vibrato_depth = instrument->getVibratoDepth();
+	instinfo.vibrato_rate = instrument->getVibratoRate();
+	instinfo.vol_fadeout = instrument->getFadeOutVolume();
+
+	instinfo.n_samples = instrument->getSamples();
+}
+
+static FormatTransportError writeSamples(FILE *xmfile, Instrument *instrument,
+                                         int inst_n_samples, bool empty_inst)
+{
+	for (u8 smp = 0; smp < inst_n_samples; ++smp) {
+		Sample *sample = instrument->getSample(smp);
+
+		bool empty_sample = false;
+		if (sample == NULL) {
+			sample = new Sample(NULL, 0);
+			if (sample == NULL) {
+				if (empty_inst)
+					delete instrument;
+				return FormatTransportError::MEM_FULL;
+			}
+			empty_sample = true;
+		}
+
+		// Sample length
+		u32 smp_length = sample->getSize();
+		fwrite(&smp_length, 4, 1, xmfile);
+
+		// Loop stuff
+		u32 smp_loop_start = sample->getLoopStart();
+		u32 smp_loop_length = sample->getLoopLength();
+
+		if (sample->is16bit()) {
+			smp_loop_start *= 2;
+			smp_loop_length *= 2;
+		}
+
+		fwrite(&smp_loop_start, 4, 1, xmfile);
+		fwrite(&smp_loop_length, 4, 1, xmfile);
+
+		// Sample Volume
+		u8 smp_vol = /* (sample->getVolume() + 1) / 4 */ sample
+		                 ->getVolume(); // Convert scale to 0-64
+		fwrite(&smp_vol, 1, 1, xmfile);
+
+		// Finetune
+		s8 smp_finetune = sample->getFinetune();
+		fwrite(&smp_finetune, 1, 1, xmfile);
+
+		// Type
+		u8 smp_type = 0;
+		smp_type |= sample->getLoop();
+		if (sample->is16bit()) {
+			smp_type |= 1 << 4;
+		}
+		fwrite(&smp_type, 1, 1, xmfile);
+
+		// Panning
+		u8 smp_panning = sample->getPanning();
+		fwrite(&smp_panning, 1, 1, xmfile);
+
+		// Relative note
+		s8 smp_relnote = sample->getRelNote();
+		fwrite(&smp_relnote, 1, 1, xmfile);
+
+		// Reserved byte (what a crappy standard)
+		u8 smp_funky_reserved_byte = 0x80;
+		fwrite(&smp_funky_reserved_byte, 1, 1, xmfile);
+
+		// Sample name
+		char sample_name[23];
+		sample_name[22] = 0;
+		strncpy(sample_name, sample->getName(), 22);
+		zeroesToSpaces(sample_name, 22);
+		fwrite(sample_name, 1, 22, xmfile);
+
+		if (empty_sample == true)
+			ntxm_free(sample);
+	}
+
+	// Write sample data
+
+	for (u8 smp = 0; smp < inst_n_samples; ++smp) {
+		Sample *sample = instrument->getSample(smp);
+
+		bool empty_sample = false;
+		if (sample == NULL) {
+			sample = new Sample(NULL, 0);
+			if (sample == NULL) {
+				if (empty_inst)
+					delete instrument;
+				return FormatTransportError::MEM_FULL;
+			}
+			empty_sample = true;
+		}
+
+		if (sample->is16bit()) {
+			s16 *sample_data = (s16 *)sample->getData();
+			s16 *sample_data_enc = (s16 *)ntxm_umalloc(sample->getSize());
+
+			if (sample_data_enc != 0) {
+				s16 last = 0;
+				for (u32 i = 0; i < sample->getNSamples(); ++i) {
+					sample_data_enc[i] = sample_data[i] - last;
+					last = sample_data[i];
+				}
+				fwrite(sample_data_enc, 1, sample->getSize(), xmfile);
+
+				ntxm_free(sample_data_enc);
+
+			} else { // slow uncached fallback if ram is nearly full
+
+				ntxm_dprintf("saving with slow uncached fallback\n");
+				s16 last = 0, curr;
+				for (u32 i = 0; i < sample->getNSamples(); ++i) {
+					curr = sample_data[i] - last;
+					fwrite(&curr, 1, 2, xmfile);
+					last = sample_data[i];
+				}
+				ntxm_dprintf("done\n");
+			}
+
+		} else {
+
+			s8 *sample_data = (s8 *)sample->getData();
+			s8 *sample_data_enc = (s8 *)ntxm_umalloc(sample->getSize());
+
+			if (sample_data_enc != 0) {
+				s8 last = 0;
+				for (u32 i = 0; i < sample->getNSamples(); ++i) {
+					sample_data_enc[i] = sample_data[i] - last;
+					last = sample_data[i];
+				}
+
+				fwrite(sample_data_enc, 1, sample->getSize(), xmfile);
+
+				ntxm_free(sample_data_enc);
+			} else {
+				ntxm_dprintf("saving with slow uncached fallback\n");
+				s8 last = 0, curr;
+				for (u32 i = 0; i < sample->getNSamples(); ++i) {
+					curr = sample_data[i] - last;
+					fwrite(&curr, 1, 2, xmfile);
+					last = sample_data[i];
+				}
+				ntxm_dprintf("done\n");
+			}
+		}
+
+		if (empty_sample == true)
+			ntxm_free(sample);
+	}
+
+	return FormatTransportError::SUCCESS;
 }
 
 // Loads a song from a file and puts it in the song argument
@@ -132,10 +536,10 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 	//
 
 	// Magic number
-	char magicnumber[18] = {0};
+	char magicnumber[17] = {0};
 	fread(magicnumber, 1, 17, xmfile);
 
-	if (strcmp(magicnumber, "Extended Module: ") != 0) {
+	if (memcmp(magicnumber, "Extended Module: ", 17) != 0) {
 		ntxm_dprintf("Not an XM file!\n");
 		fclose(xmfile);
 		return FormatTransportError::MAGIC_NUMBER_INVALID;
@@ -438,6 +842,7 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 
 		fread(&instinfo.inst_size, 1, 4, xmfile);
 		fread(&instinfo.name, 1, 22, xmfile);
+		spacesToZeroes(instinfo.name, 22);
 		fread(&instinfo.inst_type, 1, 1, xmfile);
 		fread(&instinfo.n_samples, 1, 2, xmfile);
 
@@ -455,9 +860,6 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 			fread(&instinfo.sample_header_size, 4, 1, xmfile);
 			readSharedInstInfo(&instinfo, xmfile);
 
-			bool vol_env_on, vol_env_sustain, vol_env_loop, pan_env_on,
-			    pan_env_sustain, pan_env_loop;
-
 			if (nitrotracker_compat) {
 				// Cover for pre-0.7.0 quirks
 				if (instinfo.n_pan_points == 0) {
@@ -466,25 +868,7 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 				}
 			}
 
-			vol_env_on = instinfo.vol_type & BIT(0);
-			vol_env_sustain = instinfo.vol_type & BIT(1);
-			vol_env_loop = instinfo.vol_type & BIT(2);
-			pan_env_on = instinfo.pan_type & BIT(0);
-			pan_env_sustain = instinfo.pan_type & BIT(1);
-			pan_env_loop = instinfo.pan_type & BIT(2);
-
-			instrument->setVolumeEnvelope(
-			    instinfo.vol_points, instinfo.n_vol_points,
-			    instinfo.vol_sustain_point, vol_env_on, vol_env_sustain,
-			    vol_env_loop);
-			instrument->setPanningEnvelope(
-			    instinfo.pan_points, instinfo.n_pan_points,
-			    instinfo.pan_sustain_point, pan_env_on, pan_env_sustain,
-			    pan_env_loop);
-			instrument->setVibrato(
-			    instinfo.vibrato_type, instinfo.vibrato_sweep,
-			    instinfo.vibrato_depth, instinfo.vibrato_rate);
-			instrument->setFadeOutVolume(instinfo.vol_fadeout);
+			applyInstInfo(instinfo, instrument);
 
 			// Skip the rest of the header if is longer than the current position
 			// This was really strange and took some time (and debugging with Tim)
@@ -493,168 +877,14 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 
 			fseek(xmfile, instinfo.inst_size - 248, SEEK_CUR);
 
-			for (u8 i = 0; i < 96; ++i)
-				instrument->setNoteSample(i, instinfo.note_samples[i]);
-
 			// Load the sample(s)
-
-			// Headers
-			u8 *sample_headers = (u8 *)ntxm_umalloc(instinfo.n_samples * 40);
-			if (sample_headers == NULL) {
+			FormatTransportError err =
+			    readSamples(xmfile, instrument, instinfo.n_samples);
+			if (err != FormatTransportError::SUCCESS) {
 				fclose(xmfile);
-				ntxm_dprintf("memfull on line %d\n", __LINE__);
 				delete song;
-				return FormatTransportError::MEM_FULL;
+				return err;
 			}
-			fread(sample_headers, 40, instinfo.n_samples, xmfile);
-
-			for (u8 sample_id = 0; sample_id < instinfo.n_samples;
-			     sample_id++) {
-				// Sample length
-				u32 sample_length;
-				sample_length = *(u32 *)(sample_headers + 40 * sample_id + 0);
-				ntxm_dprintf("sample length: %lu\n", sample_length);
-
-				// Sample loop start
-				u32 sample_loop_start;
-				sample_loop_start =
-				    *(u32 *)(sample_headers + 40 * sample_id + 4);
-				ntxm_dprintf("sample loop start: %lu\n", sample_loop_start);
-
-				// Sample loop length
-				u32 sample_loop_length;
-				sample_loop_length =
-				    *(u32 *)(sample_headers + 40 * sample_id + 8);
-				ntxm_dprintf("sample loop length: %lu\n", sample_loop_length);
-
-				// Volume (0-64)
-				u8 sample_volume;
-				sample_volume = *(u8 *)(sample_headers + 40 * sample_id + 12);
-				//ntxm_dprintf("sample volume: %u\n",sample_volume);
-
-				/*if(sample_volume == 64) { // Convert scale to 0-255
-					sample_volume = 255;
-				} else {
-					sample_volume *= 4;
-				}*/
-
-				// Finetune
-				s8 sample_finetune;
-				sample_finetune = *(s8 *)(sample_headers + 40 * sample_id + 13);
-				//ntxm_dprintf("sample finetune: %d\n",sample_finetune);
-
-				// Type byte (loop type and wether it's 8 or 16 bit)
-				u8 sample_type;
-				sample_type = *(u8 *)(sample_headers + 40 * sample_id + 14);
-
-				u8 loop_type = sample_type & 3;
-				if (sample_loop_length == 0)
-					loop_type = NO_LOOP;
-
-				bool sample_is_16_bit = sample_type & 0x10;
-				if (sample_is_16_bit)
-					ntxm_dprintf("16 bit\n");
-				else
-					ntxm_dprintf("8 bit\n");
-
-				// Panning
-				u8 sample_panning;
-				sample_panning = *(u8 *)(sample_headers + 40 * sample_id + 15);
-				//ntxm_dprintf("panning: %u\n", sample_panning);
-
-				// Relative note
-				s8 sample_rel_note;
-				sample_rel_note = *(s8 *)(sample_headers + 40 * sample_id + 16);
-				//ntxm_dprintf("rel note: %d\n", sample_rel_note);
-
-				// Sample name
-				char sample_name[22 + 1];
-				memset(sample_name, 0, sizeof(sample_name));
-				memcpy(sample_name, sample_headers + 40 * sample_id + 18, 22);
-
-				// Cut off trailing spaces
-				int i = sizeof(sample_name) - 2;
-				while (i >= 0 && sample_name[i] == ' ')
-					--i;
-				++i;
-				sample_name[i] = '\0';
-
-				//ntxm_dprintf("sample name: '%s' (%u)\n", sample_name, strlen(sample_name));
-
-				// Sample data
-				ntxm_dprintf("loading data\n");
-				void *sample_data = 0;
-				if (sample_length > 0) {
-#if defined(NT_PLATFORM_NDS) || defined(NT_PLATFORM_3DS)
-					sample_data = ntxm_umemalign(4, (sample_length + 3) & ~3);
-#else
-					sample_data = ntxm_umalloc(sample_length);
-#endif
-					if (sample_data == NULL) {
-						ntxm_free(sample_headers);
-						fclose(xmfile);
-						ntxm_dprintf("memfull on line %d\n", __LINE__);
-						delete song;
-						return FormatTransportError::MEM_FULL;
-					}
-
-					fread(sample_data, sample_length, 1, xmfile);
-				}
-
-				// Delta-decode
-				ntxm_dprintf("delta decode\n");
-				if (sample_is_16_bit) {
-					s16 last = 0;
-					s16 *smp = (s16 *)sample_data;
-					for (u32 i = 0; i < sample_length / 2; ++i) {
-						smp[i] += last;
-						last = smp[i];
-					}
-
-				} else {
-					s8 last = 0;
-					s8 *smp = (s8 *)sample_data;
-					for (u32 i = 0; i < sample_length; ++i) {
-						smp[i] += last;
-						last = smp[i];
-					}
-				}
-
-				// Insert sample into the instrument
-				u32 n_samples;
-				if (sample_is_16_bit) {
-					n_samples = sample_length / 2;
-					sample_loop_start /= 2;
-					sample_loop_length /= 2;
-				} else {
-					n_samples = sample_length;
-				}
-				Sample *sample =
-				    new Sample(sample_data, n_samples, 8363, sample_is_16_bit);
-				if (sample == NULL) {
-					ntxm_free(sample_data);
-					ntxm_free(sample_headers);
-					fclose(xmfile);
-					ntxm_dprintf("memfull on line %d\n", __LINE__);
-					delete song;
-					return FormatTransportError::MEM_FULL;
-				}
-
-				sample->setVolume(sample_volume);
-				sample->setRelNote(sample_rel_note);
-				sample->setFinetune(sample_finetune);
-				sample->setPanning(sample_panning);
-
-				sample->setLoop(loop_type);
-				sample->setLoopStartAndLength(sample_loop_start,
-				                              sample_loop_length);
-				sample->setName(sample_name);
-				instrument->addSample(sample);
-
-				ntxm_dprintf("Sample loaded\n");
-			}
-
-			ntxm_free(sample_headers);
 
 			//ntxm_dprintf("inst loaded\n");
 
@@ -680,10 +910,6 @@ FormatTransportError XMTransport::load(const char *filename, Song **_song)
 // Saves a song to a file
 FormatTransportError XMTransport::save(const char *filename, Song *song)
 {
-	//
-	// Init
-	//
-
 	FILE *xmfile = fopen(filename, "wb");
 
 	if (!xmfile)
@@ -699,7 +925,7 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 
 	// Song name
 	char songname[21] = {0};
-	strcpy(songname, song->getName());
+	strncpy(songname, song->getName(), 20);
 	fwrite(songname, 1, 20, xmfile);
 
 	// wtf
@@ -896,8 +1122,9 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 		fwrite(&inst_size, 4, 1, xmfile);
 
 		// Instrument name
-		char inst_name[33] = {0};
-		strcpy(inst_name, instrument->getName());
+		char inst_name[23] = {0};
+		strncpy(inst_name, instrument->getName(), 22);
+		zeroesToSpaces(inst_name, 22);
 		fwrite(inst_name, 1, 22, xmfile);
 
 		// Instrument type (always 0)
@@ -912,217 +1139,19 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 
 		struct InstInfo instinfo;
 		if (inst_n_samples > 0) {
-			// Second part of inst header:
-			memset(&instinfo, 0, sizeof(struct InstInfo));
-
-			// Sample header size (always 0x28)
-			instinfo.sample_header_size = 0x28;
-
-			// Sample number for all notes
-			for (u8 i = 0; i < 96; ++i)
-				instinfo.note_samples[i] = instrument->getNoteSample(i);
-
-			// Volume envelope points
-			for (u8 i = 0; i < 12; ++i) {
-				instinfo.vol_points[2 * i] = instrument->vol_envelope_x[i];
-				instinfo.vol_points[2 * i + 1] = instrument->vol_envelope_y[i];
-			}
-
-			instinfo.n_vol_points = instrument->n_vol_points;
-
-			// Panning envelope points
-			for (u8 i = 0; i < 12; ++i) {
-				instinfo.pan_points[2 * i] = instrument->pan_envelope_x[i];
-				instinfo.pan_points[2 * i + 1] = instrument->pan_envelope_y[i];
-			}
-
-			instinfo.n_pan_points = instrument->n_pan_points;
-
-			// Vol env sustain, start, end (not used for now)
-			instinfo.vol_sustain_point =
-			    instrument->getVolumeEnvelopeSustainPoint();
-			instinfo.vol_loop_start_point = 0;
-			instinfo.vol_loop_end_point = 0;
-
-			// Volume envelope type
-			instinfo.vol_type = 0;
-			if (instrument->vol_env_on)
-				instinfo.vol_type |= BIT(0);
-			if (instrument->vol_env_sustain)
-				instinfo.vol_type |= BIT(1);
-			if (instrument->vol_env_loop)
-				instinfo.vol_type |= BIT(2);
-
-			// Panning envelope type
-			instinfo.pan_type = 0;
-			if (instrument->pan_env_on)
-				instinfo.pan_type |= BIT(0);
-			if (instrument->pan_env_sustain)
-				instinfo.pan_type |= BIT(1);
-			if (instrument->pan_env_loop)
-				instinfo.pan_type |= BIT(2);
-
-			instinfo.vibrato_type = instrument->getVibratoType();
-			instinfo.vibrato_sweep = instrument->getVibratoSweep();
-			instinfo.vibrato_depth = instrument->getVibratoDepth();
-			instinfo.vibrato_rate = instrument->getVibratoRate();
-			instinfo.vol_fadeout = instrument->getFadeOutVolume();
+			extractInstInfo(instinfo, instrument);
 
 			fwrite(&instinfo.sample_header_size, 4, 1, xmfile);
 			writeSharedInstInfo(&instinfo, xmfile);
 
-			Sample *sample = 0;
-
 			// Fill up to header size = 0x107 = 263. We have written 248 bytes up will now.
 			fwrite(inst_reserved, 1, inst_size - 248, xmfile);
 
-			// Write sample headers
-
-			for (u8 smp = 0; smp < inst_n_samples; ++smp) {
-				sample = instrument->getSample(smp);
-
-				bool empty_sample = false;
-				if (sample == NULL) {
-					sample = new Sample(NULL, 0);
-					if (sample == NULL) {
-						if (empty_inst)
-							delete instrument;
-						fclose(xmfile);
-						ntxm_dprintf("memfull on line %d\n", __LINE__);
-						return FormatTransportError::MEM_FULL;
-					}
-					empty_sample = true;
-				}
-
-				// Sample length
-				u32 smp_length = sample->getSize();
-				fwrite(&smp_length, 4, 1, xmfile);
-
-				// Loop stuff
-				u32 smp_loop_start = sample->getLoopStart();
-				u32 smp_loop_length = sample->getLoopLength();
-
-				if (sample->is16bit()) {
-					smp_loop_start *= 2;
-					smp_loop_length *= 2;
-				}
-
-				fwrite(&smp_loop_start, 4, 1, xmfile);
-				fwrite(&smp_loop_length, 4, 1, xmfile);
-
-				// Sample Volume
-				u8 smp_vol = /* (sample->getVolume() + 1) / 4 */ sample
-				                 ->getVolume(); // Convert scale to 0-64
-				fwrite(&smp_vol, 1, 1, xmfile);
-
-				// Finetune
-				s8 smp_finetune = sample->getFinetune();
-				fwrite(&smp_finetune, 1, 1, xmfile);
-
-				// Type
-				u8 smp_type = 0;
-				smp_type |= sample->getLoop();
-				if (sample->is16bit()) {
-					smp_type |= 1 << 4;
-				}
-				fwrite(&smp_type, 1, 1, xmfile);
-
-				// Panning
-				u8 smp_panning = sample->getPanning();
-				fwrite(&smp_panning, 1, 1, xmfile);
-
-				// Relative note
-				s8 smp_relnote = sample->getRelNote();
-				fwrite(&smp_relnote, 1, 1, xmfile);
-
-				// Reserved byte (what a crappy standard)
-				u8 smp_funky_reserved_byte = 0x80;
-				fwrite(&smp_funky_reserved_byte, 1, 1, xmfile);
-
-				// Sample name
-				char sample_name[23] = "                      ";
-				strncpy(sample_name, sample->getName(),
-				        strlen(sample->getName())); // Don't copy \0 character
-				fwrite(sample_name, 1, 22, xmfile);
-
-				if (empty_sample == true)
-					ntxm_free(sample);
-			}
-
-			// Write sample data
-
-			for (u8 smp = 0; smp < inst_n_samples; ++smp) {
-				sample = instrument->getSample(smp);
-
-				bool empty_sample = false;
-				if (sample == NULL) {
-					sample = new Sample(NULL, 0);
-					if (sample == NULL) {
-						if (empty_inst)
-							delete instrument;
-						fclose(xmfile);
-						ntxm_dprintf("memfull on line %d\n", __LINE__);
-						return FormatTransportError::MEM_FULL;
-					}
-					empty_sample = true;
-				}
-
-				if (sample->is16bit()) {
-					s16 *sample_data = (s16 *)sample->getData();
-					s16 *sample_data_enc =
-					    (s16 *)ntxm_umalloc(sample->getSize());
-
-					if (sample_data_enc != 0) {
-						s16 last = 0;
-						for (u32 i = 0; i < sample->getNSamples(); ++i) {
-							sample_data_enc[i] = sample_data[i] - last;
-							last = sample_data[i];
-						}
-						fwrite(sample_data_enc, 1, sample->getSize(), xmfile);
-
-						ntxm_free(sample_data_enc);
-
-					} else { // slow uncached fallback if ram is nearly full
-
-						ntxm_dprintf("saving with slow uncached fallback\n");
-						s16 last = 0, curr;
-						for (u32 i = 0; i < sample->getNSamples(); ++i) {
-							curr = sample_data[i] - last;
-							fwrite(&curr, 1, 2, xmfile);
-							last = sample_data[i];
-						}
-						ntxm_dprintf("done\n");
-					}
-
-				} else {
-
-					s8 *sample_data = (s8 *)sample->getData();
-					s8 *sample_data_enc = (s8 *)ntxm_umalloc(sample->getSize());
-
-					if (sample_data_enc != 0) {
-						s8 last = 0;
-						for (u32 i = 0; i < sample->getNSamples(); ++i) {
-							sample_data_enc[i] = sample_data[i] - last;
-							last = sample_data[i];
-						}
-
-						fwrite(sample_data_enc, 1, sample->getSize(), xmfile);
-
-						ntxm_free(sample_data_enc);
-					} else {
-						ntxm_dprintf("saving with slow uncached fallback\n");
-						s8 last = 0, curr;
-						for (u32 i = 0; i < sample->getNSamples(); ++i) {
-							curr = sample_data[i] - last;
-							fwrite(&curr, 1, 2, xmfile);
-							last = sample_data[i];
-						}
-						ntxm_dprintf("done\n");
-					}
-				}
-
-				if (empty_sample == true)
-					ntxm_free(sample);
+			FormatTransportError err =
+			    writeSamples(xmfile, instrument, inst_n_samples, empty_inst);
+			if (err != FormatTransportError::SUCCESS) {
+				fclose(xmfile);
+				return err;
 			}
 		} else {
 			// fill up the instrument header with 0es
@@ -1150,4 +1179,103 @@ FormatTransportError XMTransport::save(const char *filename, Song *song)
 	ntxm_dprintf("song saved as :\"%s\"\n", filename);
 
 	return FormatTransportError::SUCCESS;
+}
+
+FormatTransportError XMTransport::loadInstrument(const char *filename,
+                                                 Instrument **_ins)
+{
+	*_ins = nullptr;
+
+	u32 filesize = ntxm_getFileSize(filename);
+	if (filesize == 0)
+		return FormatTransportError::FILE_ZERO_BYTE;
+
+	FILE *xifile = fopen(filename, "rb");
+	if (!xifile)
+		return FormatTransportError::FOPEN_FAIL;
+
+	char magicnumber[21] = {0};
+	fread(magicnumber, 1, 21, xifile);
+
+	if (memcmp(magicnumber, "Extended Instrument: ", 21) != 0) {
+		ntxm_dprintf("Not an XI file!\n");
+		fclose(xifile);
+		return FormatTransportError::MAGIC_NUMBER_INVALID;
+	}
+
+	char inst_name[23] = {0};
+	fread(inst_name, 1, 22, xifile);
+	spacesToZeroes(inst_name, 22);
+	fgetc(xifile);
+
+	char trackername[21] = {0};
+	fread(trackername, 1, 20, xifile);
+
+	u16 header_version;
+	fread(&header_version, 2, 1, xifile);
+	ntxm_dprintf("XI version %x\n", header_version);
+	if (header_version != 0x102) {
+		fclose(xifile);
+		return FormatTransportError::VERSION_UNSUPPORTED;
+	}
+
+	InstInfo instinfo;
+	readSharedInstInfo(&instinfo, xifile);
+	fseek(xifile, 15, SEEK_CUR);
+	fread(&instinfo.n_samples, 1, 2, xifile);
+
+	Instrument *instrument = new Instrument(inst_name);
+	if (instrument == 0) {
+		fclose(xifile);
+		ntxm_dprintf("memfull on line %d\n", __LINE__);
+		return FormatTransportError::MEM_FULL;
+	}
+
+	applyInstInfo(instinfo, instrument);
+
+	FormatTransportError err =
+	    readSamples(xifile, instrument, instinfo.n_samples);
+	if (err != FormatTransportError::SUCCESS) {
+		fclose(xifile);
+		delete instrument;
+		return err;
+	}
+
+	*_ins = instrument;
+	return FormatTransportError::SUCCESS;
+}
+
+FormatTransportError XMTransport::saveInstrument(const char *filename,
+                                                 Instrument *ins)
+{
+	FILE *xifile = fopen(filename, "wb");
+
+	if (!xifile)
+		return FormatTransportError::FOPEN_FAIL;
+
+	char magicnumber[22] = "Extended Instrument: ";
+	fwrite(magicnumber, 1, 21, xifile);
+
+	char inst_name[24] = {0};
+	strncpy(inst_name, ins->getName(), 22);
+	zeroesToSpaces(inst_name, 22);
+	fwrite(inst_name, 1, 23, xifile);
+
+	char trackername[21] = "NitrousTracker 0.7";
+	fwrite(trackername, 1, 20, xifile);
+
+	u16 header_version = 0x102;
+	fwrite(&header_version, 2, 1, xifile);
+
+	char reserved[15] = {0};
+	InstInfo instinfo;
+	extractInstInfo(instinfo, ins);
+	writeSharedInstInfo(&instinfo, xifile);
+	fwrite(reserved, 15, 1, xifile);
+	fwrite(&instinfo.n_samples, 2, 1, xifile);
+
+	FormatTransportError err =
+	    writeSamples(xifile, ins, instinfo.n_samples, false);
+	fclose(xifile);
+	return err;
 }

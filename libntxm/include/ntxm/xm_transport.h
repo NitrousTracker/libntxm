@@ -40,7 +40,7 @@
 
 struct InstInfo {
 	u32 inst_size;
-	char name[22];
+	char name[23];
 	u8 inst_type;
 	u16 n_samples;
 	u32 sample_header_size;
@@ -79,7 +79,13 @@ public:
 	// Saves a song to a file, returns 0 on success, an error code otherwise
 	FormatTransportError save(const char *filename, Song *song) override;
 
+	// Loads/saves an instrument from an .xi file.
+	FormatTransportError loadInstrument(const char *filename,
+	                                    Instrument **_ins);
+	FormatTransportError saveInstrument(const char *filename, Instrument *ins);
+
 private:
+	void extractInstInfo(struct InstInfo &instinfo, Instrument *instrument);
 };
 
 #endif
