@@ -34,7 +34,7 @@ ifeq ($(DEBUG),true)
 NAME		:= ntxm9d
 endif
 BUILDDIR	:= build/$(NAME)
-ARCHIVE		:= lib/lib$(NAME).a
+ARCHIVE		:= dist/nds/lib/lib$(NAME).a
 
 # Tools
 # -----

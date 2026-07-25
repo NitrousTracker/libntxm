@@ -32,7 +32,7 @@ ifeq ($(DEBUG),true)
 NAME		:= ntxm7d
 endif
 BUILDDIR	:= build/$(NAME)
-ARCHIVE		:= lib/lib$(NAME).a
+ARCHIVE		:= dist/nds/lib/lib$(NAME).a
 
 # Tools
 # -----

@@ -48,7 +48,8 @@ LIBDIRS	:=	$(CTRULIB)
 ifneq ($(BUILD),$(notdir $(CURDIR)))
 #---------------------------------------------------------------------------------
 
-export OUTPUT	:=	$(CURDIR)/lib/lib$(TARGET).a
+export DISTDIR	:=	$(CURDIR)/dist/n3ds
+export OUTPUT	:=	$(DISTDIR)/lib/lib$(TARGET).a
 
 export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
 			$(foreach dir,$(DATA),$(CURDIR)/$(dir))
@@ -81,15 +82,19 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 			$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
 			-I$(CURDIR)/$(BUILD)
 
-.PHONY: $(BUILD) clean all
+.PHONY: $(BUILD) clean all $(DISTDIR)/include
 
 #---------------------------------------------------------------------------------
 all: $(BUILD)
 
-lib:
+$(DISTDIR)/include:
+	@[ -d $@ ] || mkdir -p $@
+	@cp -aR $(CURDIR)/include/* $(DISTDIR)/include/
+
+$(DISTDIR)/lib:
 	@[ -d $@ ] || mkdir -p $@
 	
-$(BUILD): lib
+$(BUILD): $(DISTDIR)/include $(DISTDIR)/lib
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile.3ds
 
