@@ -483,7 +483,7 @@ static FormatTransportError writeSamples(FILE *xmfile, Instrument *instrument,
 				s8 last = 0, curr;
 				for (u32 i = 0; i < sample->getNSamples(); ++i) {
 					curr = sample_data[i] - last;
-					fwrite(&curr, 1, 2, xmfile);
+					fwrite(&curr, 1, 1, xmfile);
 					last = sample_data[i];
 				}
 				ntxm_dprintf("done\n");
