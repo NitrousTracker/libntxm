@@ -75,7 +75,7 @@ void CommandStopSample(int channel)
 	NtxmPlayerUnlock();
 }
 
-void CommandStartRecording(u16 *buffer, int length)
+void CommandStartRecording(int frequency, u16 *buffer, int length)
 {
 	ntxm_recording = true;
 }

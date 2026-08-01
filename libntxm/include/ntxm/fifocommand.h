@@ -66,6 +66,7 @@ struct StopSampleSoundCommand {
 /* Command parameters for starting to record from the microphone */
 struct StartRecordingCommand {
 	u8 type;
+	u16 frequency;
 	u16 *buffer;
 	int length;
 };
@@ -147,7 +148,7 @@ void CommandPlayOneShotSample(int channel, int frequency, const void *data,
 void CommandPlaySample(Sample *sample, u8 note, u8 volume, u8 channel);
 void CommandPlaySample(Sample *sample);
 void CommandStopSample(int channel);
-void CommandStartRecording(u16 *buffer, int length);
+void CommandStartRecording(int frequency, u16 *buffer, int length);
 int CommandStopRecording(void);
 void CommandSetSong(void *song);
 void CommandStartPlay(u8 potpos, u16 row, bool loop);

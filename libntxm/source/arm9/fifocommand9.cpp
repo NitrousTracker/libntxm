@@ -109,10 +109,11 @@ void CommandStopSample(int channel)
 	fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8 *)&command);
 }
 
-void CommandStartRecording(u16 *buffer, int length)
+void CommandStartRecording(int frequency, u16 *buffer, int length)
 {
 	StartRecordingCommand command;
 	command.type = START_RECORDING;
+	command.frequency = frequency;
 	command.buffer = buffer;
 	command.length = length;
 	fifoSendDatamsg(FIFO_NTXM, sizeof(command), (u8 *)&command);
