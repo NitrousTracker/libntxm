@@ -177,4 +177,8 @@ void CommandNotifyStop(void);
 void CommandSampleFinish(void);
 #endif
 
+#if !defined(NT_PLATFORM_NDS)
+void CommandSetPlaybackFrequency(u32 freq);
+#endif
+
 #endif /* FIFOCOMMAND_H_ */

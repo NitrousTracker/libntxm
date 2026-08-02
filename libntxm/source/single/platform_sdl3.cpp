@@ -36,8 +36,6 @@
 #include <SDL3/SDL.h>
 #include <cstdio>
 
-#define AUDIO_SAMPLE_RATE 32728
-
 extern Player *player;
 static SDL_Mutex *playerMutex;
 static SDL_AudioStream *audioStream;
@@ -72,13 +70,27 @@ void SDLCALL NtxmFetchAudio(void *userdata, SDL_AudioStream *stream,
 	}
 }
 
+void CommandSetPlaybackFrequency(u32 freq)
+{
+	NtxmPlayerLock();
+
+	ntxm_sound_set_playback_frequency(freq);
+	SDL_DestroyAudioStream(audioStream);
+	const SDL_AudioSpec spec = {SDL_AUDIO_S16, 2, (int)freq};
+	audioStream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
+	                                        &spec, NtxmFetchAudio, NULL);
+	SDL_ResumeAudioDevice(SDL_GetAudioStreamDevice(audioStream));
+
+	NtxmPlayerUnlock();
+}
+
 bool CommandInit()
 {
 	playerMutex = SDL_CreateMutex();
 	player = new Player(NULL);
 
-	ntxm_sound_set_playback_frequency(AUDIO_SAMPLE_RATE);
-	const SDL_AudioSpec spec = {SDL_AUDIO_S16, 2, AUDIO_SAMPLE_RATE};
+	ntxm_sound_set_playback_frequency(NTXMSOUND_SAMPLE_RATE_32K);
+	const SDL_AudioSpec spec = {SDL_AUDIO_S16, 2, NTXMSOUND_SAMPLE_RATE_32K};
 	audioStream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
 	                                        &spec, NtxmFetchAudio, NULL);
 	SDL_ResumeAudioDevice(SDL_GetAudioStreamDevice(audioStream));

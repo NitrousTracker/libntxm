@@ -39,7 +39,6 @@
 extern Player *player;
 static LightLock playerMutex;
 
-#define AUDIO_SAMPLE_RATE 32728
 #define AUDIO_BUFFER_SAMPLES 1024
 #define AUDIO_BUFFER_SIZE (AUDIO_BUFFER_SAMPLES * 4)
 
@@ -76,6 +75,11 @@ static void NtxmNdspCallback(void *userdata)
 	}
 }
 
+void CommandSetPlaybackFrequency(u32 freq)
+{
+	// FIXME: No-op.
+}
+
 bool CommandInit()
 {
 	audioBuffer = (uint32_t *)linearAlloc(AUDIO_BUFFER_SIZE * 2);
@@ -85,7 +89,7 @@ bool CommandInit()
 	ndspInit();
 	ndspSetOutputMode(NDSP_OUTPUT_STEREO);
 	ndspChnSetInterp(0, NDSP_INTERP_NONE);
-	ndspChnSetRate(0, AUDIO_SAMPLE_RATE);
+	ndspChnSetRate(0, NTXMSOUND_SAMPLE_RATE_32K);
 	ndspChnSetFormat(0, NDSP_FORMAT_STEREO_PCM16);
 	ndspSetCallback(NtxmNdspCallback, nullptr);
 
@@ -106,7 +110,7 @@ bool CommandInit()
 	ndspChnWaveBufAdd(0, &ndspAudioBuffer[0]);
 	ndspChnWaveBufAdd(0, &ndspAudioBuffer[1]);
 
-	ntxm_sound_set_playback_frequency(AUDIO_SAMPLE_RATE);
+	ntxm_sound_set_playback_frequency(NTXMSOUND_SAMPLE_RATE_32K);
 	ndspNextBlock = 0;
 
 	LightLock_Init(&playerMutex);

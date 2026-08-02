@@ -29,6 +29,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#define NTXMSOUND_SAMPLE_RATE_32K 32728
+#define NTXMSOUND_SAMPLE_RATE_47K 47605
+
 #if defined(NT_PLATFORM_NDS)
 #define NTXMSOUND_FORMAT_ADPCM (2 << 29)
 #define NTXMSOUND_FORMAT_16BIT (1 << 29)
